@@ -177,7 +177,7 @@ SET(FemConstraints_SRCS
     FemConstraintContact.h
     FemConstraintTransform.cpp
     FemConstraintTransform.h
-)
+    )
 SOURCE_GROUP("Constraints" FILES ${FemConstraints_SRCS})
 
 
@@ -203,13 +203,6 @@ find_package(OpenMP)
 if(OpenMP_CXX_FOUND)
 	target_link_libraries(Fem OpenMP::OpenMP_CXX)
 endif()
-
-# external SMESH doesn't support C++17 yet
-if(FREECAD_USE_EXTERNAL_SMESH)
-    set_target_properties(Fem PROPERTIES CXX_STANDARD_REQUIRED ON)
-    set_target_properties(Fem PROPERTIES CXX_STANDARD 14)
-endif()
-
 
 SET_BIN_DIR(Fem Fem /Mod/Fem)
 SET_PYTHON_PREFIX_SUFFIX(Fem)
