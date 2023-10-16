@@ -1,0 +1,77 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 14,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "common",
+      "hidden": true,
+      "cacheVariables": {
+        "FREECAD_USE_PYBIND11:BOOL": "ON"
+      }
+    },
+    {
+      "name": "debug",
+      "displayName": "Debug",
+      "description": "Default debug profile",
+      "binaryDir": "${sourceDir}/build/debug",
+      "inherits": [
+        "common"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "release",
+      "displayName": "Release",
+      "description": "Default release profile",
+      "binaryDir": "${sourceDir}/build/release",
+      "inherits": [
+        "common"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "conda",
+      "hidden": true,
+      "cmakeExecutable": "${sourceDir}/.conda/freecad/bin/cmake",
+      "cacheVariables": {
+        "BUILD_WITH_CONDA": {
+          "type": "BOOL",
+          "value": "ON"
+        },
+        "FREECAD_USE_EXTERNAL_SMESH": {
+          "type": "BOOL",
+          "value": "ON"
+        }
+      },
+      "generator": "Ninja"
+    },
+    {
+      "name": "conda-debug",
+      "displayName": "Conda Debug (MacOS)",
+      "description": "Conda debug profile for MacOS",
+      "toolchainFile": "cMake/toolchains/conda-macos.cmake",
+      "inherits": [
+        "debug",
+        "conda"
+      ]
+    },
+    {
+      "name": "conda-release",
+      "displayName": "Conda Release (MacOS)",
+      "description": "Conda release profile for MacOS",
+      "toolchainFile": "cMake/toolchains/conda-macos.cmake",
+      "inherits": [
+        "release",
+        "conda"
+      ]
+    }
+  ]
+}

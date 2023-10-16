@@ -1,0 +1,33 @@
+SET(CONDA_PREFIX "${CMAKE_SOURCE_DIR}/.conda/freecad" CACHE STRING "" FORCE)
+
+SET(ENV{CC} "${CMAKE_SOURCE_DIR}/.conda/freecad/bin/clang")
+SET(ENV{CFLAGS} "-ftree-vectorize -fPIC -fPIE -fstack-protector-strong -O2 -pipe -isystem ${CMAKE_SOURCE_DIR}/.conda/freecad/include")
+SET(ENV{CXX} "${CMAKE_SOURCE_DIR}/.conda/freecad/bin/clang++")
+SET(ENV{CXXFLAGS} "-ftree-vectorize -fPIC -fPIE -fstack-protector-strong -O2 -pipe -stdlib=libc++ -fvisibility-inlines-hidden -fmessage-length=0 -isystem ${CMAKE_SOURCE_DIR}/.conda/freecad/include")
+SET(ENV{LDFLAGS} "-Wl,-pie -Wl,-headerpad_max_install_names -Wl,-dead_strip_dylibs -Wl,-rpath,${CMAKE_SOURCE_DIR}/.conda/freecad/lib -L${CMAKE_SOURCE_DIR}/.conda/freecad/lib")
+SET(ENV{PATH} "${CMAKE_SOURCE_DIR}/.conda/freecad/bin:$ENV{PATH}")
+
+SET(CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/.conda/freecad" CACHE STRING "" FORCE)
+SET(CMAKE_C_COMPILER "${CMAKE_SOURCE_DIR}/.conda/freecad/bin/clang" CACHE STRING "" FORCE)
+SET(CMAKE_C_FLAGS "-ftree-vectorize -fPIC -fPIE -fstack-protector-strong -O2 -pipe -isystem ${CMAKE_SOURCE_DIR}/.conda/freecad/include" CACHE STRING "" FORCE)
+SET(CMAKE_CPPFLAGS "-D_FORTIFY_SOURCE=2 -isystem ${CMAKE_SOURCE_DIR}/.conda/freecad/include" CACHE STRING "" FORCE)
+
+SET(CMAKE_CXX_COMPILER "${CMAKE_SOURCE_DIR}/.conda/freecad/bin/clang++" CACHE STRING "" FORCE)
+SET(CMAKE_CXX_FLAGS "-ftree-vectorize -fPIC -fPIE -fstack-protector-strong -O2 -pipe -stdlib=libc++ -fvisibility-inlines-hidden -fmessage-length=0 -isystem ${CMAKE_SOURCE_DIR}/.conda/freecad/include" CACHE STRING "" FORCE)
+SET(CMAKE_LD_FLAGS "-Wl,-pie -Wl,-headerpad_max_install_names -Wl,-dead_strip_dylibs -Wl,-rpath,${CMAKE_SOURCE_DIR}/.conda/freecad/lib -L${CMAKE_SOURCE_DIR}/.conda/freecad/lib" CACHE STRING "" FORCE)
+SET(CMAKE_LDFLAGS_LD "-pie -headerpad_max_install_names -dead_strip_dylibs -rpath ${CMAKE_SOURCE_DIR}/.conda/freecad/lib -L${CMAKE_SOURCE_DIR}/.conda/freecad/lib" CACHE STRING "" FORCE)
+
+SET(CMAKE_AR "${CMAKE_SOURCE_DIR}/.conda/freecad/bin/ar" CACHE STRING "" FORCE)
+SET(CMAKE_C_COMPILER_AR "${CMAKE_SOURCE_DIR}/.conda/freecad/bin/ar" CACHE STRING "" FORCE)
+SET(CMAKE_C_COMPILER_RANLIB "${CMAKE_SOURCE_DIR}/.conda/freecad/bin/ranlib" CACHE STRING "" FORCE)
+SET(CMAKE_CXX_COMPILER_AR "${CMAKE_SOURCE_DIR}/.conda/freecad/bin/ar" CACHE STRING "" FORCE)
+SET(CMAKE_CXX_COMPILER_RANLIB "${CMAKE_SOURCE_DIR}/.conda/freecad/bin/ranlib" CACHE STRING "" FORCE)
+SET(CMAKE_INSTALL_NAME_TOOL "${CMAKE_SOURCE_DIR}/.conda/freecad/bin/install_name_tool" CACHE STRING "" FORCE)
+SET(CMAKE_LIBTOOL "${CMAKE_SOURCE_DIR}/.conda/freecad/bin/libtool" CACHE STRING "" FORCE)
+SET(CMAKE_LINKER "${CMAKE_SOURCE_DIR}/.conda/freecad/bin/ld" CACHE STRING "" FORCE)
+SET(CMAKE_OSX_SYSROOT "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk" CACHE STRING "" FORCE)
+SET(CMAKE_RANLIB "${CMAKE_SOURCE_DIR}/.conda/freecad/bin/ranlib" CACHE STRING "" FORCE)
+SET(CMAKE_STRIP "${CMAKE_SOURCE_DIR}/.conda/freecad/bin/strip" CACHE STRING "" FORCE)
+
+SET(Python3_ROOT_DIR "${CMAKE_SOURCE_DIR}/.conda/freecad")
+SET(Python3_EXECUTABLE "${CMAKE_SOURCE_DIR}/.conda/freecad/bin/python")
