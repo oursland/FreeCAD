@@ -9,6 +9,13 @@
       "group": "build"
     },
     {
+      "type": "shell",
+      "label": "FreeCAD: setup conda environment",
+      "command": "conda/setup-environment.sh",
+      "group": "none",
+      "problemMatcher": [],
+    },
+    {
       "type": "cmake",
       "label": "CMake: configure",
       "command": "configure",

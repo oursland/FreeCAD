@@ -1,5 +1,6 @@
 {
   "version": 6,
+  "include": [".conda/conda-env.json"],
   "cmakeMinimumRequired": {
     "major": 3,
     "minor": 14,
@@ -10,7 +11,10 @@
       "name": "common",
       "hidden": true,
       "cacheVariables": {
-        "FREECAD_USE_PYBIND11:BOOL": "ON"
+        "FREECAD_USE_PYBIND11": {
+          "type": "BOOL",
+          "value": "ON"
+        }
       }
     },
     {
@@ -40,13 +44,10 @@
     {
       "name": "conda",
       "hidden": true,
+      "inherits": ["conda-env"],
       "cmakeExecutable": "${sourceDir}/.conda/freecad/bin/cmake",
       "cacheVariables": {
         "BUILD_WITH_CONDA": {
-          "type": "BOOL",
-          "value": "ON"
-        },
-        "FREECAD_USE_EXTERNAL_SMESH": {
           "type": "BOOL",
           "value": "ON"
         }
@@ -55,9 +56,8 @@
     },
     {
       "name": "conda-debug",
-      "displayName": "Conda Debug (MacOS)",
-      "description": "Conda debug profile for MacOS",
-      "toolchainFile": "cMake/toolchains/conda-macos.cmake",
+      "displayName": "Conda Debug",
+      "description": "Conda debug profile",
       "inherits": [
         "debug",
         "conda"
@@ -65,9 +65,8 @@
     },
     {
       "name": "conda-release",
-      "displayName": "Conda Release (MacOS)",
-      "description": "Conda release profile for MacOS",
-      "toolchainFile": "cMake/toolchains/conda-macos.cmake",
+      "displayName": "Conda Release",
+      "description": "Conda release profile",
       "inherits": [
         "release",
         "conda"
