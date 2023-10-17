@@ -3,6 +3,8 @@
 # for further info why
 cmake_minimum_required(VERSION 3.16.3 FATAL_ERROR)
 
+execute_process(COMMAND "${CMAKE_COMMAND}" "-E" "environment")
+
 # policy CMP0072 was introduced with CMake 3.11
 # relates to FindOpenGL module
 # and cache variables OPENGL_gl_LIBRARY, OPENGL_glu_LIBRARY
@@ -107,6 +109,8 @@ if(MSVC AND FREECAD_LIBPACK_USE AND LIBPACK_FOUND)
 endif()
 
 if (ENABLE_DEVELOPER_TESTS)
+    include(CTest)
+    enable_testing()
     add_subdirectory(tests)
 endif()
 
