@@ -1,6 +1,5 @@
 {
   "version": 6,
-  "include": [".conda/conda-env.json"],
   "cmakeMinimumRequired": {
     "major": 3,
     "minor": 14,
@@ -26,7 +25,10 @@
         "common"
       ],
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
+        "CMAKE_BUILD_TYPE": {
+          "type": "STRING",
+          "value": "Debug"
+        }
       }
     },
     {
@@ -38,16 +40,26 @@
         "common"
       ],
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
+        "CMAKE_BUILD_TYPE": {
+          "type": "STRING",
+          "value": "Release"
+        }
       }
     },
     {
       "name": "conda",
       "hidden": true,
-      "inherits": ["conda-env"],
-      "cmakeExecutable": "${sourceDir}/.conda/freecad/bin/cmake",
+      "cmakeExecutable": "${sourceDir}/conda/cmake.sh",
       "cacheVariables": {
         "BUILD_WITH_CONDA": {
+          "type": "BOOL",
+          "value": "ON"
+        },
+        "BUILD_FEM_NETGEN": {
+          "type": "BOOL",
+          "value": "ON"
+        },
+        "FREECAD_USE_EXTERNAL_SMESH": {
           "type": "BOOL",
           "value": "ON"
         }
