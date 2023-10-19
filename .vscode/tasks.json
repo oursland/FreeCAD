@@ -3,7 +3,7 @@
     {
       "type": "shell",
       "label": "FreeCAD: setup conda environment",
-      "command": "conda/setup-environment.sh",
+      "command": "conda/setup-environment.cmd",
       "group": "none",
       "problemMatcher": [],
     }
