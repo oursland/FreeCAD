@@ -1,3 +1,3 @@
 #!/bin/sh
 
-conda run -n freecad cmake $@
+mamba run --live-stream -n freecad cmake $@

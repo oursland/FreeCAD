@@ -3,7 +3,15 @@
     {
       "type": "shell",
       "label": "FreeCAD: setup conda environment",
-      "command": "conda/setup-environment.cmd",
+      "linux": {
+        "command": "conda/setup-environment.sh",
+      },
+      "osx": {
+        "command": "conda/setup-environment.sh",
+      },
+      "windows": {
+        "command": "conda/setup-environment.cmd",
+      },
       "group": "none",
       "problemMatcher": [],
     }

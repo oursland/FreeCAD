@@ -49,7 +49,7 @@
     {
       "name": "conda",
       "hidden": true,
-      "cmakeExecutable": "${sourceDir}/conda/cmake.cmd",
+      "generator": "Ninja",
       "cacheVariables": {
         "Boost_NO_BOOST_CMAKE": {
           "type": "BOOL",
@@ -70,6 +70,10 @@
         "BUILD_REVERSEENGINEERING": {
           "type": "BOOL",
           "value": "ON"
+        },
+        "BUILD_SHIP": {
+          "type": "BOOL",
+          "value": "OFF"
         },
         "BUILD_WITH_CONDA": {
           "type": "BOOL",
@@ -97,9 +101,13 @@
         },
         "FREECAD_USE_PCH": {
           "type": "BOOL",
-          "value": "ON"
+          "value": "OFF"
         },
         "FREECAD_USE_PCL": {
+          "type": "BOOL",
+          "value": "ON"
+        },
+        "OCCT_CMAKE_FALLBACK": {
           "type": "BOOL",
           "value": "ON"
         },
@@ -107,11 +115,119 @@
           "type": "BOOL",
           "value": "OFF"
         }
+      }
+    },
+    {
+      "name": "conda-linux",
+      "hidden": true,
+      "condition": {
+          "type": "equals",
+          "lhs": "${hostSystemName}",
+          "rhs": "Linux"
       },
-      "generator": "Ninja"
+      "cmakeExecutable": "${sourceDir}/conda/cmake.sh",
+      "cacheVariables": {
+        "CMAKE_INCLUDE_PATH": {
+          "type": "FILEPATH",
+          "value": "${sourceDir}/.conda/freecad/include"
+        },
+        "CMAKE_INSTALL_LIBDIR": {
+          "type": "FILEPATH",
+          "value": "${sourceDir}/.conda/freecad/lib"
+        },
+        "CMAKE_INSTALL_PREFIX": {
+          "type": "FILEPATH",
+          "value": "${sourceDir}/.conda/freecad"
+        },
+        "CMAKE_LIBRARY_PATH":{
+          "type": "FILEPATH",
+          "value": "${sourceDir}/.conda/freecad/lib"
+        },
+        "CMAKE_PREFIX_PATH": {
+          "type": "FILEPATH",
+          "value": "${sourceDir}/.conda/freecad"
+        },
+        "OCC_INCLUDE_DIR": {
+          "type": "FILEPATH",
+          "value": "${sourceDir}/.conda/freecad/include/opencascade"
+        }
+      }
+    },
+    {
+      "name": "conda-macos",
+      "hidden": true,
+      "condition": {
+          "type": "equals",
+          "lhs": "${hostSystemName}",
+          "rhs": "Darwin"
+      },
+      "cmakeExecutable": "${sourceDir}/conda/cmake.sh",
+      "cacheVariables": {
+        "CMAKE_INCLUDE_PATH": {
+          "type": "FILEPATH",
+          "value": "${sourceDir}/.conda/freecad/include"
+        },
+        "CMAKE_INSTALL_LIBDIR": {
+          "type": "FILEPATH",
+          "value": "${sourceDir}/.conda/freecad/lib"
+        },
+        "CMAKE_INSTALL_PREFIX": {
+          "type": "FILEPATH",
+          "value": "${sourceDir}/.conda/freecad"
+        },
+        "CMAKE_LIBRARY_PATH":{
+          "type": "FILEPATH",
+          "value": "${sourceDir}/.conda/freecad/lib"
+        },
+        "CMAKE_PREFIX_PATH": {
+          "type": "FILEPATH",
+          "value": "${sourceDir}/.conda/freecad"
+        },
+        "OCC_INCLUDE_DIR": {
+          "type": "FILEPATH",
+          "value": "${sourceDir}/.conda/freecad/include/opencascade"
+        }
+      }
+    },
+    {
+      "name": "conda-windows",
+      "hidden": true,
+      "condition": {
+          "type": "equals",
+          "lhs": "${hostSystemName}",
+          "rhs": "Windows"
+      },
+      "cmakeExecutable": "${sourceDir}/conda/cmake.cmd",
+      "cacheVariables": {
+        "CMAKE_INCLUDE_PATH": {
+          "type": "FILEPATH",
+          "value": "${sourceDir}/.conda/freecad/Library/include"
+        },
+        "CMAKE_INSTALL_LIBDIR": {
+          "type": "FILEPATH",
+          "value": "${sourceDir}/.conda/freecad/Library/lib"
+        },
+        "CMAKE_INSTALL_PREFIX": {
+          "type": "FILEPATH",
+          "value": "${sourceDir}/.conda/freecad/Library"
+        },
+        "CMAKE_LIBRARY_PATH":{
+          "type": "FILEPATH",
+          "value": "${sourceDir}/.conda/freecad/Library/lib"
+        },
+        "CMAKE_PREFIX_PATH": {
+          "type": "FILEPATH",
+          "value": "${sourceDir}/.conda/freecad/Library"
+        },
+        "OCC_INCLUDE_DIR": {
+          "type": "FILEPATH",
+          "value": "${sourceDir}/.conda/freecad/Library/include/opencascade"
+        }
+      }
     },
     {
       "name": "conda-debug",
+      "hidden": true,
       "displayName": "Conda Debug",
       "description": "Conda debug profile",
       "inherits": [
@@ -121,11 +237,72 @@
     },
     {
       "name": "conda-release",
+      "hidden": true,
       "displayName": "Conda Release",
       "description": "Conda release profile",
       "inherits": [
         "release",
         "conda"
+      ]
+    },
+    {
+      "name": "conda-linux-debug",
+      "displayName": "Conda Debug",
+      "description": "Conda debug profile",
+      "inherits": [
+        "conda",
+        "conda-linux",
+        "debug"
+      ]
+    },
+    {
+      "name": "conda-linux-release",
+      "displayName": "Conda Release",
+      "description": "Conda release profile",
+      "inherits": [
+        "conda",
+        "conda-linux",
+        "release"
+      ]
+    },
+    {
+      "name": "conda-macos-debug",
+      "displayName": "Conda Debug",
+      "description": "Conda debug profile",
+      "inherits": [
+        "conda",
+        "conda-macos",
+        "debug"
+      ]
+    },
+    {
+      "name": "conda-macos-release",
+      "displayName": "Conda Release",
+      "description": "Conda release profile",
+      "inherits": [
+        "conda",
+        "conda-macos",
+        "release"
+      ]
+    },
+    {
+      "name": "conda-windows-debug",
+      "displayName": "Conda Debug",
+      "description": "Conda debug profile",
+      "inherits": [
+        "conda",
+        "conda-windows",
+        "debug"
+      ]
+    },
+    {
+      "name": "conda-windows-release",
+      "displayName": "Conda Release",
+      "description": "Conda release profile",
+      "inherits": [
+        "conda",
+        "conda-windows",
+        "release"
       ]
     }
   ]
