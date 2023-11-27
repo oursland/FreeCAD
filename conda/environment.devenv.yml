@@ -81,7 +81,7 @@ dependencies:
 - openssl
 - pcl
 - pip
-- pivy
+- pivy==4.0.0
 - pkg-config
 - ply
 - pre-commit
