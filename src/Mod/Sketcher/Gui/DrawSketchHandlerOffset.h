@@ -29,8 +29,8 @@
 #include <BRep_Tool.hxx>
 #include <BRepAdaptor_Curve.hxx>
 #include <BRepClass_FaceClassifier.hxx>
-#include <Mod/Part/App/BRepOffsetAPI_MakeOffsetFix.h>
 #include <BRepBuilderAPI_Copy.hxx>
+#include <BRepOffsetAPI_MakeOffset.hxx>
 #include <BRepBuilderAPI_MakeWire.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepBuilderAPI_MakeVertex.hxx>
@@ -213,7 +213,10 @@ private:
         short joinType =
             constructionMethod() == DrawSketchHandlerOffset::ConstructionMethod::Arc ? 0 : 2;
 
-        Part::BRepOffsetAPI_MakeOffsetFix mkOffset(GeomAbs_JoinType(joinType), allowOpenResult);
+        TopoDS_Face workingPlane = BRepBuilderAPI_MakeFace(gp_Pln(gp::Origin(), gp::DZ()));
+        BRepOffsetAPI_MakeOffset mkOffset(workingPlane);
+        mkOffset.Init(GeomAbs_JoinType(joinType), allowOpenResult);
+
         for (TopoDS_Wire& wire : sourceWires) {
             mkOffset.AddWire(wire);
         }
@@ -899,7 +902,6 @@ private:
         vCC = generatevCC(listOfGeoIds);
 
         SketchObject* Obj = sketchgui->getSketchObject();
-
         for (auto& CC : vCC) {
             BRepBuilderAPI_MakeWire mkWire;
             for (auto& curve : CC) {
