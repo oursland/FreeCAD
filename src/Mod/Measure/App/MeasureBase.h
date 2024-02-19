@@ -83,14 +83,14 @@ protected:
 using MeasurePython = App::FeaturePythonT<MeasureBase>;
 
 template <typename T>
-class MeasureExport MeasureBaseExtendable : public MeasureBase
+class MeasureBaseExtendable : public MeasureBase
 {
 
     using GeometryHandler = std::function<T (std::string*, std::string*)>;
     using HandlerMap = std::map<std::string, GeometryHandler>;
 
 
-public: 
+public:
 
     static void addGeometryHandler(const std::string& module, GeometryHandler callback) {
         _mGeometryHandlers[module] = callback;
