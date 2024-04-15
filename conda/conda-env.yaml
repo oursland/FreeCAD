@@ -3,5 +3,5 @@ channels:
 - conda-forge
 dependencies:
 - conda-devenv
-- mamba
+- mamba==1.5.7
 - python==3.11.*
