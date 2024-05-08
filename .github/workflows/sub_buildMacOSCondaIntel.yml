@@ -74,7 +74,7 @@ jobs:
       - name: Setup Miniconda
         env:
           CONDA_VERBOSITY: 2
-        uses: conda-incubator/setup-miniconda@v3
+        uses: mamba-org/setup-micromamba@v1
         with:
           activate-environment: .conda/freecad
           environment-file: conda/conda-env.yaml
