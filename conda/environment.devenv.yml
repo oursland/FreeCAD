@@ -105,4 +105,4 @@ dependencies:
 - xerces-c
 - yaml-cpp
 - zlib
-- zstd==1.5.6
+- zstd
