@@ -1,6 +1,10 @@
 name: freecad
 channels:
 - conda-forge
+platforms:
+- win-64
+- linux-64
+- osx-64
 dependencies:
 - libspnav                             # [linux]
 - kernel-headers_linux-64              # [linux and x86_64]
@@ -64,6 +68,7 @@ dependencies:
 - compilers
 - conda
 - conda-devenv
+- conda-lock
 - debugpy
 - doxygen
 - eigen

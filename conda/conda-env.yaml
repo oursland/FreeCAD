@@ -3,6 +3,7 @@ channels:
 - conda-forge
 dependencies:
 - conda-devenv
+- conda-lock
 - mamba
 - python==3.11.*
 - zstd==1.5.6
