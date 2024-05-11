@@ -70,7 +70,8 @@ jobs:
         uses: conda-incubator/setup-miniconda@v3
         with:
           activate-environment: .conda/freecad
-          environment-file: conda/conda-env.yaml
+          auto-update-conda: false
+          environment-file: conda/.freecad.win-64.conda-lock.yml
           channels: conda-forge,defaults
           channel-priority: true
           miniforge-version: latest
