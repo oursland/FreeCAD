@@ -78,7 +78,7 @@ jobs:
         with:
           activate-environment: .conda/freecad
           auto-update-conda: false
-          environment-file: conda/freecad.osx-64.conda-lock.yml
+          environment-file: conda/freecad.osx-arm64.conda-lock.yml
           channels: conda-forge,defaults
           channel-priority: true
           miniforge-version: latest
