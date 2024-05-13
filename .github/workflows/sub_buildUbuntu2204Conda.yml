@@ -80,11 +80,6 @@ jobs:
           channels: conda-forge,defaults
           channel-priority: true
           miniforge-version: latest
-      - name: Install FreeCAD dependencies
-        env:
-          CONDA_VERBOSITY: 2
-        run: |
-          ./conda/setup-environment.sh
       - name: Set Environment Variables
         run: |
           echo "CC=$CC" >> "$GITHUB_ENV"
