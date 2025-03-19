@@ -39,23 +39,29 @@ jobs:
     with:
       artifactBasename: Prepare-${{ github.run_id }}
 
-  Pixi:
+  Forge:
     needs: [Prepare]
-    uses: ./.github/workflows/sub_buildPixi.yml
+    uses: ./.github/workflows/sub_forge.yml
     with:
-      artifactBasename: Pixi-${{ github.run_id }}
+      artifactBasename: Forge-${{ github.run_id }}
 
-  Ubuntu:
-    needs: [Prepare]
-    uses: ./.github/workflows/sub_buildUbuntu.yml
-    with:
-      artifactBasename: Ubuntu-${{ github.run_id }}
+  # Pixi:
+  #   needs: [Prepare]
+  #   uses: ./.github/workflows/sub_buildPixi.yml
+  #   with:
+  #     artifactBasename: Pixi-${{ github.run_id }}
 
-  Windows:
-    needs: [Prepare]
-    uses: ./.github/workflows/sub_buildWindows.yml
-    with:
-      artifactBasename: Windows-${{ github.run_id }}
+  # Ubuntu:
+  #   needs: [Prepare]
+  #   uses: ./.github/workflows/sub_buildUbuntu.yml
+  #   with:
+  #     artifactBasename: Ubuntu-${{ github.run_id }}
+
+  # Windows:
+  #   needs: [Prepare]
+  #   uses: ./.github/workflows/sub_buildWindows.yml
+  #   with:
+  #     artifactBasename: Windows-${{ github.run_id }}
 
   Lint:
     needs: [Prepare]

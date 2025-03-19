@@ -1,0 +1,135 @@
+context:
+  version: "1.1dev"
+
+package:
+  name: FreeCAD
+  version: "${{ version }}"
+
+source:
+  path: .
+  use_gitignore: true
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - blas
+    - calculix
+    - ccache
+    - cmake
+    - coin3d
+    - compilers
+    - debugpy
+    - docutils
+    - doxygen
+    - eigen
+    - fmt
+    - freetype
+    - git
+    - gmsh
+    - graphviz
+    - hdf5
+    - ifcopenshell
+    - jinja2
+    - libboost-devel
+    - lxml
+    - matplotlib
+    - nine
+    - ninja
+    - noqt5
+    - numpy
+    - occt
+    - olefile
+    - opencamlib
+    - opencv
+    - openssl
+    - pandas
+    - pcl
+    - pip
+    - pivy
+    - ply
+    - pybind11
+    - pycollada 
+    - pyside6
+    - python
+    - pythonocc-core
+    - pyyaml
+    - qt6-main
+    - requests
+    - scipy
+    - six
+    - smesh
+    - swig
+    - vtk
+    - xerces-c
+    - xlutils
+    - yaml-cpp
+    - zlib
+
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+
+    - if: linux
+      then:
+        - ${{ cdt('mesa-libgl-devel') }}
+        - ${{ cdt('mesa-dri-drivers') }}
+        - ${{ cdt('mesa-libegl-devel') }}
+        - ${{ cdt('libselinux') }}
+        - ${{ cdt('libxdamage') }}
+        - ${{ cdt('libxfixes') }}
+        - ${{ cdt('libxxf86vm') }}
+        - ${{ cdt('libxcb') }}
+        - ${{ cdt('libxext') }}
+        - ${{ cdt('xorg-x11-server-xvfb') }}
+        - ${{ cdt('libxau') }}
+        - ${{ cdt('libxi-devel') }}
+
+    - if: unix
+      then:
+        - sed
+
+    - if: osx
+      then:
+        - blas * accelerate*
+        - dmgbuild
+
+  run:
+    - ${{ pin_compatible('occt', upper_bound='x.x.x') }}
+    - ${{ pin_compatible('smesh', upper_bound='x.x.x') }}
+    - calculix
+    - coin3d
+    - debugpy
+    - freetype
+    - gmsh
+    - graphviz
+    - hdf5
+    - ifcopenshell
+    - matplotlib
+    - numpy
+    - pcl
+    - pip
+    - pivy
+    - ply
+    - pycollada 
+    - pythonocc-core
+    - pyside6
+    - python
+    - pyyaml
+    - qt6-main
+    - requests
+    - six
+    - smesh
+    - vtk
+    - xerces-c
+    - zlib
+
+    - if: linux
+      then:
+        - libspnav
+
+    - if: osx
+      then:
+        - blas * accelerate*
