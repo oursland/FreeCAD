@@ -8,31 +8,133 @@ preview = ["pixi-build"]
 
 [package]
 name = "FreeCAD"
-version = "1.0.0"
+version = "1.1.0"
 description = "pixi instructions for FreeCAD"
 authors = ["looooo <sppedflyer@gmail.com>"]
 
 [package.build]
-backend = { name = "pixi-build-rattler-build", version = "*" } 
+backend = { name = "pixi-build-cmake", version = "*" } 
 [package.build.configuration]
 extra-args = [
-    "-DCMAKE_BUILD_TYPE=Release",
     "-DCMAKE_IGNORE_PREFIX_PATH='/opt/homebrew;/usr/local/homebrew'",
-    "-DFREECAD_QT_VERSION=6",
     "-DBUILD_FEM_NETGEN=ON",
+    "-DBUILD_REVERSEENGINEERING=OFF",
     "-DBUILD_WITH_CONDA=ON",
     "-DENABLE_DEVELOPER_TESTS=ON",
     "-DFREECAD_LIBPACK_USE=OFF",
+    "-DFREECAD_QT_VERSION=6",
     "-DFREECAD_USE_EXTERNAL_FMT=ON",
     "-DFREECAD_USE_EXTERNAL_SMESH=ON",
     "-DFREECAD_USE_PCH=OFF",
     "-DFREECAD_USE_PCL=ON",
     "-DFREECAD_USE_PYBIND11=ON",
-    "-DOCC_INCLUDE_DIR=$PREFIX/include/opencascade",
-    "-DQT_HOST_PATH=$PREFIX",
+    "-DOCC_INCLUDE_DIR=$BUILD_PREFIX/include/opencascade",
     "-DOCCT_CMAKE_FALLBACK=ON",
-    "-DBUILD_REVERSEENGINEERING=OFF",
-] 
+    "-DPYTHON_EXECUTABLE:FILEPATH=$BUILD_PREFIX/bin/python",
+    "-DPython3_EXECUTABLE:FILEPATH=$BUILD_PREFIX/bin/python",
+    "-DQT_HOST_PATH=$BUILD_PREFIX",
+]
+
+[package.build-dependencies]
+blas = "*"
+calculix = "*"
+ccache = "*"
+cmake = "*"
+coin3d = "*"
+compilers = "*"
+debugpy = "*"
+docutils = "*"
+doxygen = "*"
+eigen = "*"
+fmt = "*"
+freetype = "*"
+git = "*"
+gmsh = "*"
+graphviz = "*"
+hdf5 = "*"
+# ifcopenshell = "*"
+jinja2 = "*"
+libboost-devel = "*"
+lxml = "*"
+matplotlib = "*"
+nine = "*"
+ninja = "*"
+noqt5 = "*"
+numpy = "*"
+occt = "*"
+olefile = "*"
+opencamlib = "*"
+opencv = "*"
+openssl = "*"
+pandas = "*"
+pcl = "*"
+pip = "*"
+pivy = "*"
+ply = "*"
+pre-commit = "*"
+pybind11 = "*"
+pycollada = "*" 
+pyside6 = "*"
+python = ">=3.13"
+# pythonocc-core = "*"
+pyyaml = "*"
+qt6-main = "*"
+rattler-build = "*"
+requests = "*"
+scipy = "*"
+six = "*"
+smesh = "*"
+swig = "*"
+vtk = "*"
+xerces-c = "*"
+xlutils = "*"
+yaml-cpp = "*"
+zlib = "*"
+
+[package.run-dependencies]
+calculix = "*"
+coin3d = "*"
+debugpy = "*"
+freetype = "*"
+git = "*"
+gmsh = "*"
+graphviz = "*"
+hdf5 = "*"
+# ifcopenshell = "*"
+jinja2 = "*"
+lxml = "*"
+matplotlib = "*"
+nine = "*"
+noqt5 = "*"
+numpy = "*"
+occt = "*"
+olefile = "*"
+opencamlib = "*"
+opencv = "*"
+openssl = "*"
+pandas = "*"
+pcl = "*"
+pip = "*"
+pivy = "*"
+ply = "*"
+pycollada = "*" 
+pyside6 = "*"
+python = ">=3.13"
+# pythonocc-core = "*"
+pyyaml = "*"
+qt6-main = "*"
+requests = "*"
+scipy = "*"
+smesh = "*"
+vtk = "*"
+xerces-c = "*"
+xlutils = "*"
+yaml-cpp = "*"
+zlib = "*"
+
+# [environments]
+# default = ["default"]
+# package = ["package"]
 
 [dependencies]
 blas = "*"
@@ -51,7 +153,7 @@ git = "*"
 gmsh = "*"
 graphviz = "*"
 hdf5 = "*"
-ifcopenshell = "*"
+# ifcopenshell = "*"
 jinja2 = "*"
 libboost-devel = "*"
 lxml = "*"
@@ -75,8 +177,8 @@ pre-commit = "*"
 pybind11 = "*"
 pycollada = "*" 
 pyside6 = "*"
-python = "*"
-pythonocc-core = "*"
+python = ">=3.13"
+# pythonocc-core = "*"
 pyyaml = "*"
 qt6-main = "*"
 rattler-build = "*"

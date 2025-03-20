@@ -14,10 +14,10 @@ jobs:
     strategy:
       matrix:
         include:
-          # - { target: linux-64, os: ubuntu-22.04 }
-          # - { target: win-64, os: windows-latest }
-          # # force older macos-13 to get x86_64 runners
-          # - { target: osx-64, os: macos-13 }
+          - { target: linux-64, os: ubuntu-22.04 }
+          - { target: win-64, os: windows-latest }
+          # force older macos-13 to get x86_64 runners
+          - { target: osx-64, os: macos-13 }
           - { target: osx-arm64, os: macos-14 }
       fail-fast: false
 
@@ -41,11 +41,7 @@ jobs:
           TARGET_PLATFORM: ${{ matrix.target }}
 
         run: |
-          pixi run rattler-build build \
-            --recipe-dir . \
-            --skip-existing=all \
-            --target-platform=$TARGET_PLATFORM \
-            -c https://prefix.dev/conda-forge
+          pixi build -v
 
       - name: Upload all packages
         shell: bash
@@ -56,5 +52,5 @@ jobs:
         run: |
           # ignore errors because we want to ignore duplicate packages
           for file in output/**/*.conda; do
-            pixi run rattler-build upload prefix -c oursland "$file" || true
+            pixi upload prefix https://prefix.dev/api/v1/upload/oursland "$file" || true
           done
