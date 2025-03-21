@@ -14,8 +14,8 @@ build:
 
 requirements:
   build:
+    - ${{ compiler("cxx") }}
     - cmake
-    - compilers
     - doxygen
     - ninja
     - noqt5
@@ -37,7 +37,6 @@ requirements:
         - ${{ cdt('xorg-x11-server-xvfb') }}
         - ${{ cdt('libxau') }}
         - ${{ cdt('libxi-devel') }}
-
 
     - if: build_platform != target_platform
       then:

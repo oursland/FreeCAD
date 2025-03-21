@@ -1,12 +1,12 @@
 @echo on
 
-:: free up extra disk space, compare
-:: https://github.com/conda-forge/conda-smithy/issues/1949
-rmdir /s /q C:\hostedtoolcache\windows
+@REM :: free up extra disk space, compare
+@REM :: https://github.com/conda-forge/conda-smithy/issues/1949
+@REM rmdir /s /q C:\hostedtoolcache\windows
 
-set "CFLAGS= "
-set "CXXFLAGS= -DBOOST_PROGRAM_OPTIONS_DYN_LINK=1"
-set "LDFLAGS_SHARED= ucrt.lib"
+@REM set "CFLAGS= "
+@REM set "CXXFLAGS= -DBOOST_PROGRAM_OPTIONS_DYN_LINK=1"
+@REM set "LDFLAGS_SHARED= ucrt.lib"
 
 cmake ^
     --preset conda-windows-release ^
