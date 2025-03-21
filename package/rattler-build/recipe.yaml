@@ -14,8 +14,8 @@ build:
 
 requirements:
   build:
-    - ${{ compiler('cxx') }}
     - cmake
+    - compilers
     - doxygen
     - ninja
     - noqt5
@@ -25,18 +25,32 @@ requirements:
 
     - if: linux
       then:
-        - ${{ cdt('mesa-libgl-devel') }}
-        - ${{ cdt('mesa-dri-drivers') }}
-        - ${{ cdt('mesa-libegl-devel') }}
-        - ${{ cdt('libselinux') }}
-        - ${{ cdt('libxdamage') }}
-        - ${{ cdt('libxfixes') }}
-        - ${{ cdt('libxxf86vm') }}
-        - ${{ cdt('libxcb') }}
-        - ${{ cdt('libxext') }}
-        - ${{ cdt('xorg-x11-server-xvfb') }}
-        - ${{ cdt('libxau') }}
-        - ${{ cdt('libxi-devel') }}
+        - kernel-headers_linux-64
+        - libdrm-cos7-x86_64
+        - libselinux-cos7-x86_64
+        - libsepol-cos7-x86_64
+        - libspnav
+        - libx11-common-cos7-x86_64
+        - libx11-cos7-x86_64
+        - libxau-cos7-x86_64
+        - libxcb-cos7-x86_64
+        - libxdamage-cos7-x86_64
+        - libxext-cos7-x86_64
+        - libxfixes-cos7-x86_64
+        - libxi-cos7-x86_64
+        - libxi-devel-cos7-x86_64
+        - libxxf86vm-cos7-x86_64
+        - mesa-dri-drivers-cos7-x86_64
+        - mesa-libegl-cos7-x86_64
+        - mesa-libegl-devel-cos7-x86_64
+        - mesa-libgl-cos7-x86_64
+        - mesa-libgl-devel-cos7-x86_64
+        - pixman-cos7-x86_64
+        - sed
+        - sysroot_linux-64
+        - xorg-x11-server-common-cos7-x86_64
+        - xorg-x11-server-xvfb-cos7-x86_64
+        - xorg-xproto
 
     - if: build_platform != target_platform
       then:
