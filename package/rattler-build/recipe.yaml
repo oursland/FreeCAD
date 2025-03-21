@@ -14,8 +14,8 @@ build:
 
 requirements:
   build:
-    - ${{ compiler("cxx") }}
     - cmake
+    - compilers
     - doxygen
     - ninja
     - noqt5
@@ -45,6 +45,7 @@ requirements:
   host:
     - coin3d
     - eigen
+    - fmt
     - freetype
     - hdf5
     - libboost-devel
