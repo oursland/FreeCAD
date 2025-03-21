@@ -41,6 +41,7 @@ jobs:
           TARGET_PLATFORM: ${{ matrix.target }}
 
         run: |
+          cd package/rattler-build
           pixi build -v
 
       - name: Upload all packages
@@ -51,6 +52,6 @@ jobs:
           PREFIX_API_KEY: ${{ secrets.PREFIX_API_KEY }}
         run: |
           # ignore errors because we want to ignore duplicate packages
-          for file in output/**/*.conda; do
+          for file in package/rattler-build/*.conda; do
             pixi upload prefix https://prefix.dev/api/v1/upload/oursland "$file" || true
           done

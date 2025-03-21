@@ -1,0 +1,99 @@
+context:
+  version: "1.1.0dev"
+
+package:
+  name: FreeCAD
+  version: "${{ version }}"
+
+source:
+  path: ../..
+  use_gitignore: true
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - cmake
+    - compilers
+    - doxygen
+    - ninja
+    - noqt5
+    - python
+    - qt6-main
+    - swig
+
+    - if: linux
+      then:
+        - ${{ cdt('mesa-libgl-devel') }}
+        - ${{ cdt('mesa-dri-drivers') }}
+        - ${{ cdt('mesa-libegl-devel') }}
+        - ${{ cdt('libselinux') }}
+        - ${{ cdt('libxdamage') }}
+        - ${{ cdt('libxfixes') }}
+        - ${{ cdt('libxxf86vm') }}
+        - ${{ cdt('libxcb') }}
+        - ${{ cdt('libxext') }}
+        - ${{ cdt('xorg-x11-server-xvfb') }}
+        - ${{ cdt('libxau') }}
+        - ${{ cdt('libxi-devel') }}
+
+
+    - if: build_platform != target_platform
+      then:
+        - cross-python_${{ target_platform }}
+
+  host:
+    - coin3d
+    - eigen
+    - freetype
+    - hdf5
+    - libboost-devel
+    - matplotlib-base
+    - noqt5
+    - occt
+    - pcl
+    - pivy
+    - ply
+    - pybind11
+    - pyside6
+    - python
+    - qt6-main
+    - six
+    - smesh
+    - vtk
+    - xerces-c
+    - yaml-cpp
+    - zlib
+
+    - if: windows
+      then:
+        - tbb-devel
+
+    - if: unix
+      then:
+        - sed
+
+    - if: linux
+      then:
+        - libspnav
+        - xorg-xproto
+
+    - if: osx
+      then:
+        - blas * accelerate*
+
+  run:
+    - graphviz
+    - gmsh
+    - numpy
+    - python
+    - pyside6
+    - pivy
+    - pyyaml
+    - ply
+    - six
+
+    - if: linux
+      then:
+        - libspnav
