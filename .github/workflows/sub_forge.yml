@@ -15,20 +15,53 @@ jobs:
       matrix:
         include:
           - { target: linux-64, os: ubuntu-22.04 }
+          - { target: linux-arm64, os: ubuntu-22.04-arm }
+          - { target: osx-64, os: macos-latest-large }
+          - { target: osx-arm64, os: macos-latest }
           - { target: win-64, os: windows-latest }
-          # force older macos-13 to get x86_64 runners
-          - { target: osx-64, os: macos-13 }
-          - { target: osx-arm64, os: macos-14 }
       fail-fast: false
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/ccache
+      CCACHE_CONFIGPATH: ${{ github.workspace }}/ccache/config
+      CCACHE_MAXSIZE: 1G
+      CCACHE_COMPRESS: true
+      CCACHE_COMPRESSLEVEL: 5
+      cacheKey: weekly-${{ matrix.os }}
 
     runs-on: ${{ matrix.os }}
     environment:
       name: x
     steps:
+      - name: Set Platform Environment Variables
+        shell: bash -l {0}
+        env:
+          OPERATING_SYSTEM: ${{ runner.os }}
+        run: |
+          if [[ $OPERATING_SYSTEM == 'Windows' ]]; then
+            echo 'CCACHE_COMPILERCHECK=%compiler%' >> "$GITHUB_ENV"
+          else
+            echo 'CCACHE_COMPILERCHECK=%compiler% -dumpfullversion -dumpversion' >> "$GITHUB_ENV"
+          fi
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
           submodules: 'recursive'
+
+      - name: Restore Compiler Cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: FC-${{ env.cacheKey }}-${{ github.ref }}-${{ github.run_id }}
+          restore-keys: |
+            FC-${{ env.cacheKey }}-${{ github.ref }}-
+            FC-${{ env.cacheKey }}-
+
+      - name: Print CCache statistics before build, reset stats and print config
+        run: |
+          pixi run ccache -s
+          pixi run ccache -z
+          pixi run ccache -p
 
       - uses: prefix-dev/setup-pixi@v0.8.3
         with:
@@ -39,7 +72,6 @@ jobs:
         shell: bash
         env:
           TARGET_PLATFORM: ${{ matrix.target }}
-
         run: |
           cd package/rattler-build
           pixi build -v
@@ -55,3 +87,10 @@ jobs:
           for file in package/rattler-build/*.conda; do
             pixi upload prefix https://prefix.dev/api/v1/upload/oursland "$file" || true
           done
+
+      - name: Save Compiler Cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: FC-${{ env.cacheKey }}-${{ github.ref }}-${{ github.run_id }}
