@@ -14,8 +14,8 @@ build:
 
 requirements:
   build:
+    - ${{ compiler('cxx') }}
     - cmake
-    - compilers
     - doxygen
     - ninja
     - noqt5

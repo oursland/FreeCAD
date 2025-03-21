@@ -19,6 +19,9 @@ if [[ ${HOST} =~ .*darwin.* ]]; then
     CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 fi
 
+unset CMAKE_GENERATOR
+unset CMAKE_GENERATOR_PLATFORM
+
 cmake \
     --preset ${CMAKE_PRESET} \
     -D CMAKE_IGNORE_PREFIX_PATH="/opt/homebrew;/usr/local/homebrew" \

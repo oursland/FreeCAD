@@ -8,6 +8,9 @@
 @REM set "CXXFLAGS= -DBOOST_PROGRAM_OPTIONS_DYN_LINK=1"
 @REM set "LDFLAGS_SHARED= ucrt.lib"
 
+set "CMAKE_GENERATOR="
+set "CMAKE_GENERATOR_PLATFORM="
+
 cmake ^
     --preset conda-windows-release ^
     -D CMAKE_INSTALL_PREFIX:FILEPATH="%LIBRARY_PREFIX%" ^
