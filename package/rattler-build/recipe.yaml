@@ -95,6 +95,7 @@ requirements:
     - libboost-devel
     - matplotlib-base
     - noqt5
+    - numpy
     - occt
     - pcl
     - pivy
@@ -128,15 +129,36 @@ requirements:
         - blas * accelerate*
 
   run:
-    - graphviz
+    - blas
+    - blinker
+    - calculix
+    - docutils
     - gmsh
+    - graphviz
+    - jinja2
+    - lark
+    - lxml
+    - matplotlib-base
+    - nine
+    - noqt5
     - numpy
-    - python
-    - pyside6
+    - occt
+    - olefile
+    - opencamlib
+    - opencv
+    - pandas
+    - pip
     - pivy
-    - pyyaml
     - ply
+    - pycollada
+    - pyside6
+    - python
+    - pyyaml
+    - requests
+    - scipy
     - six
+    - sympy
+    - vtk
 
     - if: linux
       then:

@@ -16,21 +16,58 @@ description = "pixi instructions for FreeCAD"
 [package.build]
 backend = { name = "pixi-build-rattler-build", version = "*" }
 
-[dependencies]
+[feature.default.dependencies]
 freecad = { path = "." }
 
+
 ## Linux Dependencies (x86-64)
-[target.linux-64.dependencies]
+[feature.package.target.linux-64.dependencies]
 sed = "*"
 
 ## Linux Dependencies (aarch64)
-[target.linux-aarch64.dependencies]
+[feature.package.target.linux-aarch64.dependencies]
 sed = "*"
 
 ## macOS Dependencies (Intel)
-[target.osx-64.dependencies]
+[feature.package.target.osx-64.dependencies]
 dmgbuild = "*"
+sed = "*"
+
+[feature.package.target.osx-64.tasks]
+create_bundle = 'bash -c "cd osx && bash create_bundle.sh"'
 
 ## macOS Dependencies (Apple Silicon)
-[target.osx-arm64.dependencies]
+[feature.package.target.osx-arm64.dependencies]
 dmgbuild = "*"
+sed = "*"
+
+[feature.package.target.osx-arm64.tasks]
+create_bundle = 'bash -c "cd osx && bash create_bundle.sh"'
+
+[environments]
+package = ["package"]
+
+[dependencies]
+blas = ">=2.131,<3"
+blinker = ">=1.9.0,<2"
+calculix = ">=2.22,<3"
+docutils = ">=0.21.2,<0.22"
+jinja2 = ">=3.1.6,<4"
+lark = ">=1.2.2,<2"
+lxml = ">=5.3.1,<6"
+matplotlib-base = ">=3.10.1,<4"
+nine = ">=1.1.0,<2"
+noqt5 = ">=1.0,<2"
+numpy = ">=2.2.4,<3"
+occt = ">=7.8.1,<8"
+olefile = ">=0.47,<0.48"
+opencamlib = ">=2023.1.11,<2024"
+opencv = ">=4.10.0,<5"
+pandas = ">=2.2.3,<3"
+pycollada = ">=0.9,<0.10"
+pyyaml = ">=6.0.2,<7"
+requests = ">=2.32.3,<3"
+scipy = ">=1.15.2,<2"
+six = ">=1.17.0,<2"
+sympy = ">=1.13.3,<2"
+vtk = ">=9.3.1,<10"
