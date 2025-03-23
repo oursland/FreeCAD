@@ -81,5 +81,6 @@ dmgbuild -s dmg_settings.py "FreeCAD" "${version_name}.dmg"
 shasum -a 256 ${version_name}.dmg > ${version_name}.dmg-SHA256.txt
 
 if [ "${UPLOAD_RELEASE}" == "true" ]; then
+    gh release create ${BUILD_TAG} --title "Weekly Build ${BUILD_TAG}" --prerelease
     gh release upload --clobber ${BUILD_TAG} "${version_name}.dmg" "${version_name}.dmg-SHA256.txt"
 fi
