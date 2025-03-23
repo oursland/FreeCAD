@@ -51,7 +51,7 @@ find . -name "*.cmake" -type f -delete
 
 build_tag=$(git describe --tags)
 python_version=$(python -c 'import platform; print("py" + platform.python_version_tuple()[0] + platform.python_version_tuple()[1])')
-version_name="FreeCAD_${build_tag}-${os}-$(uname -m)-${python_version}"
+version_name="FreeCAD_${build_tag}-Linux-$(uname -m)-${python_version}"
 
 echo -e "\################"
 echo -e "version_name:  ${version_name}"

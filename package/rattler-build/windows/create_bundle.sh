@@ -9,6 +9,8 @@ mkdir -p ${conda_env}
 
 cp -a ../.pixi/envs/default/* ${conda_env}
 
+find ${conda_env}/Library
+
 export PATH="${PWD}/${conda_env}/bin:${PATH}"
 export CONDA_PREFIX="${PWD}/${conda_env}"
 
@@ -29,7 +31,6 @@ cp -a ${conda_env}/Scripts ${copy_dir}/bin/Scripts
 cp -a ${conda_env}/python*.* ${copy_dir}/bin
 cp -a ${conda_env}/msvc*.* ${copy_dir}/bin
 cp -a ${conda_env}/ucrt*.* ${copy_dir}/bin
-
 # Copy meaningful executables
 cp -a ${conda_env}/Library/bin/ccx.exe ${copy_dir}/bin
 cp -a ${conda_env}/Library/bin/gmsh.exe ${copy_dir}/bin
