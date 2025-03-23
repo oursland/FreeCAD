@@ -103,6 +103,7 @@ jobs:
           TARGET_PLATFORM: ${{ matrix.target }}
           UPLOAD_RELEASE: "true"
         run: |
+          df -h
           cd package/rattler-build
           pixi install
           pixi run -e package create_bundle
