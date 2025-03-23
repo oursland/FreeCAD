@@ -1,42 +1,7 @@
 set conda_env="fc_env"
-set copy_dir="FreeCAD_Conda_Build"
 
-mkdir %copy_dir%
+robocopy ..\.pixi\envs\default\* %conda_env% /S /MT:%NUMBER_OF_PROCESSORS% > nul
 
-call mamba create ^
- -p %conda_env% ^
- freecad=*dev ^
- python=3.11 ^
- noqt6 ^
- blinker ^
- calculix ^
- docutils ^
- gmsh ^
- ifcopenshell ^
- lark ^ ^
- lxml ^
- matplotlib-base ^
- nine ^
- numpy ^
- occt ^
- olefile ^
- opencamlib ^
- pandas ^
- pycollada ^
- pythonocc-core ^
- pyyaml ^
- requests ^
- scipy ^
- six ^
- sympy ^
- vtk ^
- xlutils ^
- --copy ^
- -c freecad/label/dev ^
- -c conda-forge ^
- -y
- 
- 
 %conda_env%\python ..\scripts\get_freecad_version.py
 set /p freecad_version_name= <bundle_name.txt
 
@@ -44,17 +9,19 @@ echo **********************
 echo %freecad_version_name%
 echo **********************
 
-
 REM remove arm binaries that fail to extract unless using latest 7zip
 for /r %conda_env% %%i in (*arm*.exe) do (@echo "%%i will be removed" & @del "%%i")
+
+set copy_dir="FreeCAD_Conda_Build"
+mkdir %copy_dir%
 
 REM Copy Conda's Python and (U)CRT to FreeCAD/bin
 robocopy %conda_env%\DLLs %copy_dir%\bin\DLLs /S /MT:%NUMBER_OF_PROCESSORS% > nul
 robocopy %conda_env%\Lib %copy_dir%\bin\Lib /XD __pycache__ /S /MT:%NUMBER_OF_PROCESSORS% > nul
 robocopy %conda_env%\Scripts %copy_dir%\bin\Scripts /S /MT:%NUMBER_OF_PROCESSORS% > nul
-robocopy %conda_env%\ python*.* %copy_dir%\bin\ /XF *.pdb /MT:%NUMBER_OF_PROCESSORS% > nul
-robocopy %conda_env%\ msvc*.* %copy_dir%\bin\ /XF *.pdb /MT:%NUMBER_OF_PROCESSORS% > nul
-robocopy %conda_env%\ ucrt*.* %copy_dir%\bin\ /XF *.pdb /MT:%NUMBER_OF_PROCESSORS% > nul
+robocopy %conda_env%\python*.* %copy_dir%\bin\ /XF *.pdb /MT:%NUMBER_OF_PROCESSORS% > nul
+robocopy %conda_env%\msvc*.* %copy_dir%\bin\ /XF *.pdb /MT:%NUMBER_OF_PROCESSORS% > nul
+robocopy %conda_env%\ucrt*.* %copy_dir%\bin\ /XF *.pdb /MT:%NUMBER_OF_PROCESSORS% > nul
 REM Copy meaningful executables
 robocopy %conda_env%\Library\bin %copy_dir%\bin\ ccx.exe /MT:%NUMBER_OF_PROCESSORS% > nul
 robocopy %conda_env%\Library\bin %copy_dir%\bin\ gmsh.exe /MT:%NUMBER_OF_PROCESSORS% > nul
@@ -65,8 +32,6 @@ REM Copy Conda's QT5/plugins to FreeCAD/bin
 robocopy %conda_env%\Library\plugins %copy_dir%\bin\ /S /MT:%NUMBER_OF_PROCESSORS% > nul
 robocopy %conda_env%\Library\resources %copy_dir%\resources /MT:%NUMBER_OF_PROCESSORS% > nul
 robocopy %conda_env%\Library\translations %copy_dir%\translations /MT:%NUMBER_OF_PROCESSORS% > nul
-echo [Paths] > %copy_dir%\bin\qt.conf
-echo Prefix =.. >> "%copy_dir%\bin\qt.conf"
 REM get all the dependency .dlls
 robocopy %conda_env%\Library\bin *.dll %copy_dir%\bin /XF *.pdb /XF api*.* /MT:%NUMBER_OF_PROCESSORS% > nul
 REM Copy FreeCAD build

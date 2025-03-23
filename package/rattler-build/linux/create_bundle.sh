@@ -3,78 +3,33 @@
 set -e
 set -x 
 
-export MAMBA_NO_BANNER=1
-if [[ -z "$ARCH" ]]; then
-  # Get the architecture of the system
-  export ARCH=$(uname -m)
-fi
 conda_env="AppDir/usr"
-echo -e "\nCreate the environment"
 
-mamba create --copy -y -p ${conda_env} \
-  -c freecad/label/dev \
-  -c conda-forge \
-  freecad=*dev \
-  python=3.11 \
-  noqt6 \
-  appimage-updater-bridge \
-  blas=*=openblas \
-  blinker \
-  calculix \
-  docutils \
-  ifcopenshell \
-  lark \
-  lxml \
-  matplotlib-base \
-  nine \
-  numpy \
-  occt \
-  olefile \
-  opencamlib \
-  opencv \
-  pandas \
-  pycollada \
-  pyyaml \
-  requests \
-  scipy \
-  six \
-  sympy \
-  vtk \
-  xlutils
+mkdir -p ${conda_env}
 
-mamba run -p ${conda_env} python ../scripts/get_freecad_version.py
-read -r version_name < bundle_name.txt
+cp -a ../.pixi/envs/default/* ${conda_env}
 
-echo -e "\################"
-echo -e "version_name:  ${version_name}"
-echo -e "################"
-
-echo -e "\nInstall freecad.appimage_updater"
-mamba run -p ${conda_env} pip install https://github.com/looooo/freecad.appimage_updater/archive/master.zip
-
-mamba list -p ${conda_env} > AppDir/packages.txt
-sed -i "1s/.*/\nLIST OF PACKAGES:/" AppDir/packages.txt
+export PATH="${PWD}/${conda_env}/bin:${PATH}"
+export CONDA_PREFIX="${PWD}/${conda_env}"
 
 echo -e "\nDelete unnecessary stuff"
 rm -rf ${conda_env}/include
 find ${conda_env} -name \*.a -delete
+
 mv ${conda_env}/bin ${conda_env}/bin_tmp
 mkdir ${conda_env}/bin
 cp ${conda_env}/bin_tmp/freecad ${conda_env}/bin/
-cp ${conda_env}/bin_tmp/freecadcmd ${conda_env}/bin/
+cp ${conda_env}/bin_tmp/freecadcmd ${conda_env}/bin
 cp ${conda_env}/bin_tmp/ccx ${conda_env}/bin/
 cp ${conda_env}/bin_tmp/python ${conda_env}/bin/
 cp ${conda_env}/bin_tmp/pip ${conda_env}/bin/
-cp ${conda_env}/bin_tmp/pyside2-rcc ${conda_env}/bin/
+cp ${conda_env}/bin_tmp/pyside6-rcc ${conda_env}/bin/
 cp ${conda_env}/bin_tmp/gmsh ${conda_env}/bin/
 cp ${conda_env}/bin_tmp/dot ${conda_env}/bin/
 cp ${conda_env}/bin_tmp/unflatten ${conda_env}/bin/
-sed -i '1s|.*|#!/usr/bin/env python|' ${conda_env}/bin/pip
 rm -rf ${conda_env}/bin_tmp
 
-echo -e "\nCopy qt.conf"
-cp qt.conf ${conda_env}/bin/
-cp qt.conf ${conda_env}/libexec/
+sed -i '1s|.*|#!/usr/bin/env python|' ${conda_env}/bin/pip
 
 echo -e "\nCopying Icon and Desktop file"
 cp ${conda_env}/share/applications/org.freecad.FreeCAD.desktop AppDir/
@@ -94,19 +49,31 @@ rm -rf ${conda_env}/lib/cmake/
 find . -name "*.h" -type f -delete
 find . -name "*.cmake" -type f -delete
 
-if [ "$DEPLOY_RELEASE" = "weekly-builds" ]; then
-  export tag="weekly-builds"
-else
-  export tag="latest"
-fi
+FreeCADCmd ../scripts/get_freecad_version.py
+version_name=$(<bundle_name.txt)
+
+echo -e "\################"
+echo -e "version_name:  ${version_name}"
+echo -e "################"
+
+pixi list > AppDir/packages.txt
+sed -i "1s/.*/\nLIST OF PACKAGES:/" AppDir/packages.txt
+
+export tag="weekly-builds"
+
+curl -LO https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-$(uname -m).AppImage
+chmod a+x appimagetool-x86_64.AppImage
 
 echo -e "\nCreate the appimage"
-export GPG_TTY=$(tty)
+# export GPG_TTY=$(tty)
 chmod a+x ./AppDir/AppRun
-../../appimagetool-$(uname -m).AppImage \
-  --comp zstd --mksquashfs-opt -Xcompression-level --mksquashfs-opt 22 \
-  -u "gh-releases-zsync|FreeCAD|FreeCAD-Bundle|$tag|FreeCAD*$ARCH*.AppImage.zsync" \
-  -s --sign-key ${GPG_KEY_ID} AppDir ${version_name}.AppImage
+./appimagetool-$(uname -m).AppImage \
+  --comp zstd \
+  --mksquashfs-opt -Xcompression-level \
+  --mksquashfs-opt 22 \
+  -u "gh-releases-zsync|FreeCAD|FreeCAD-Bundle|$tag|FreeCAD*$(uname -m)*.AppImage.zsync" \
+  AppDir ${version_name}.AppImage
+  # -s --sign-key ${GPG_KEY_ID} \
 
 echo -e "\nCreate hash"
 shasum -a 256 ${version_name}.AppImage > ${version_name}.AppImage-SHA256.txt

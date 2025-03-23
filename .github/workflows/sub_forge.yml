@@ -68,19 +68,21 @@ jobs:
           pixi run ccache -z
           pixi run ccache -p
 
-      - name: Run code in changed subdirectories
+      - name: Build Packages
         shell: bash
         env:
           TARGET_PLATFORM: ${{ matrix.target }}
         run: |
           cd package/rattler-build
           pixi build
+          pixi install
+          pixi run -e package create_bundle
 
-      - name: Print ccache statistics after Build
+      - name: Print ccache Statistics After Build
         run: |
           pixi run ccache -s
 
-      - name: Upload all packages
+      - name: Upload All Packages
         shell: bash
         # do not upload on PR
         if: github.event_name == 'push'
