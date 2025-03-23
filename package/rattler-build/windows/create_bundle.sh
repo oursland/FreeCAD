@@ -73,6 +73,6 @@ sed -i '1s/.*/\nLIST OF PACKAGES:/' FreeCAD.app/Contents/packages.txt
 shasum -a 256 ${version_name}.7z > ${version_name}.7z-SHA256.txt
 
 if [ "${UPLOAD_RELEASE}" == "true" ]; then
-    gh release create ${BUILD_TAG} --title "Weekly Build ${BUILD_TAG}" --prerelease
+    gh release create ${BUILD_TAG} --title "Weekly Build ${BUILD_TAG}" --prerelease || true
     gh release upload --clobber ${BUILD_TAG} "${version_name}.dmg" "${version_name}.dmg-SHA256.txt"
 fi
