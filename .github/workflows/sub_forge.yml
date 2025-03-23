@@ -55,17 +55,6 @@ jobs:
     environment:
       name: x
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          fetch-tags: true
-          submodules: 'recursive'
-
-      - uses: prefix-dev/setup-pixi@v0.8.3
-        with:
-          pixi-version: v0.43.0
-          cache: false
-
       - name: Set Platform Environment Variables
         shell: bash -l {0}
         env:
@@ -76,9 +65,21 @@ jobs:
           if [[ $OPERATING_SYSTEM == 'Windows' ]]; then
             echo 'CCACHE_COMPILERCHECK=%compiler%' >> "$GITHUB_ENV"
             echo 'PIXI_CACHE_DIR=D:\rattler' >> "$GITHUB_ENV"
+            echo 'RATTLER_CACHE_DIR=D:\rattler' >> "$GITHUB_ENV"
           else
             echo 'CCACHE_COMPILERCHECK=%compiler% -dumpfullversion -dumpversion' >> "$GITHUB_ENV"
           fi
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          submodules: 'recursive'
+
+      - uses: prefix-dev/setup-pixi@v0.8.3
+        with:
+          pixi-version: v0.42.1
+          cache: false
 
       - name: Restore Compiler Cache
         uses: actions/cache/restore@v4

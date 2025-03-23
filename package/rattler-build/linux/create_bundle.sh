@@ -63,7 +63,7 @@ sed -i "1s/.*/\nLIST OF PACKAGES:/" AppDir/packages.txt
 export tag="weekly-builds" # should retreive from git tag
 
 curl -LO https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-$(uname -m).AppImage
-chmod a+x appimagetool-x86_64.AppImage
+chmod a+x appimagetool-$(uname -m).AppImage
 
 echo -e "\nCreate the appimage"
 # export GPG_TTY=$(tty)
