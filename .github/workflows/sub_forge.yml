@@ -26,7 +26,7 @@ jobs:
         run: |
           export BUILD_TAG=weekly-$(date "+%Y.%m.%d")
           git tag ${BUILD_TAG}
-          git push tag -f ${BUILD_TAG}
+          git push origin tag ${BUILD_TAG} -f
           echo "build_tag=${BUILD_TAG}" >> "$GITHUB_OUTPUT"
 
   build:
