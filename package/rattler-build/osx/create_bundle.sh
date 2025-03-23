@@ -53,10 +53,11 @@ os=$(uname -s)
 if [ "${os}" == "Darwin" ]; then
     os="macOS"
 fi
-weekly_tag=$(date "+%Y.%m.%d") # should retreive from git tag
+
+build_tag=$(git describe --tags)
 python_version=$(python -c 'import platform; print("py" + platform.python_version_tuple()[0] + platform.python_version_tuple()[1])')
-version_name="FreeCAD_weekly-${weekly_tag}-${os}-$(uname -m)-${python_version}"
-application_menu_name="FreeCAD-weekly-${weekly_tag}"
+version_name="FreeCAD_${build_tag}-${os}-$(uname -m)-${python_version}"
+application_menu_name="FreeCAD_${build_tag}"
 
 echo -e "\################"
 echo -e "version_name:  ${version_name}"
@@ -66,7 +67,7 @@ cp Info.plist.template ${conda_env}/Info.plist
 sed -i "s/FREECAD_VERSION/${version_name}/" ${conda_env}/Info.plist
 sed -i "s/APPLICATION_MENU_NAME/${application_menu_name}/" ${conda_env}/Info.plist
 
-pixi list > FreeCAD.app/Contents/packages.txt
+pixi list -e default > FreeCAD.app/Contents/packages.txt
 sed -i '1s/.*/\nLIST OF PACKAGES:/' FreeCAD.app/Contents/packages.txt
 
 # copy the plugin into its final location
@@ -78,3 +79,7 @@ dmgbuild -s dmg_settings.py "FreeCAD" "${version_name}.dmg"
 
 # create hash
 shasum -a 256 ${version_name}.dmg > ${version_name}.dmg-SHA256.txt
+
+if [ "${UPLOAD_RELEASE}" == "true" ]; then
+    gh release upload --clobber ${BUILD_TAG} "${version_name}.dmg" "${version_name}.dmg-SHA256.txt"
+fi

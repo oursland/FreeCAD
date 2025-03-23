@@ -49,15 +49,15 @@ rm -rf ${conda_env}/lib/cmake/
 find . -name "*.h" -type f -delete
 find . -name "*.cmake" -type f -delete
 
-weekly_tag=$(date "+%Y.%m.%d") # should retreive from git tag
+build_tag=$(git describe --tags)
 python_version=$(python -c 'import platform; print("py" + platform.python_version_tuple()[0] + platform.python_version_tuple()[1])')
-version_name="FreeCAD_weekly-${weekly_tag}-$(uname -s)-$(uname -m)-${python_version}"
+version_name="FreeCAD_${build_tag}-${os}-$(uname -m)-${python_version}"
 
 echo -e "\################"
 echo -e "version_name:  ${version_name}"
 echo -e "################"
 
-pixi list > AppDir/packages.txt
+pixi list -e default > AppDir/packages.txt
 sed -i "1s/.*/\nLIST OF PACKAGES:/" AppDir/packages.txt
 
 export tag="weekly-builds" # should retreive from git tag
@@ -78,3 +78,7 @@ chmod a+x ./AppDir/AppRun
 
 echo -e "\nCreate hash"
 shasum -a 256 ${version_name}.AppImage > ${version_name}.AppImage-SHA256.txt
+
+if [ "${UPLOAD_RELEASE}" == "true" ]; then
+    gh release upload --clobber ${BUILD_TAG} "${version_name}.AppImage" "${version_name}.AppImage-SHA256.txt"
+fi

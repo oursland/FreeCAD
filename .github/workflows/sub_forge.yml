@@ -10,7 +10,27 @@ on:
       - main
 
 jobs:
+  tag:
+    runs-on: ubuntu-latest
+    outputs:
+      build_tag: ${{ steps.tag_build.outputs.build_tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          submodules: 'recursive'
+
+      - name: Tag Build
+        id: tag_build
+        shell: bash -l {0}
+        run: |
+          export BUILD_TAG=weekly-$(date "+%Y.%m.%d")
+          git tag ${BUILD_TAG}
+          git push tag -f ${BUILD_TAG}
+          echo "build_tag=${BUILD_TAG}" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: tag
     strategy:
       matrix:
         include:
@@ -45,10 +65,13 @@ jobs:
       - name: Set Platform Environment Variables
         shell: bash -l {0}
         env:
+          BUILD_TAG: ${{ needs.tag_build.outputs.build_tag }}
           OPERATING_SYSTEM: ${{ runner.os }}
         run: |
+          echo "BUILD_TAG=${BUILD_TAG}" >> "$GITHUB_ENV"
           if [[ $OPERATING_SYSTEM == 'Windows' ]]; then
             echo 'CCACHE_COMPILERCHECK=%compiler%' >> "$GITHUB_ENV"
+            echo 'PIXI_CACHE_DIR=D:\rattler' >> "$GITHUB_ENV"
           else
             echo 'CCACHE_COMPILERCHECK=%compiler% -dumpfullversion -dumpversion' >> "$GITHUB_ENV"
           fi
@@ -68,10 +91,11 @@ jobs:
           pixi run ccache -z
           pixi run ccache -p
 
-      - name: Build Packages
+      - name: Build and Release Packages
         shell: bash
         env:
           TARGET_PLATFORM: ${{ matrix.target }}
+          UPLOAD_RELEASE: "true"
         run: |
           cd package/rattler-build
           pixi install
