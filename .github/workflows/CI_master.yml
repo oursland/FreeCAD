@@ -74,10 +74,11 @@ jobs:
 
   WrapUp:
     needs: [
-        Prepare,
-        Pixi,
-        Ubuntu,
-        Windows,
+        # Prepare,
+        # Pixi,
+        # Ubuntu,
+        # Windows,
+        Forge,
         Lint
       ]
     if: always()
