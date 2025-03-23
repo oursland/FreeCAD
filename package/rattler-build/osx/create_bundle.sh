@@ -3,7 +3,6 @@
 set -e
 set -x 
 
-conda_env_root="FreeCAD.app/Contents"
 conda_env="FreeCAD.app/Contents/Resources"
 
 mkdir -p ${conda_env}
@@ -50,12 +49,22 @@ cmake --build build
 mkdir -p FreeCAD.app/Contents/MacOS
 cp build/FreeCAD FreeCAD.app/Contents/MacOS/FreeCAD
 
-FreeCADCmd ../scripts/get_freecad_version.py
-version_name=$(<bundle_name.txt)
+os=$(uname -s)
+if [ "${os}" == "Darwin" ]; then
+    os="macOS"
+fi
+weekly_tag=$(date "+%Y.%m.%d") # should retreive from git tag
+python_version=$(python -c 'import platform; print("py" + platform.python_version_tuple()[0] + platform.python_version_tuple()[1])')
+version_name="FreeCAD_weekly-${weekly_tag}-${os}-$(uname -m)-${python_version}"
+application_menu_name="FreeCAD-weekly-${weekly_tag}"
 
 echo -e "\################"
 echo -e "version_name:  ${version_name}"
 echo -e "################"
+
+cp Info.plist.template ${conda_env}/Info.plist
+sed -i "s/FREECAD_VERSION/${version_name}/" ${conda_env}/Info.plist
+sed -i "s/APPLICATION_MENU_NAME/${application_menu_name}/" ${conda_env}/Info.plist
 
 pixi list > FreeCAD.app/Contents/packages.txt
 sed -i '1s/.*/\nLIST OF PACKAGES:/' FreeCAD.app/Contents/packages.txt

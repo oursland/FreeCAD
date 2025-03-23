@@ -49,8 +49,9 @@ rm -rf ${conda_env}/lib/cmake/
 find . -name "*.h" -type f -delete
 find . -name "*.cmake" -type f -delete
 
-FreeCADCmd ../scripts/get_freecad_version.py
-version_name=$(<bundle_name.txt)
+weekly_tag=$(date "+%Y.%m.%d") # should retreive from git tag
+python_version=$(python -c 'import platform; print("py" + platform.python_version_tuple()[0] + platform.python_version_tuple()[1])')
+version_name="FreeCAD_weekly-${weekly_tag}-$(uname -s)-$(uname -m)-${python_version}"
 
 echo -e "\################"
 echo -e "version_name:  ${version_name}"
@@ -59,7 +60,7 @@ echo -e "################"
 pixi list > AppDir/packages.txt
 sed -i "1s/.*/\nLIST OF PACKAGES:/" AppDir/packages.txt
 
-export tag="weekly-builds"
+export tag="weekly-builds" # should retreive from git tag
 
 curl -LO https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-$(uname -m).AppImage
 chmod a+x appimagetool-x86_64.AppImage

@@ -74,27 +74,12 @@ jobs:
           TARGET_PLATFORM: ${{ matrix.target }}
         run: |
           cd package/rattler-build
-          pixi build
           pixi install
           pixi run -e package create_bundle
 
       - name: Print ccache Statistics After Build
         run: |
           pixi run ccache -s
-
-      - name: Upload All Packages
-        shell: bash
-        # do not upload on PR
-        if: github.event_name == 'push'
-        env:
-          PREFIX_API_KEY: ${{ secrets.PREFIX_API_KEY }}
-        run: |
-          pixi auth login prefix.dev --token ${PREFIX_API_KEY}
-
-          # ignore errors because we want to ignore duplicate packages
-          for file in package/rattler-build/*.conda; do
-            pixi upload https://prefix.dev/api/v1/upload/oursland "$file" || true
-          done
 
       - name: Save Compiler Cache
         if: always()
