@@ -98,6 +98,7 @@ jobs:
       - name: Build and Release Packages
         shell: bash
         env:
+          GH_TOKEN: ${{ github.token }}
           TARGET_PLATFORM: ${{ matrix.target }}
           UPLOAD_RELEASE: "true"
         run: |
