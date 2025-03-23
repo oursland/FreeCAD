@@ -10,8 +10,8 @@ mkdir -p ${conda_env}
 
 cp -a ../.pixi/envs/default/* ${conda_env}
 
-export PATH="${PWD}/FreeCAD.app/Contents/Resources/bin:${PATH}"
-export CONDA_PREFIX="${PWD}/FreeCAD.app/Contents/Resources"
+export PATH="${PWD}/${conda_env}/bin:${PATH}"
+export CONDA_PREFIX="${PWD}/${conda_env}"
 
 # delete unnecessary stuff
 rm -rf ${conda_env}/include
