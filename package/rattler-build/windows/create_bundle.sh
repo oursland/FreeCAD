@@ -1,0 +1,78 @@
+#!/bin/bash
+
+set -e
+set -x 
+
+conda_env="fc_env"
+
+mkdir -p ${conda_env}
+
+cp -a ../.pixi/envs/default/* ${conda_env}
+
+export PATH="${PWD}/${conda_env}/bin:${PATH}"
+export CONDA_PREFIX="${PWD}/${conda_env}"
+
+# remove arm binaries that fail to extract unless using latest 7zip
+rm $(find ${conda_env} -name \*arm\*.exe)
+
+# delete unnecessary stuff
+rm -rf ${conda_env}/include
+find ${conda_env} -name \*.a -delete
+
+copy_dir="FreeCAD_Conda_Build"
+mkdir -p ${copy_dir}/bin
+
+# Copy Conda's Python and (U)CRT to FreeCAD/bin
+cp -a ${conda_env}/DLLs ${copy_dir}/bin/DLLs
+cp -a ${conda_env}/Lib ${copy_dir}/bin/Lib
+cp -a ${conda_env}/Scripts ${copy_dir}/bin/Scripts
+cp -a ${conda_env}/python*.* ${copy_dir}/bin
+cp -a ${conda_env}/msvc*.* ${copy_dir}/bin
+cp -a ${conda_env}/ucrt*.* ${copy_dir}/bin
+
+# Copy meaningful executables
+cp -a ${conda_env}/Library/bin/ccx.exe ${copy_dir}/bin
+cp -a ${conda_env}/Library/bin/gmsh.exe ${copy_dir}/bin
+cp -a ${conda_env}/Library/bin/dot.exe ${copy_dir}/bin
+cp -a ${conda_env}/Library/bin/unflatten.exe ${copy_dir}/bin
+cp -a ${conda_env}/Library/mingw-w64/bin/* ${copy_dir}/bin
+# Copy Conda's QT5/plugins to FreeCAD/bin
+cp -a ${conda_env}/Library/plugins ${copy_dir}/bin/
+cp -a ${conda_env}/Library/resources ${copy_dir}/resources
+cp -a ${conda_env}/Library/translations ${copy_dir}/translations
+# get all the dependency .dlls
+cp -a ${conda_env}/Library/bin/*.dll ${copy_dir}/bin
+# Copy FreeCAD build
+cp -a ${conda_env}/Library/bin/FreeCAD* ${copy_dir}/bin
+cp -a ${conda_env}/Library/data ${copy_dir}/data
+cp -a ${conda_env}/Library/Ext ${copy_dir}/Ext
+cp -a ${conda_env}/Library/lib ${copy_dir}/lib
+cp -a ${conda_env}/Library/Mod ${copy_dir}/Mod
+cp -a ${conda_env}/Library/doc ${copy_dir}/doc
+rm -rf ${conda_env}/bin_tmp
+
+# Apply Patches
+mv ${copy_dir}/bin/Lib/ssl.py ssl-orig.py
+cp ssl-patch.py ${copy_dir}/bin/Lib/ssl.py
+
+build_tag=$(git describe --tags)
+python_version=$(python -c 'import platform; print("py" + platform.python_version_tuple()[0] + platform.python_version_tuple()[1])')
+version_name="FreeCAD_${build_tag}-Windows-$(uname -m)-${python_version}"
+application_menu_name="FreeCAD_${build_tag}"
+
+echo -e "################"
+echo -e "version_name:  ${version_name}"
+echo -e "################"
+
+pixi list -e default > FreeCAD.app/Contents/packages.txt
+sed -i '1s/.*/\nLIST OF PACKAGES:/' FreeCAD.app/Contents/packages.txt
+
+"${PROGRAMFILES}/7-Zip/7z.exe" a -t7z -mx9 -mmt=${NUMBER_OF_PROCESSORS} ${version_name}.7z ${version_name} -bb
+
+# create hash
+shasum -a 256 ${version_name}.7z > ${version_name}.7z-SHA256.txt
+
+if [ "${UPLOAD_RELEASE}" == "true" ]; then
+    gh release create ${BUILD_TAG} --title "Weekly Build ${BUILD_TAG}" --prerelease
+    gh release upload --clobber ${BUILD_TAG} "${version_name}.dmg" "${version_name}.dmg-SHA256.txt"
+fi

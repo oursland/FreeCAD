@@ -57,13 +57,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
           fetch-tags: true
           submodules: 'recursive'
 
       - uses: prefix-dev/setup-pixi@v0.8.3
         with:
-          pixi-version: v0.42.1
+          pixi-version: v0.43.0
           cache: true
 
       - name: Set Platform Environment Variables
