@@ -33,7 +33,7 @@ jobs:
           echo "build_tag=${BUILD_TAG}" >> "$GITHUB_OUTPUT"
 
   build:
-    needs: tag
+    needs: tag_build
     strategy:
       matrix:
         include:
