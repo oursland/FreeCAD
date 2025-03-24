@@ -52,6 +52,9 @@ rm -rf ${conda_env}/bin_tmp
 mv ${copy_dir}/bin/Lib/ssl.py ssl-orig.py
 cp ssl-patch.py ${copy_dir}/bin/Lib/ssl.py
 
+echo '[Paths]' >> ${copy_dir}/bin/qt6.conf
+echo 'Prefix = ../lib/qt6' >> ${copy_dir}/bin/qt6.conf
+
 build_tag=$(git describe --tags)
 python_version=$(python -c 'import platform; print("py" + platform.python_version_tuple()[0] + platform.python_version_tuple()[1])')
 version_name="FreeCAD_${build_tag}-Windows-$(uname -m)-${python_version}"
@@ -72,6 +75,6 @@ mv ${copy_dir} ${version_name}
 sha256sum ${version_name}.7z > ${version_name}.7z-SHA256.txt
 
 if [ "${UPLOAD_RELEASE}" == "true" ]; then
-    gh release create ${BUILD_TAG} --title "Weekly Build ${BUILD_TAG}" --prerelease || true
+    gh release create ${BUILD_TAG} --title "Weekly Build ${BUILD_TAG}" --notes "Weekly Build ${BUILD_TAG}" --prerelease || true
     gh release upload --clobber ${BUILD_TAG} "${version_name}.7z" "${version_name}.7z-SHA256.txt"
 fi
