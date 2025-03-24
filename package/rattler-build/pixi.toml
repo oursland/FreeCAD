@@ -21,15 +21,22 @@ freecad = { path = "." }
 ccache = "*"
 
 ## Linux (x86-64)
+[feature.package.target.linux-64.dependencies]
+coreutils = "*"
+
 [feature.package.target.linux-64.tasks]
 create_bundle = 'bash -c "cd linux && bash create_bundle.sh"'
 
 ## Linux (aarch64)
+[feature.package.target.linux-aarch64.dependencies]
+coreutils = "*"
+
 [feature.package.target.linux-aarch64.tasks]
 create_bundle = 'bash -c "cd linux && bash create_bundle.sh"'
 
 ## macOS (Intel)
 [feature.package.target.osx-64.dependencies]
+coreutils = "*"
 dmgbuild = "*"
 sed = "*"
 
@@ -38,6 +45,7 @@ create_bundle = 'bash -c "cd osx && bash create_bundle.sh"'
 
 ## macOS (Apple Silicon)
 [feature.package.target.osx-arm64.dependencies]
+coreutils = "*"
 dmgbuild = "*"
 sed = "*"
 
