@@ -9,8 +9,6 @@ mkdir -p ${conda_env}
 
 cp -a ../.pixi/envs/default/* ${conda_env}
 
-find ${conda_env}/Library
-
 export PATH="${PWD}/${conda_env}/bin:${PATH}"
 export CONDA_PREFIX="${PWD}/${conda_env}"
 
@@ -42,6 +40,7 @@ cp -a ${conda_env}/Library/share ${copy_dir}/share
 # get all the dependency .dlls
 cp -a ${conda_env}/Library/bin/*.dll ${copy_dir}/bin
 # Copy FreeCAD build
+cp -a ${conda_env}/Library/bin/freecad* ${copy_dir}/bin
 cp -a ${conda_env}/Library/bin/FreeCAD* ${copy_dir}/bin
 cp -a ${conda_env}/Library/data ${copy_dir}/data
 cp -a ${conda_env}/Library/Ext ${copy_dir}/Ext
