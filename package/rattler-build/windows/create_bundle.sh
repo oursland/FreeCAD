@@ -37,10 +37,8 @@ cp -a ${conda_env}/Library/bin/gmsh.exe ${copy_dir}/bin
 cp -a ${conda_env}/Library/bin/dot.exe ${copy_dir}/bin
 cp -a ${conda_env}/Library/bin/unflatten.exe ${copy_dir}/bin
 cp -a ${conda_env}/Library/mingw-w64/bin/* ${copy_dir}/bin
-# Copy Conda's QT5/plugins to FreeCAD/bin
-cp -a ${conda_env}/Library/plugins ${copy_dir}/bin/
-cp -a ${conda_env}/Library/resources ${copy_dir}/resources
-cp -a ${conda_env}/Library/translations ${copy_dir}/translations
+# copy resources -- perhaps needs reduction
+cp -a ${conda_env}/Library/share ${copy_dir}/share
 # get all the dependency .dlls
 cp -a ${conda_env}/Library/bin/*.dll ${copy_dir}/bin
 # Copy FreeCAD build
@@ -64,6 +62,8 @@ application_menu_name="FreeCAD_${build_tag}"
 echo -e "################"
 echo -e "version_name:  ${version_name}"
 echo -e "################"
+
+mv ${copy_dir} ${version_name}
 
 pixi list -e default > FreeCAD.app/Contents/packages.txt
 sed -i '1s/.*/\nLIST OF PACKAGES:/' FreeCAD.app/Contents/packages.txt
