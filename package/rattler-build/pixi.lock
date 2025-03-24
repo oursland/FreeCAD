@@ -1462,7 +1462,7 @@ environments:
       - conda: https://prefix.dev/conda-forge/noarch/tzdata-2025b-h78e105d_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/zipp-3.21.0-pyhd8ed1ab_1.conda
       win-64:
-      - conda: https://prefix.dev/conda-forge/win-64/perl-5.32.1.1-7_h57928b3_strawberry.conda
+      - conda: https://prefix.dev/conda-forge/win-64/git-2.49.0-h57928b3_0.conda
 packages:
 - conda: https://prefix.dev/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2
   sha256: fe51de6107f9edc7aa4f786a70f4a883943bc9d39b3bb7307c04c41410990726
@@ -3900,23 +3900,23 @@ packages:
   - six
   - sympy
   - vtk
-  - xerces-c >=3.3.0,<3.4.0a0
-  - python_abi 3.13.* *_cp313
-  - libboost >=1.86.0,<1.87.0a0
-  - occt >=7.8.1,<7.8.2.0a0
-  - numpy >=1.21,<3
-  - vtk-base >=9.3.1,<9.3.2.0a0
-  - fmt >=11.0.2,<12.0a0
-  - smesh >=9.9.0.0,<9.9.1.0a0
   - pcl >=1.15.0,<1.15.1.0a0
-  - hdf5 >=1.14.4,<1.14.5.0a0
   - freetype >=2.13.3,<3.0a0
-  - coin3d >=4.0.3,<4.1.0a0
+  - vtk-base >=9.3.1,<9.3.2.0a0
+  - occt >=7.8.1,<7.8.2.0a0
+  - smesh >=9.9.0.0,<9.9.1.0a0
+  - numpy >=1.21,<3
   - qt6-main >=6.8.2,<6.9.0a0
   - libzlib >=1.3.1,<2.0a0
+  - libboost >=1.86.0,<1.87.0a0
+  - fmt >=11.0.2,<12.0a0
+  - python_abi 3.13.* *_cp313
+  - xerces-c >=3.3.0,<3.4.0a0
   - yaml-cpp >=0.8.0,<0.9.0a0
+  - coin3d >=4.0.3,<4.1.0a0
+  - hdf5 >=1.14.4,<1.14.5.0a0
   input:
-    hash: 793182f186a109e1f26b4b6559849912d2c178ecdb5abeaeafbb414fb4a83367
+    hash: 72ff2caab19c1ab613221d45fba6ef7a83083d068db92f731e452dfab558b5a5
     globs:
     - pixi.toml
 - conda: .
@@ -3956,23 +3956,23 @@ packages:
   - sympy
   - vtk
   - libspnav
-  - pcl >=1.15.0,<1.15.1.0a0
   - coin3d >=4.0.3,<4.1.0a0
-  - hdf5 >=1.14.4,<1.14.5.0a0
-  - freetype >=2.13.3,<3.0a0
-  - smesh >=9.9.0.0,<9.9.1.0a0
   - qt6-main >=6.8.2,<6.9.0a0
-  - libboost >=1.86.0,<1.87.0a0
-  - fmt >=11.0.2,<12.0a0
-  - numpy >=1.21,<3
-  - python_abi 3.13.* *_cp313
-  - occt >=7.8.1,<7.8.2.0a0
-  - yaml-cpp >=0.8.0,<0.9.0a0
-  - libzlib >=1.3.1,<2.0a0
+  - smesh >=9.9.0.0,<9.9.1.0a0
   - vtk-base >=9.3.1,<9.3.2.0a0
+  - yaml-cpp >=0.8.0,<0.9.0a0
   - xerces-c >=3.3.0,<3.4.0a0
+  - occt >=7.8.1,<7.8.2.0a0
+  - libboost >=1.86.0,<1.87.0a0
+  - libzlib >=1.3.1,<2.0a0
+  - python_abi 3.13.* *_cp313
+  - numpy >=1.21,<3
+  - hdf5 >=1.14.4,<1.14.5.0a0
+  - pcl >=1.15.0,<1.15.1.0a0
+  - freetype >=2.13.3,<3.0a0
+  - fmt >=11.0.2,<12.0a0
   input:
-    hash: 793182f186a109e1f26b4b6559849912d2c178ecdb5abeaeafbb414fb4a83367
+    hash: 72ff2caab19c1ab613221d45fba6ef7a83083d068db92f731e452dfab558b5a5
     globs:
     - pixi.toml
 - conda: .
@@ -4013,23 +4013,23 @@ packages:
   - vtk
   - libspnav
   - __glibc >=2.17,<3.0.a0
-  - yaml-cpp >=0.8.0,<0.9.0a0
+  - xerces-c >=3.3.0,<3.4.0a0
   - smesh >=9.9.0.0,<9.9.1.0a0
+  - coin3d >=4.0.3,<4.1.0a0
   - libzlib >=1.3.1,<2.0a0
   - python_abi 3.13.* *_cp313
-  - xerces-c >=3.3.0,<3.4.0a0
-  - qt6-main >=6.8.2,<6.9.0a0
+  - hdf5 >=1.14.4,<1.14.5.0a0
+  - numpy >=1.21,<3
+  - occt >=7.8.1,<7.8.2.0a0
   - pcl >=1.15.0,<1.15.1.0a0
+  - qt6-main >=6.8.2,<6.9.0a0
+  - libboost >=1.86.0,<1.87.0a0
+  - yaml-cpp >=0.8.0,<0.9.0a0
   - vtk-base >=9.3.1,<9.3.2.0a0
   - freetype >=2.13.3,<3.0a0
-  - hdf5 >=1.14.4,<1.14.5.0a0
-  - libboost >=1.86.0,<1.87.0a0
   - fmt >=11.0.2,<12.0a0
-  - occt >=7.8.1,<7.8.2.0a0
-  - numpy >=1.21,<3
-  - coin3d >=4.0.3,<4.1.0a0
   input:
-    hash: 793182f186a109e1f26b4b6559849912d2c178ecdb5abeaeafbb414fb4a83367
+    hash: 72ff2caab19c1ab613221d45fba6ef7a83083d068db92f731e452dfab558b5a5
     globs:
     - pixi.toml
 - conda: .
@@ -4068,23 +4068,23 @@ packages:
   - six
   - sympy
   - vtk
-  - smesh >=9.9.0.0,<9.9.1.0a0
   - numpy >=1.21,<3
-  - libzlib >=1.3.1,<2.0a0
-  - vtk-base >=9.3.1,<9.3.2.0a0
-  - coin3d >=4.0.3,<4.1.0a0
-  - hdf5 >=1.14.4,<1.14.5.0a0
-  - fmt >=11.0.2,<12.0a0
-  - freetype >=2.13.3,<3.0a0
-  - pcl >=1.15.0,<1.15.1.0a0
-  - xerces-c >=3.3.0,<3.4.0a0
-  - python_abi 3.13.* *_cp313
-  - occt >=7.8.1,<7.8.2.0a0
-  - libboost >=1.86.0,<1.87.0a0
   - yaml-cpp >=0.8.0,<0.9.0a0
+  - libzlib >=1.3.1,<2.0a0
+  - python_abi 3.13.* *_cp313
+  - fmt >=11.0.2,<12.0a0
+  - coin3d >=4.0.3,<4.1.0a0
+  - pcl >=1.15.0,<1.15.1.0a0
+  - occt >=7.8.1,<7.8.2.0a0
+  - xerces-c >=3.3.0,<3.4.0a0
+  - smesh >=9.9.0.0,<9.9.1.0a0
   - qt6-main >=6.8.2,<6.9.0a0
+  - vtk-base >=9.3.1,<9.3.2.0a0
+  - libboost >=1.86.0,<1.87.0a0
+  - hdf5 >=1.14.4,<1.14.5.0a0
+  - freetype >=2.13.3,<3.0a0
   input:
-    hash: 793182f186a109e1f26b4b6559849912d2c178ecdb5abeaeafbb414fb4a83367
+    hash: 72ff2caab19c1ab613221d45fba6ef7a83083d068db92f731e452dfab558b5a5
     globs:
     - pixi.toml
 - conda: .
@@ -4123,23 +4123,23 @@ packages:
   - six
   - sympy
   - vtk
-  - xerces-c >=3.3.0,<3.4.0a0
-  - vtk-base >=9.3.1,<9.3.2.0a0
-  - qt6-main >=6.8.2,<6.9.0a0
-  - occt >=7.8.1,<7.8.2.0a0
-  - hdf5 >=1.14.4,<1.14.5.0a0
-  - python_abi 3.13.* *_cp313
-  - yaml-cpp >=0.8.0,<0.9.0a0
-  - coin3d >=4.0.3,<4.1.0a0
-  - libzlib >=1.3.1,<2.0a0
-  - numpy >=1.21,<3
-  - fmt >=11.0.2,<12.0a0
   - libboost >=1.86.0,<1.87.0a0
-  - freetype >=2.13.3,<3.0a0
+  - fmt >=11.0.2,<12.0a0
+  - coin3d >=4.0.3,<4.1.0a0
+  - qt6-main >=6.8.2,<6.9.0a0
   - pcl >=1.15.0,<1.15.1.0a0
+  - numpy >=1.21,<3
   - smesh >=9.9.0.0,<9.9.1.0a0
+  - vtk-base >=9.3.1,<9.3.2.0a0
+  - xerces-c >=3.3.0,<3.4.0a0
+  - python_abi 3.13.* *_cp313
+  - libzlib >=1.3.1,<2.0a0
+  - freetype >=2.13.3,<3.0a0
+  - hdf5 >=1.14.4,<1.14.5.0a0
+  - yaml-cpp >=0.8.0,<0.9.0a0
+  - occt >=7.8.1,<7.8.2.0a0
   input:
-    hash: 793182f186a109e1f26b4b6559849912d2c178ecdb5abeaeafbb414fb4a83367
+    hash: 72ff2caab19c1ab613221d45fba6ef7a83083d068db92f731e452dfab558b5a5
     globs:
     - pixi.toml
 - conda: https://prefix.dev/conda-forge/linux-64/freeglut-3.2.2-ha6d2627_3.conda
@@ -4617,6 +4617,12 @@ packages:
   license_family: GPL
   size: 2890553
   timestamp: 1739039406578
+- conda: https://prefix.dev/conda-forge/win-64/git-2.49.0-h57928b3_0.conda
+  sha256: 23c313d9a6e7784bdacc71d7fe9d5cd36d6984908e716422ed8ad9b38162d85f
+  md5: 30c89cbda81237c8501ba98adac10ad7
+  license: GPL-2.0-or-later and LGPL-2.1-or-later
+  size: 127194688
+  timestamp: 1742298397813
 - conda: https://prefix.dev/conda-forge/linux-64/gl2ps-1.4.2-hae5d5c5_1.conda
   sha256: 68f071ea25e79ee427c0d6c35ccc137d66f093a37660a4e41bafe0c49d64f2d6
   md5: 00e642ec191a19bf806a3915800e9524
@@ -13210,13 +13216,6 @@ packages:
   license_family: BSD
   size: 820831
   timestamp: 1723489427046
-- conda: https://prefix.dev/conda-forge/win-64/perl-5.32.1.1-7_h57928b3_strawberry.conda
-  build_number: 7
-  sha256: 9e8ab3e0a3a264e68c6a36897b6fdcdb5d32d30b22f238f23a89ab670f1e6612
-  md5: 07cdf8cf0276211b079a5d57d7853dc4
-  license: GPL-1.0-or-later OR Artistic-1.0-Perl
-  size: 28889712
-  timestamp: 1703310809518
 - conda: https://prefix.dev/conda-forge/linux-64/pillow-11.1.0-py313h8db990d_0.conda
   sha256: 0c8e2322d3e7b82e52a50cfa449887040765418fcae0919560423355a98d251a
   md5: 1e86810c6c3fb6d6aebdba26564eb2e8

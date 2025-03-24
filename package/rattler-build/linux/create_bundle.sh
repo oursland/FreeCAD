@@ -77,7 +77,7 @@ chmod a+x ./AppDir/AppRun
   # -s --sign-key ${GPG_KEY_ID} \
 
 echo -e "\nCreate hash"
-shasum -a 256 ${version_name}.AppImage > ${version_name}.AppImage-SHA256.txt
+sha256sum ${version_name}.AppImage > ${version_name}.AppImage-SHA256.txt
 
 if [ "${UPLOAD_RELEASE}" == "true" ]; then
     gh release create ${BUILD_TAG} --title "Weekly Build ${BUILD_TAG}" --prerelease || true

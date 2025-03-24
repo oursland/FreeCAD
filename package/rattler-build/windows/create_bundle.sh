@@ -70,7 +70,7 @@ mv ${copy_dir} ${version_name}
 "${PROGRAMFILES}/7-Zip/7z.exe" a -t7z -mx9 -mmt=${NUMBER_OF_PROCESSORS} ${version_name}.7z ${version_name} -bb
 
 # create hash
-shasum -a 256 ${version_name}.7z > ${version_name}.7z-SHA256.txt
+sha256sum ${version_name}.7z > ${version_name}.7z-SHA256.txt
 
 if [ "${UPLOAD_RELEASE}" == "true" ]; then
     gh release create ${BUILD_TAG} --title "Weekly Build ${BUILD_TAG}" --prerelease || true

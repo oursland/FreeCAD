@@ -78,7 +78,7 @@ rm -rf ${conda_env}/Library
 dmgbuild -s dmg_settings.py "FreeCAD" "${version_name}.dmg"
 
 # create hash
-shasum -a 256 ${version_name}.dmg > ${version_name}.dmg-SHA256.txt
+sha256sum ${version_name}.dmg > ${version_name}.dmg-SHA256.txt
 
 if [ "${UPLOAD_RELEASE}" == "true" ]; then
     gh release create ${BUILD_TAG} --title "Weekly Build ${BUILD_TAG}" --prerelease || true
