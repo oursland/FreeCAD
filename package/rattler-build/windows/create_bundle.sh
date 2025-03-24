@@ -47,7 +47,6 @@ cp -a ${conda_env}/Library/data ${copy_dir}/data
 cp -a ${conda_env}/Library/Ext ${copy_dir}/Ext
 cp -a ${conda_env}/Library/lib ${copy_dir}/lib
 cp -a ${conda_env}/Library/Mod ${copy_dir}/Mod
-cp -a ${conda_env}/Library/doc ${copy_dir}/doc
 rm -rf ${conda_env}/bin_tmp
 
 # Apply Patches
