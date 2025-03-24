@@ -288,7 +288,7 @@ environments:
       - conda: https://prefix.dev/conda-forge/linux-64/vtk-io-ffmpeg-9.3.1-qt_py313h3d4e8c9_213.conda
       - conda: https://prefix.dev/conda-forge/linux-64/wayland-1.23.1-h3e06ad9_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/wayland-protocols-1.41-hd8ed1ab_0.conda
-      - conda: https://prefix.dev/conda-forge/noarch/wslink-2.3.2-pyhd8ed1ab_0.conda
+      - conda: https://prefix.dev/conda-forge/noarch/wslink-2.3.3-pyhd8ed1ab_0.conda
       - conda: https://prefix.dev/conda-forge/linux-64/x264-1!164.3095-h166bdaf_2.tar.bz2
       - conda: https://prefix.dev/conda-forge/linux-64/x265-3.5-h924138e_3.tar.bz2
       - conda: https://prefix.dev/conda-forge/linux-64/xcb-util-0.4.1-hb711507_2.conda
@@ -602,7 +602,7 @@ environments:
       - conda: https://prefix.dev/conda-forge/linux-aarch64/vtk-base-9.3.1-qt_py313h60ad838_212.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/vtk-io-ffmpeg-9.3.1-qt_py313h502ffb0_212.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/wayland-1.23.1-h698ed42_0.conda
-      - conda: https://prefix.dev/conda-forge/noarch/wslink-2.3.2-pyhd8ed1ab_0.conda
+      - conda: https://prefix.dev/conda-forge/noarch/wslink-2.3.3-pyhd8ed1ab_0.conda
       - conda: https://prefix.dev/conda-forge/linux-aarch64/x264-1!164.3095-h4e544f5_2.tar.bz2
       - conda: https://prefix.dev/conda-forge/linux-aarch64/x265-3.5-hdd96247_3.tar.bz2
       - conda: https://prefix.dev/conda-forge/linux-aarch64/xcb-util-0.4.1-h5c728e9_2.conda
@@ -873,7 +873,7 @@ environments:
       - conda: https://prefix.dev/conda-forge/osx-64/vtk-9.3.1-qt_py313h6e7d914_213.conda
       - conda: https://prefix.dev/conda-forge/osx-64/vtk-base-9.3.1-qt_py313h7a70462_213.conda
       - conda: https://prefix.dev/conda-forge/osx-64/vtk-io-ffmpeg-9.3.1-qt_py313h6e7d914_213.conda
-      - conda: https://prefix.dev/conda-forge/noarch/wslink-2.3.2-pyhd8ed1ab_0.conda
+      - conda: https://prefix.dev/conda-forge/noarch/wslink-2.3.3-pyhd8ed1ab_0.conda
       - conda: https://prefix.dev/conda-forge/osx-64/x264-1!164.3095-h775f41a_2.tar.bz2
       - conda: https://prefix.dev/conda-forge/osx-64/x265-3.5-hbb4e6a2_3.tar.bz2
       - conda: https://prefix.dev/conda-forge/osx-64/xerces-c-3.3.0-hd0321b6_0.conda
@@ -1126,7 +1126,7 @@ environments:
       - conda: https://prefix.dev/conda-forge/osx-arm64/vtk-9.3.1-qt_py313h8d5bf7a_209.conda
       - conda: https://prefix.dev/conda-forge/osx-arm64/vtk-base-9.3.1-qt_py313hc8fffa2_209.conda
       - conda: https://prefix.dev/conda-forge/osx-arm64/vtk-io-ffmpeg-9.3.1-qt_py313hf99a90b_209.conda
-      - conda: https://prefix.dev/conda-forge/noarch/wslink-2.3.2-pyhd8ed1ab_0.conda
+      - conda: https://prefix.dev/conda-forge/noarch/wslink-2.3.3-pyhd8ed1ab_0.conda
       - conda: https://prefix.dev/conda-forge/osx-arm64/x264-1!164.3095-h57fd34a_2.tar.bz2
       - conda: https://prefix.dev/conda-forge/osx-arm64/x265-3.5-hbc6ce65_3.tar.bz2
       - conda: https://prefix.dev/conda-forge/osx-arm64/xerces-c-3.3.0-hd62221f_0.conda
@@ -1365,7 +1365,7 @@ environments:
       - conda: https://prefix.dev/conda-forge/win-64/vtk-base-9.3.1-qt_py313hdcf24be_209.conda
       - conda: https://prefix.dev/conda-forge/noarch/win32_setctime-1.2.0-pyhd8ed1ab_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/win_inet_pton-1.1.0-pyh7428d3b_8.conda
-      - conda: https://prefix.dev/conda-forge/noarch/wslink-2.3.2-pyhd8ed1ab_0.conda
+      - conda: https://prefix.dev/conda-forge/noarch/wslink-2.3.3-pyhd8ed1ab_0.conda
       - conda: https://prefix.dev/conda-forge/win-64/x264-1!164.3095-h8ffe710_2.tar.bz2
       - conda: https://prefix.dev/conda-forge/win-64/x265-3.5-h2d74725_3.tar.bz2
       - conda: https://prefix.dev/conda-forge/win-64/xerces-c-3.3.0-he0c23c2_0.conda
@@ -1461,6 +1461,8 @@ environments:
       - conda: https://prefix.dev/conda-forge/osx-arm64/tk-8.6.13-h5083fa2_1.conda
       - conda: https://prefix.dev/conda-forge/noarch/tzdata-2025b-h78e105d_0.conda
       - conda: https://prefix.dev/conda-forge/noarch/zipp-3.21.0-pyhd8ed1ab_1.conda
+      win-64:
+      - conda: https://prefix.dev/conda-forge/win-64/perl-5.32.1.1-7_h57928b3_strawberry.conda
 packages:
 - conda: https://prefix.dev/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2
   sha256: fe51de6107f9edc7aa4f786a70f4a883943bc9d39b3bb7307c04c41410990726
@@ -3898,23 +3900,23 @@ packages:
   - six
   - sympy
   - vtk
-  - coin3d >=4.0.3,<4.1.0a0
-  - fmt >=11.0.2,<12.0a0
-  - smesh >=9.9.0.0,<9.9.1.0a0
+  - xerces-c >=3.3.0,<3.4.0a0
+  - python_abi 3.13.* *_cp313
+  - libboost >=1.86.0,<1.87.0a0
   - occt >=7.8.1,<7.8.2.0a0
   - numpy >=1.21,<3
-  - hdf5 >=1.14.4,<1.14.5.0a0
-  - qt6-main >=6.8.2,<6.9.0a0
-  - python_abi 3.13.* *_cp313
-  - freetype >=2.13.3,<3.0a0
   - vtk-base >=9.3.1,<9.3.2.0a0
-  - yaml-cpp >=0.8.0,<0.9.0a0
+  - fmt >=11.0.2,<12.0a0
+  - smesh >=9.9.0.0,<9.9.1.0a0
   - pcl >=1.15.0,<1.15.1.0a0
-  - libboost >=1.86.0,<1.87.0a0
+  - hdf5 >=1.14.4,<1.14.5.0a0
+  - freetype >=2.13.3,<3.0a0
+  - coin3d >=4.0.3,<4.1.0a0
+  - qt6-main >=6.8.2,<6.9.0a0
   - libzlib >=1.3.1,<2.0a0
-  - xerces-c >=3.3.0,<3.4.0a0
+  - yaml-cpp >=0.8.0,<0.9.0a0
   input:
-    hash: cfb791060699b43f52039504015726c9d3baf9cb5ecb732fbfa15aa97a297c94
+    hash: 793182f186a109e1f26b4b6559849912d2c178ecdb5abeaeafbb414fb4a83367
     globs:
     - pixi.toml
 - conda: .
@@ -3954,23 +3956,23 @@ packages:
   - sympy
   - vtk
   - libspnav
-  - occt >=7.8.1,<7.8.2.0a0
-  - qt6-main >=6.8.2,<6.9.0a0
-  - vtk-base >=9.3.1,<9.3.2.0a0
-  - hdf5 >=1.14.4,<1.14.5.0a0
   - pcl >=1.15.0,<1.15.1.0a0
-  - freetype >=2.13.3,<3.0a0
-  - fmt >=11.0.2,<12.0a0
-  - libzlib >=1.3.1,<2.0a0
-  - yaml-cpp >=0.8.0,<0.9.0a0
-  - xerces-c >=3.3.0,<3.4.0a0
-  - libboost >=1.86.0,<1.87.0a0
-  - python_abi 3.13.* *_cp313
   - coin3d >=4.0.3,<4.1.0a0
-  - numpy >=1.21,<3
+  - hdf5 >=1.14.4,<1.14.5.0a0
+  - freetype >=2.13.3,<3.0a0
   - smesh >=9.9.0.0,<9.9.1.0a0
+  - qt6-main >=6.8.2,<6.9.0a0
+  - libboost >=1.86.0,<1.87.0a0
+  - fmt >=11.0.2,<12.0a0
+  - numpy >=1.21,<3
+  - python_abi 3.13.* *_cp313
+  - occt >=7.8.1,<7.8.2.0a0
+  - yaml-cpp >=0.8.0,<0.9.0a0
+  - libzlib >=1.3.1,<2.0a0
+  - vtk-base >=9.3.1,<9.3.2.0a0
+  - xerces-c >=3.3.0,<3.4.0a0
   input:
-    hash: cfb791060699b43f52039504015726c9d3baf9cb5ecb732fbfa15aa97a297c94
+    hash: 793182f186a109e1f26b4b6559849912d2c178ecdb5abeaeafbb414fb4a83367
     globs:
     - pixi.toml
 - conda: .
@@ -4012,22 +4014,22 @@ packages:
   - libspnav
   - __glibc >=2.17,<3.0.a0
   - yaml-cpp >=0.8.0,<0.9.0a0
-  - numpy >=1.21,<3
-  - hdf5 >=1.14.4,<1.14.5.0a0
+  - smesh >=9.9.0.0,<9.9.1.0a0
+  - libzlib >=1.3.1,<2.0a0
+  - python_abi 3.13.* *_cp313
+  - xerces-c >=3.3.0,<3.4.0a0
+  - qt6-main >=6.8.2,<6.9.0a0
+  - pcl >=1.15.0,<1.15.1.0a0
   - vtk-base >=9.3.1,<9.3.2.0a0
   - freetype >=2.13.3,<3.0a0
-  - qt6-main >=6.8.2,<6.9.0a0
-  - python_abi 3.13.* *_cp313
-  - smesh >=9.9.0.0,<9.9.1.0a0
-  - pcl >=1.15.0,<1.15.1.0a0
-  - libzlib >=1.3.1,<2.0a0
-  - occt >=7.8.1,<7.8.2.0a0
-  - fmt >=11.0.2,<12.0a0
+  - hdf5 >=1.14.4,<1.14.5.0a0
   - libboost >=1.86.0,<1.87.0a0
+  - fmt >=11.0.2,<12.0a0
+  - occt >=7.8.1,<7.8.2.0a0
+  - numpy >=1.21,<3
   - coin3d >=4.0.3,<4.1.0a0
-  - xerces-c >=3.3.0,<3.4.0a0
   input:
-    hash: cfb791060699b43f52039504015726c9d3baf9cb5ecb732fbfa15aa97a297c94
+    hash: 793182f186a109e1f26b4b6559849912d2c178ecdb5abeaeafbb414fb4a83367
     globs:
     - pixi.toml
 - conda: .
@@ -4066,23 +4068,23 @@ packages:
   - six
   - sympy
   - vtk
-  - libzlib >=1.3.1,<2.0a0
-  - hdf5 >=1.14.4,<1.14.5.0a0
-  - coin3d >=4.0.3,<4.1.0a0
-  - xerces-c >=3.3.0,<3.4.0a0
-  - freetype >=2.13.3,<3.0a0
-  - occt >=7.8.1,<7.8.2.0a0
-  - vtk-base >=9.3.1,<9.3.2.0a0
-  - numpy >=1.21,<3
-  - libboost >=1.86.0,<1.87.0a0
-  - fmt >=11.0.2,<12.0a0
-  - qt6-main >=6.8.2,<6.9.0a0
   - smesh >=9.9.0.0,<9.9.1.0a0
-  - python_abi 3.13.* *_cp313
-  - yaml-cpp >=0.8.0,<0.9.0a0
+  - numpy >=1.21,<3
+  - libzlib >=1.3.1,<2.0a0
+  - vtk-base >=9.3.1,<9.3.2.0a0
+  - coin3d >=4.0.3,<4.1.0a0
+  - hdf5 >=1.14.4,<1.14.5.0a0
+  - fmt >=11.0.2,<12.0a0
+  - freetype >=2.13.3,<3.0a0
   - pcl >=1.15.0,<1.15.1.0a0
+  - xerces-c >=3.3.0,<3.4.0a0
+  - python_abi 3.13.* *_cp313
+  - occt >=7.8.1,<7.8.2.0a0
+  - libboost >=1.86.0,<1.87.0a0
+  - yaml-cpp >=0.8.0,<0.9.0a0
+  - qt6-main >=6.8.2,<6.9.0a0
   input:
-    hash: cfb791060699b43f52039504015726c9d3baf9cb5ecb732fbfa15aa97a297c94
+    hash: 793182f186a109e1f26b4b6559849912d2c178ecdb5abeaeafbb414fb4a83367
     globs:
     - pixi.toml
 - conda: .
@@ -4121,23 +4123,23 @@ packages:
   - six
   - sympy
   - vtk
-  - vtk-base >=9.3.1,<9.3.2.0a0
   - xerces-c >=3.3.0,<3.4.0a0
-  - fmt >=11.0.2,<12.0a0
-  - numpy >=1.21,<3
-  - smesh >=9.9.0.0,<9.9.1.0a0
-  - hdf5 >=1.14.4,<1.14.5.0a0
-  - freetype >=2.13.3,<3.0a0
-  - occt >=7.8.1,<7.8.2.0a0
-  - libzlib >=1.3.1,<2.0a0
-  - libboost >=1.86.0,<1.87.0a0
-  - python_abi 3.13.* *_cp313
-  - coin3d >=4.0.3,<4.1.0a0
-  - yaml-cpp >=0.8.0,<0.9.0a0
-  - pcl >=1.15.0,<1.15.1.0a0
+  - vtk-base >=9.3.1,<9.3.2.0a0
   - qt6-main >=6.8.2,<6.9.0a0
+  - occt >=7.8.1,<7.8.2.0a0
+  - hdf5 >=1.14.4,<1.14.5.0a0
+  - python_abi 3.13.* *_cp313
+  - yaml-cpp >=0.8.0,<0.9.0a0
+  - coin3d >=4.0.3,<4.1.0a0
+  - libzlib >=1.3.1,<2.0a0
+  - numpy >=1.21,<3
+  - fmt >=11.0.2,<12.0a0
+  - libboost >=1.86.0,<1.87.0a0
+  - freetype >=2.13.3,<3.0a0
+  - pcl >=1.15.0,<1.15.1.0a0
+  - smesh >=9.9.0.0,<9.9.1.0a0
   input:
-    hash: cfb791060699b43f52039504015726c9d3baf9cb5ecb732fbfa15aa97a297c94
+    hash: 793182f186a109e1f26b4b6559849912d2c178ecdb5abeaeafbb414fb4a83367
     globs:
     - pixi.toml
 - conda: https://prefix.dev/conda-forge/linux-64/freeglut-3.2.2-ha6d2627_3.conda
@@ -13208,6 +13210,13 @@ packages:
   license_family: BSD
   size: 820831
   timestamp: 1723489427046
+- conda: https://prefix.dev/conda-forge/win-64/perl-5.32.1.1-7_h57928b3_strawberry.conda
+  build_number: 7
+  sha256: 9e8ab3e0a3a264e68c6a36897b6fdcdb5d32d30b22f238f23a89ab670f1e6612
+  md5: 07cdf8cf0276211b079a5d57d7853dc4
+  license: GPL-1.0-or-later OR Artistic-1.0-Perl
+  size: 28889712
+  timestamp: 1703310809518
 - conda: https://prefix.dev/conda-forge/linux-64/pillow-11.1.0-py313h8db990d_0.conda
   sha256: 0c8e2322d3e7b82e52a50cfa449887040765418fcae0919560423355a98d251a
   md5: 1e86810c6c3fb6d6aebdba26564eb2e8
@@ -15777,17 +15786,16 @@ packages:
   license: LicenseRef-Public-Domain
   size: 9555
   timestamp: 1733130678956
-- conda: https://prefix.dev/conda-forge/noarch/wslink-2.3.2-pyhd8ed1ab_0.conda
-  sha256: 042e2cf355873a33cd9cd3f45eba47116ccb88aea11b025820388179baad6534
-  md5: b62ba33f73e92b385bdb00088533819a
+- conda: https://prefix.dev/conda-forge/noarch/wslink-2.3.3-pyhd8ed1ab_0.conda
+  sha256: b3cb4702e8bf92a5a437de3cab5f6fef11a56bada56bc891bd46dc91d9228104
+  md5: 56a61f85bb39bb89e9dd332f09be0763
   depends:
   - aiohttp <4
   - msgpack-python >=1,<2
   - python >=3.9
   license: BSD-3-Clause
-  license_family: BSD
-  size: 35128
-  timestamp: 1740199617580
+  size: 35694
+  timestamp: 1742768550826
 - conda: https://prefix.dev/conda-forge/linux-64/x264-1!164.3095-h166bdaf_2.tar.bz2
   sha256: 175315eb3d6ea1f64a6ce470be00fa2ee59980108f246d3072ab8b977cb048a5
   md5: 6c99772d483f566d59e25037fea2c4b1

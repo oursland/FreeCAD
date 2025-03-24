@@ -20,15 +20,15 @@ backend = { name = "pixi-build-rattler-build", version = "*" }
 freecad = { path = "." }
 ccache = "*"
 
-## Linux Dependencies (x86-64)
+## Linux (x86-64)
 [feature.package.target.linux-64.tasks]
 create_bundle = 'bash -c "cd linux && bash create_bundle.sh"'
 
-## Linux Dependencies (aarch64)
+## Linux (aarch64)
 [feature.package.target.linux-aarch64.tasks]
 create_bundle = 'bash -c "cd linux && bash create_bundle.sh"'
 
-## macOS Dependencies (Intel)
+## macOS (Intel)
 [feature.package.target.osx-64.dependencies]
 dmgbuild = "*"
 sed = "*"
@@ -36,7 +36,7 @@ sed = "*"
 [feature.package.target.osx-64.tasks]
 create_bundle = 'bash -c "cd osx && bash create_bundle.sh"'
 
-## macOS Dependencies (Apple Silicon)
+## macOS (Apple Silicon)
 [feature.package.target.osx-arm64.dependencies]
 dmgbuild = "*"
 sed = "*"
@@ -45,6 +45,9 @@ sed = "*"
 create_bundle = 'bash -c "cd osx && bash create_bundle.sh"'
 
 ## Windows dependencies (x86-64)
+[feature.package.target.win-64.dependencies]
+perl = "*"
+
 [feature.package.target.win-64.tasks]
 create_bundle = 'bash -c "cd windows && bash create_bundle.sh"'
 
