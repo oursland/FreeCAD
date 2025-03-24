@@ -62,10 +62,10 @@ echo -e "################"
 echo -e "version_name:  ${version_name}"
 echo -e "################"
 
-mv ${copy_dir} ${version_name}
+pixi list -e default > ${copy_dir}/packages.txt
+sed -i '1s/.*/\nLIST OF PACKAGES:/' ${copy_dir}/packages.txt
 
-pixi list -e default > FreeCAD.app/Contents/packages.txt
-sed -i '1s/.*/\nLIST OF PACKAGES:/' FreeCAD.app/Contents/packages.txt
+mv ${copy_dir} ${version_name}
 
 "${PROGRAMFILES}/7-Zip/7z.exe" a -t7z -mx9 -mmt=${NUMBER_OF_PROCESSORS} ${version_name}.7z ${version_name} -bb
 
