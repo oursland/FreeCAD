@@ -18,6 +18,33 @@ backend = { name = "pixi-build-rattler-build", version = "*" }
 
 [feature.freecad.dependencies]
 freecad = { path = "." }
+blas = "*"
+blinker = "*"
+calculix = "*"
+docutils = "*"
+# ifcopenshell = "*"
+jinja2 = "*"
+lark = "*"
+lxml = "*"
+matplotlib-base = "*"
+nine = "*"
+noqt5 = "*"
+numpy = "*"
+occt = "*"
+olefile = "*"
+opencamlib = "*"
+opencv = "*"
+pandas = "*"
+pycollada = "*"
+# pythonocc-core = "*"
+pyyaml = "*"
+requests = "*"
+scipy = "*"
+sympy = "*"
+vtk = "*"
+xlutils = "*"
+
+[feature.package.dependencies]
 ccache = "*"
 
 ## Linux (x86-64)
@@ -62,3 +89,6 @@ create_bundle = 'bash -c "cd windows && bash create_bundle.sh"'
 [environments]
 default = ["freecad"]
 package = ["package"]
+
+[target.osx-arm64.pypi-dependencies]
+ifcopenshell = ">=0.8.1.post1, <0.9"
