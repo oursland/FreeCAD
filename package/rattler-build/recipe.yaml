@@ -129,36 +129,15 @@ requirements:
         - blas * accelerate*
 
   run:
-    - blas
-    - blinker
-    - calculix
-    - docutils
     - gmsh
     - graphviz
-    - jinja2
-    - lark
-    - lxml
-    - matplotlib-base
-    - nine
-    - noqt5
     - numpy
-    - occt
-    - olefile
-    - opencamlib
-    - opencv
-    - pandas
-    - pip
     - pivy
     - ply
-    - pycollada
     - pyside6
     - python
     - pyyaml
     - requests
-    - scipy
-    - six
-    - sympy
-    - vtk
 
     - if: linux
       then:
