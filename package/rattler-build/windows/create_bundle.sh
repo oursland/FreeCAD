@@ -24,34 +24,34 @@ mkdir -p ${copy_dir}/bin
 
 cp -a ${conda_env}/* ${copy_dir}/
 
-# # Copy Conda's Python and (U)CRT to FreeCAD/bin
-# cp -a ${conda_env}/DLLs ${copy_dir}/bin/DLLs
-# cp -a ${conda_env}/Lib ${copy_dir}/bin/Lib
-# cp -a ${conda_env}/Scripts ${copy_dir}/bin/Scripts
-# cp -a ${conda_env}/python*.* ${copy_dir}/bin
-# cp -a ${conda_env}/msvc*.* ${copy_dir}/bin
-# cp -a ${conda_env}/ucrt*.* ${copy_dir}/bin
-# # Copy meaningful executables
-# cp -a ${conda_env}/Library/bin/ccx.exe ${copy_dir}/bin
-# cp -a ${conda_env}/Library/bin/gmsh.exe ${copy_dir}/bin
-# cp -a ${conda_env}/Library/bin/dot.exe ${copy_dir}/bin
-# cp -a ${conda_env}/Library/bin/unflatten.exe ${copy_dir}/bin
-# cp -a ${conda_env}/Library/mingw-w64/bin/* ${copy_dir}/bin
-# # copy resources -- perhaps needs reduction
-# cp -a ${conda_env}/Library/share ${copy_dir}/share
-# # get all the dependency .dlls
-# cp -a ${conda_env}/Library/bin/*.dll ${copy_dir}/bin
-# # Copy FreeCAD build
-# cp -a ${conda_env}/Library/bin/freecad* ${copy_dir}/bin
-# cp -a ${conda_env}/Library/bin/FreeCAD* ${copy_dir}/bin
-# cp -a ${conda_env}/Library/data ${copy_dir}/data
-# cp -a ${conda_env}/Library/Ext ${copy_dir}/Ext
-# cp -a ${conda_env}/Library/lib ${copy_dir}/lib
-# cp -a ${conda_env}/Library/Mod ${copy_dir}/Mod
+# Copy Conda's Python and (U)CRT to FreeCAD/bin
+cp -a ${conda_env}/DLLs ${copy_dir}/bin/DLLs
+cp -a ${conda_env}/Lib ${copy_dir}/bin/Lib
+cp -a ${conda_env}/Scripts ${copy_dir}/bin/Scripts
+cp -a ${conda_env}/python*.* ${copy_dir}/bin
+cp -a ${conda_env}/msvc*.* ${copy_dir}/bin
+cp -a ${conda_env}/ucrt*.* ${copy_dir}/bin
+# Copy meaningful executables
+cp -a ${conda_env}/Library/bin/ccx.exe ${copy_dir}/bin
+cp -a ${conda_env}/Library/bin/gmsh.exe ${copy_dir}/bin
+cp -a ${conda_env}/Library/bin/dot.exe ${copy_dir}/bin
+cp -a ${conda_env}/Library/bin/unflatten.exe ${copy_dir}/bin
+cp -a ${conda_env}/Library/mingw-w64/bin/* ${copy_dir}/bin
+# copy resources -- perhaps needs reduction
+cp -a ${conda_env}/Library/share ${copy_dir}/share
+# get all the dependency .dlls
+cp -a ${conda_env}/Library/bin/*.dll ${copy_dir}/bin
+# Copy FreeCAD build
+cp -a ${conda_env}/Library/bin/freecad* ${copy_dir}/bin
+cp -a ${conda_env}/Library/bin/FreeCAD* ${copy_dir}/bin
+cp -a ${conda_env}/Library/data ${copy_dir}/data
+cp -a ${conda_env}/Library/Ext ${copy_dir}/Ext
+cp -a ${conda_env}/Library/lib ${copy_dir}/lib
+cp -a ${conda_env}/Library/Mod ${copy_dir}/Mod
 
-# # Apply Patches
-# mv ${copy_dir}/bin/Lib/ssl.py ssl-orig.py
-# cp ssl-patch.py ${copy_dir}/bin/Lib/ssl.py
+# Apply Patches
+mv ${copy_dir}/bin/Lib/ssl.py ssl-orig.py
+cp ssl-patch.py ${copy_dir}/bin/Lib/ssl.py
 
 echo '[Paths]' >> ${copy_dir}/bin/qt6.conf
 echo 'Prefix = ../lib/qt6' >> ${copy_dir}/bin/qt6.conf
