@@ -22,8 +22,6 @@ find ${conda_env} -name \*.a -delete
 copy_dir="FreeCAD_Conda_Build"
 mkdir -p ${copy_dir}/bin
 
-cp -a ${conda_env}/* ${copy_dir}/
-
 # Copy Conda's Python and (U)CRT to FreeCAD/bin
 cp -a ${conda_env}/DLLs ${copy_dir}/bin/DLLs
 cp -a ${conda_env}/Lib ${copy_dir}/bin/Lib
@@ -48,6 +46,7 @@ cp -a ${conda_env}/Library/data ${copy_dir}/data
 cp -a ${conda_env}/Library/Ext ${copy_dir}/Ext
 cp -a ${conda_env}/Library/lib ${copy_dir}/lib
 cp -a ${conda_env}/Library/Mod ${copy_dir}/Mod
+rm -rf ${conda_env}/bin_tmp
 
 # Apply Patches
 mv ${copy_dir}/bin/Lib/ssl.py ssl-orig.py
