@@ -20,7 +20,7 @@ requirements:
     - doxygen
     - ninja
     - noqt5
-    - python
+    - python==3.12.9
     - qt6-main==6.8.2
     - swig
 
@@ -102,8 +102,8 @@ requirements:
     - ply
     - pybind11
     - pyside6
-    - python
-    - qt6-main
+    - python==3.12.9
+    - qt6-main==6.8.2
     - six
     - smesh
     - vtk
@@ -129,15 +129,40 @@ requirements:
         - blas * accelerate*
 
   run:
+    - blas
+    - blinker
+    - calculix
+    - debugpy
+    - docutils
     - gmsh
     - graphviz
+    # - ifcopenshell
+    - jinja2
+    - lark
+    - lxml
+    - matplotlib-base
+    - nine
+    - noqt5
     - numpy
+    - occt
+    - olefile
+    - opencamlib
+    - opencv
+    - pandas
+    - pip
     - pivy
     - ply
+    - pycollada
     - pyside6
-    - python
+    - python==3.12.9
+    - pythonocc-core
     - pyyaml
+    - qt6-main==6.8.2
     - requests
+    - scipy
+    - sympy
+    - vtk
+    - xlutils
 
     - if: linux
       then:

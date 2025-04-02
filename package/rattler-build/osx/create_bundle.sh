@@ -49,14 +49,9 @@ cmake --build build
 mkdir -p FreeCAD.app/Contents/MacOS
 cp build/FreeCAD FreeCAD.app/Contents/MacOS/FreeCAD
 
-os=$(uname -s)
-if [ "${os}" == "Darwin" ]; then
-    os="macOS"
-fi
-
 build_tag=$(git describe --tags)
 python_version=$(python -c 'import platform; print("py" + platform.python_version_tuple()[0] + platform.python_version_tuple()[1])')
-version_name="FreeCAD_${build_tag}-${os}-$(uname -m)-${python_version}"
+version_name="FreeCAD_${build_tag}-macOS-$(uname -m)-${python_version}"
 application_menu_name="FreeCAD_${build_tag}"
 
 echo -e "\################"
@@ -74,13 +69,18 @@ sed -i '1s/.*/\nLIST OF PACKAGES:/' FreeCAD.app/Contents/packages.txt
 cp -a ${conda_env}/Library ${conda_env}/..
 rm -rf ${conda_env}/Library
 
-# create the dmg
-dmgbuild -s dmg_settings.py "FreeCAD" "${version_name}.dmg"
+if [[ "${UPLOAD_RELEASE}" == "true" ]]; then
+    # create the signed dmg
+    ./macos_sign_and_notarize.zsh -p "FreeCAD Weekly" -k ${SIGNING_KEY_ID} -o "${version_name}.dmg"
+else
+    # create the dmg
+    dmgbuild -s dmg_settings.py "FreeCAD" "${version_name}.dmg"
+fi
 
 # create hash
 sha256sum ${version_name}.dmg > ${version_name}.dmg-SHA256.txt
 
-if [ "${UPLOAD_RELEASE}" == "true" ]; then
+if [[ "${UPLOAD_RELEASE}" == "true" ]]; then
     gh release create ${BUILD_TAG} --title "Weekly Build ${BUILD_TAG}" --notes "Weekly Build ${BUILD_TAG}" --prerelease || true
     gh release upload --clobber ${BUILD_TAG} "${version_name}.dmg" "${version_name}.dmg-SHA256.txt"
 fi

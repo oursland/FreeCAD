@@ -11,7 +11,6 @@ VOLUME_NAME="FreeCAD"
 DMG_NAME="FreeCAD-macOS-$(uname -m).dmg"
 DMG_SETTINGS="dmg_settings.py"
 
-
 # Function to display usage information
 function usage {
     echo "Usage: $0 [-k|--key-id <signing_key_id>] [-p|--keychain-profile <keychain_profile>]"
@@ -91,16 +90,17 @@ fi
 
 function run_codesign {
     echo "Signing $1"
-    codesign --options runtime -f -s ${SIGNING_KEY_ID} --timestamp --entitlements entitlements.plist $1
+    /usr/bin/codesign --options runtime -f -s ${SIGNING_KEY_ID} --timestamp --entitlements entitlements.plist "$1"
 }
 
 IFS=$'\n'
-dylibs=($(find "${CONTAINING_FOLDER}/${APP_NAME}" -name "*.dylib"))
-shared_objects=($(find "${CONTAINING_FOLDER}/${APP_NAME}" -name "*.so"))
-executables=($(find "${CONTAINING_FOLDER}/${APP_NAME}" -type f -perm +111 -exec file {} + | grep "Mach-O 64-bit executable" | sed 's/:.*//g'))
+dylibs=($(/usr/bin/find "${CONTAINING_FOLDER}/${APP_NAME}" -name "*.dylib"))
+shared_objects=($(/usr/bin/find "${CONTAINING_FOLDER}/${APP_NAME}" -name "*.so"))
+bundles=($(/usr/bin/find "${CONTAINING_FOLDER}/${APP_NAME}" -name "*.bundle"))
+executables=($(/usr/bin/find "${CONTAINING_FOLDER}/${APP_NAME}" -type f -perm +111 -exec file {} + | grep "Mach-O 64-bit executable" | sed 's/:.*//g'))
 IFS=$' \t\n' # The default
 
-signed_files=("${dylibs[@]}" "${shared_objects[@]}" "${executables[@]}")
+signed_files=("${dylibs[@]}" "${shared_objects[@]}" "${bundles[@]}" "${executables[@]}")
 
 # This list of files is generated from:
 # file `find . -type f -perm +111 -print` | grep "Mach-O 64-bit executable" | sed 's/:.*//g'
@@ -120,7 +120,7 @@ echo "Creating disk image ${DMG_NAME}"
 dmgbuild -s ${DMG_SETTINGS} -Dcontaining_folder="${CONTAINING_FOLDER}" -Dapp_name="${APP_NAME}" "${VOLUME_NAME}" "${DMG_NAME}"
 
 # Submit it for notarization (requires that an App Store API Key has been set up in the notarytool)
-xcrun notarytool submit --wait --keychain-profile "${KEYCHAIN_PROFILE}" "${DMG_NAME}"
+time xcrun notarytool submit --wait --keychain-profile "${KEYCHAIN_PROFILE}" "${DMG_NAME}"
 
 # Assuming that notarization succeeded, it's a good practice to staple that notarization to the DMG
 xcrun stapler staple "${DMG_NAME}"

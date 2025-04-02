@@ -18,44 +18,13 @@ backend = { name = "pixi-build-rattler-build", version = "*" }
 
 [feature.freecad.dependencies]
 freecad = { path = "." }
-blas = "*"
-blinker = "*"
-calculix = "*"
-ccache = "*"
-docutils = "*"
-# ifcopenshell = "*"
-jinja2 = "*"
-lark = "*"
-lxml = "*"
-matplotlib-base = "*"
-nine = "*"
-noqt5 = "*"
-numpy = "*"
-occt = "*"
-olefile = "*"
-opencamlib = "*"
-opencv = "*"
-pandas = "*"
-pip = "*"
-pycollada = "*"
-# pythonocc-core = "*"
-python = "*"
-pyyaml = "*"
-requests = "*"
-scipy = "*"
-sympy = "*"
-vtk = "*"
-xlutils = "*"
 
 [feature.package.dependencies]
-python = "*"
+python = "==3.12.9"
 
 ## Linux (x86-64)
 [feature.package.target.linux-64.dependencies]
 coreutils = "*"
-
-[feature.package.target.linux-64.pypi-dependencies]
-# ifcopenshell = ">=0.8.1.post1, <0.9"
 
 [feature.package.target.linux-64.tasks]
 create_bundle = 'bash -c "cd linux && bash create_bundle.sh"'
@@ -63,9 +32,6 @@ create_bundle = 'bash -c "cd linux && bash create_bundle.sh"'
 ## Linux (aarch64)
 [feature.package.target.linux-aarch64.dependencies]
 coreutils = "*"
-
-[feature.package.target.linux-aarch64.pypi-dependencies]
-# ifcopenshell = ">=0.8.1.post1, <0.9"
 
 [feature.package.target.linux-aarch64.tasks]
 create_bundle = 'bash -c "cd linux && bash create_bundle.sh"'
@@ -76,9 +42,6 @@ coreutils = "*"
 dmgbuild = "*"
 sed = "*"
 
-[feature.package.target.osx-64.pypi-dependencies]
-ifcopenshell = ">=0.8.1.post1, <0.9"
-
 [feature.package.target.osx-64.tasks]
 create_bundle = 'bash -c "cd osx && bash create_bundle.sh"'
 
@@ -88,18 +51,12 @@ coreutils = "*"
 dmgbuild = "*"
 sed = "*"
 
-[feature.package.target.osx-arm64.pypi-dependencies]
-ifcopenshell = ">=0.8.1.post1, <0.9"
-
 [feature.package.target.osx-arm64.tasks]
-create_bundle = 'bash -c "cd osx && bash create_bundle.sh"'
+create_bundle = 'bash -c "cd osx && bash set-env.sh"'
 
 ## Windows dependencies (x86-64)
 [feature.package.target.win-64.dependencies]
 git = "*"
-
-[feature.package.target.win-64.pypi-dependencies]
-ifcopenshell = ">=0.8.1.post1, <0.9"
 
 [feature.package.target.win-64.tasks]
 create_bundle = 'bash -c "cd windows && bash create_bundle.sh"'
