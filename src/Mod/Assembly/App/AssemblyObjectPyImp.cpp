@@ -169,26 +169,6 @@ PyObject* AssemblyObjectPy::isJointConnectingPartToGround(PyObject* args) const
     return Py_BuildValue("O", (ok ? Py_True : Py_False));
 }
 
-PyObject* AssemblyObjectPy::exportAsASMT(PyObject* args) const
-{
-    char* utf8Name;
-    if (!PyArg_ParseTuple(args, "et", "utf-8", &utf8Name)) {
-        return nullptr;
-    }
-
-    std::string fileName = utf8Name;
-    PyMem_Free(utf8Name);
-
-    if (fileName.empty()) {
-        PyErr_SetString(PyExc_ValueError, "Passed string is empty");
-        return nullptr;
-    }
-
-    this->getAssemblyObjectPtr()->exportAsASMT(fileName);
-
-    Py_Return;
-}
-
 Py::List AssemblyObjectPy::getJoints() const
 {
     Py::List ret;

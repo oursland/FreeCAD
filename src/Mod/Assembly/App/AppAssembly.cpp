@@ -32,6 +32,7 @@
 #include "BomObject.h"
 #include "BomGroup.h"
 #include "JointGroup.h"
+#include "OndselAssemblyObject.h"
 #include "ViewGroup.h"
 #include "SimulationGroup.h"
 
@@ -63,6 +64,8 @@ PyMOD_INIT_FUNC(AssemblyApp)
     // This function is responsible for adding inherited slots from a type's base class.
 
     Assembly::AssemblyObject ::init();
+    Assembly::OndselAssemblyObject ::init();
+
     Assembly::AssemblyLink ::init();
     Assembly::BomObject ::init();
 

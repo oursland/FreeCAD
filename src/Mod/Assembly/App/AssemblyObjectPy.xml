@@ -159,18 +159,6 @@
         </UserDocu>
       </Documentation>
     </Methode>
-    <Methode Name="exportAsASMT" Const="true">
-      <Documentation>
-        <UserDocu>
-          Export the assembly in a text format called ASMT.
-
-          exportAsASMT(fileName:str)
-
-          Args:
-          fileName: The name of the file where the ASMT will be exported.
-        </UserDocu>
-      </Documentation>
-    </Methode>
     <Attribute Name="Joints" ReadOnly="true">
       <Documentation>
         <UserDocu>A list of all joints this assembly has.</UserDocu>

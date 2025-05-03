@@ -14,29 +14,29 @@ set(Assembly_LIBS
 	OndselSolver
 )
 
-generate_from_xml(AssemblyObjectPy)
 generate_from_xml(AssemblyLinkPy)
-generate_from_xml(BomObjectPy)
+generate_from_xml(AssemblyObjectPy)
 generate_from_xml(BomGroupPy)
+generate_from_xml(BomObjectPy)
 generate_from_xml(JointGroupPy)
-generate_from_xml(ViewGroupPy)
 generate_from_xml(SimulationGroupPy)
+generate_from_xml(ViewGroupPy)
 
 SET(Python_SRCS
-    AssemblyObjectPy.xml
-    AssemblyObjectPyImp.cpp
     AssemblyLinkPy.xml
     AssemblyLinkPyImp.cpp
-    BomObjectPy.xml
-    BomObjectPyImp.cpp
+    AssemblyObjectPy.xml
+    AssemblyObjectPyImp.cpp
     BomGroupPy.xml
     BomGroupPyImp.cpp
+    BomObjectPy.xml
+    BomObjectPyImp.cpp
     JointGroupPy.xml
     JointGroupPyImp.cpp
-    ViewGroupPy.xml
-    ViewGroupPyImp.cpp
     SimulationGroupPy.xml
     SimulationGroupPyImp.cpp
+    ViewGroupPy.xml
+    ViewGroupPyImp.cpp
 )
 SOURCE_GROUP("Python" FILES ${Python_SRCS})
 
@@ -49,22 +49,24 @@ SET(Module_SRCS
 SOURCE_GROUP("Module" FILES ${Module_SRCS})
 
 SET(Assembly_SRCS
-    AssemblyObject.cpp
-    AssemblyObject.h
     AssemblyLink.cpp
     AssemblyLink.h
+    AssemblyObject.cpp
+    AssemblyObject.h
     AssemblyUtils.cpp
     AssemblyUtils.h
-    BomObject.cpp
-    BomObject.h
     BomGroup.cpp
     BomGroup.h
+    BomObject.cpp
+    BomObject.h
     JointGroup.cpp
     JointGroup.h
-    ViewGroup.cpp
-    ViewGroup.h
+    OndselAssemblyObject.cpp
+    OndselAssemblyObject.h
     SimulationGroup.cpp
     SimulationGroup.h
+    ViewGroup.cpp
+    ViewGroup.h
     ${Module_SRCS}
     ${Python_SRCS}
 )
