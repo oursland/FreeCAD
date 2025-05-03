@@ -12,6 +12,7 @@ set(Assembly_LIBS
 	Spreadsheet
     FreeCADApp
 	OndselSolver
+    mujoco::mujoco
 )
 
 generate_from_xml(AssemblyLinkPy)
