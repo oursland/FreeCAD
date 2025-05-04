@@ -24,6 +24,7 @@
 
 #include <utility>
 #include "AssemblyObjectPy.h"
+#include "Base/Console.h"
 #include "OndselAssemblyObject.h"
 
 FC_LOG_LEVEL_INIT("Assembly", true, true, true)
@@ -32,16 +33,11 @@ using namespace Assembly;
 
 PROPERTY_SOURCE(Assembly::AssemblyObject, App::Part)
 
-// AssemblyObject* AssemblyObject::instance = nullptr;
-
-// AssemblyObject::AssemblyObject(AssemblyObject* instance)
 AssemblyObject::AssemblyObject()
-    : instance(new Assembly::OndselAssemblyObject())
 {
-    // if (instance == nullptr) {
-    //     instance = new Assembly::OndselAssemblyObject();
-    // }
-    // AssemblyObject::instance = instance;
+    if (instance == nullptr) {
+        instance = new Assembly::OndselAssemblyObject();
+    }
 }
 
 AssemblyObject::~AssemblyObject()
@@ -60,18 +56,13 @@ PyObject* AssemblyObject::getPyObject()
 
 App::DocumentObjectExecReturn* AssemblyObject::execute()
 {
-    App::DocumentObjectExecReturn* ret = App::Part::execute();
-
-    ParameterGrp::handle hGrp = App::GetApplication().GetParameterGroupByPath(
-        "User parameter:BaseApp/Preferences/Mod/Assembly");
-    if (hGrp->GetBool("SolveOnRecompute", true)) {
-        solve();
-    }
-    return ret;
+    FC_WARN("AssemblyObject::execute()");
+    return instance->execute();
 }
 
 int AssemblyObject::solve(bool enableRedo, bool updateJCS)
 {
+    FC_WARN("AssemblyObject::solve()");
     return AssemblyObject::instance->solve(enableRedo, updateJCS);
 }
 
@@ -138,6 +129,7 @@ JointGroup* AssemblyObject::getJointGroup() const
 std::vector<App::DocumentObject*>
 AssemblyObject::getJoints(bool updateJCS, bool delBadJoints, bool subJoints)
 {
+    FC_WARN("AssemblyObject::getJoints()");
     return AssemblyObject::instance->getJoints(updateJCS, delBadJoints, subJoints);
 }
 

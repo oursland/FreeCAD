@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "AssemblyObject.h"
+#include "AssemblyObjectInterface.h"
 
 #include <Mod/Assembly/AssemblyGlobal.h>
 
@@ -42,37 +42,15 @@ class ASMTMarker;
 class ASMTPart;
 }  // namespace MbD
 
-namespace App
-{
-class PropertyXLinkSub;
-}  // namespace App
-
-namespace Base
-{
-class Placement;
-class Rotation;
-}  // namespace Base
-
-
 namespace Assembly
 {
 
-class AssemblyLink;
-class JointGroup;
-class ViewGroup;
-enum class JointType;
-
-class AssemblyExport OndselAssemblyObject: public AssemblyObject
+class AssemblyExport OndselAssemblyObject: public AssemblyObjectInterface
 {
-    PROPERTY_HEADER_WITH_OVERRIDE(Assembly::OndselAssemblyObject);
-
 public:
     OndselAssemblyObject();
     ~OndselAssemblyObject() override;
 
-    PyObject* getPyObject() override;
-
-    /// returns the type name of the ViewProvider
     const char* getViewProviderName() const override
     {
         return "AssemblyGui::ViewProviderAssembly";

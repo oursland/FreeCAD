@@ -129,7 +129,7 @@ enum class DistanceType
     Other,
 };
 
-class AssemblyObject;
+class AssemblyObjectInterface;
 class JointGroup;
 
 AssemblyExport void swapJCS(const App::DocumentObject* joint);
@@ -163,14 +163,17 @@ AssemblyExport App::DocumentObject* getObjFromRef(const App::DocumentObject* joi
                                                   const char* propName);
 AssemblyExport App::DocumentObject* getLinkedObjFromRef(const App::DocumentObject* joint,
                                                         const char* propName);
-AssemblyExport App::DocumentObject* getMovingPartFromRef(const AssemblyObject* assemblyObject,
-                                                         App::DocumentObject* obj,
-                                                         const std::string& sub);
-AssemblyExport App::DocumentObject* getMovingPartFromRef(const AssemblyObject* assemblyObject,
-                                                         const App::PropertyXLinkSub* prop);
-AssemblyExport App::DocumentObject* getMovingPartFromRef(const AssemblyObject* assemblyObject,
-                                                         App::DocumentObject* joint,
-                                                         const char* pName);
+AssemblyExport App::DocumentObject*
+getMovingPartFromRef(const AssemblyObjectInterface* assemblyObject,
+                     App::DocumentObject* obj,
+                     const std::string& sub);
+AssemblyExport App::DocumentObject*
+getMovingPartFromRef(const AssemblyObjectInterface* assemblyObject,
+                     const App::PropertyXLinkSub* prop);
+AssemblyExport App::DocumentObject*
+getMovingPartFromRef(const AssemblyObjectInterface* assemblyObject,
+                     App::DocumentObject* joint,
+                     const char* pName);
 AssemblyExport std::vector<std::string> getSubAsList(const App::PropertyXLinkSub* prop);
 AssemblyExport std::vector<std::string> getSubAsList(const App::DocumentObject* joint,
                                                      const char* propName);

@@ -4,7 +4,7 @@
       Father="PartPy"
       Name="AssemblyObjectPy"
       Twin="AssemblyObject"
-      TwinPointer="AssemblyObject"
+      TwinPointer="AssemblyObjectInterface"
       Include="Mod/Assembly/App/AssemblyObject.h"
       Namespace="Assembly"
       FatherInclude="App/PartPy.h"
@@ -15,6 +15,7 @@
     </Documentation>
     <Methode Name="solve" Const="true">
       <Documentation>
+
         <UserDocu>
           Solve the assembly and update part placements.
 

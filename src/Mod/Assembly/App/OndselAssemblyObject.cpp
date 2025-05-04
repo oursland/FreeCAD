@@ -98,8 +98,6 @@ namespace PartApp = Part;
 
 // ================================ Assembly Object ============================
 
-PROPERTY_SOURCE(Assembly::OndselAssemblyObject, App::Part)
-
 OndselAssemblyObject::OndselAssemblyObject()
     : mbdAssembly(std::make_shared<ASMTAssembly>())
     , bundleFixed(false)
@@ -109,17 +107,9 @@ OndselAssemblyObject::OndselAssemblyObject()
 
 OndselAssemblyObject::~OndselAssemblyObject() = default;
 
-PyObject* OndselAssemblyObject::getPyObject()
-{
-    if (PythonObject.is(Py::_None())) {
-        // ref counter is set to 1
-        PythonObject = Py::Object(new AssemblyObjectPy(this), true);
-    }
-    return Py::new_reference_to(PythonObject);
-}
-
 App::DocumentObjectExecReturn* OndselAssemblyObject::execute()
 {
+    FC_WARN("OndselAssemblyObject::execute()");
     App::DocumentObjectExecReturn* ret = App::Part::execute();
 
     ParameterGrp::handle hGrp = App::GetApplication().GetParameterGroupByPath(
@@ -132,6 +122,7 @@ App::DocumentObjectExecReturn* OndselAssemblyObject::execute()
 
 int OndselAssemblyObject::solve(bool enableRedo, bool updateJCS)
 {
+    FC_WARN("AssemblyObject::solve()");
     ensureIdentityPlacements();
 
     mbdAssembly = makeMbdAssembly();
@@ -632,6 +623,7 @@ ViewGroup* OndselAssemblyObject::getExplodedViewGroup() const
 std::vector<App::DocumentObject*>
 OndselAssemblyObject::getJoints(bool updateJCS, bool delBadJoints, bool subJoints)
 {
+    FC_WARN("OndselAssemblyObject::getJoints()");
     std::vector<App::DocumentObject*> joints = {};
 
     JointGroup* jointGroup = getJointGroup();

@@ -24,38 +24,18 @@
 
 #pragma once
 
+#include "AssemblyObjectInterface.h"
+
 #include <Mod/Assembly/AssemblyGlobal.h>
 
 #include <App/FeaturePython.h>
 #include <App/Part.h>
 #include <App/PropertyLinks.h>
 
-namespace App
-{
-class PropertyXLinkSub;
-}  // namespace App
-
-namespace Base
-{
-class Placement;
-class Rotation;
-}  // namespace Base
-
 namespace Assembly
 {
 
-class AssemblyLink;
-class JointGroup;
-class ViewGroup;
-enum class JointType;
-
-struct ObjRef
-{
-    App::DocumentObject* obj;
-    App::PropertyXLinkSub* ref;
-};
-
-class AssemblyExport AssemblyObject: public App::Part
+class AssemblyExport AssemblyObject: public AssemblyObjectInterface
 {
     PROPERTY_HEADER_WITH_OVERRIDE(Assembly::AssemblyObject);
 
@@ -76,49 +56,49 @@ public:
     /* Solve the assembly. It will update first the joints, solve, update placements of the parts
     and redraw the joints Args : enableRedo : This store initial positions to enable undo while
     being in an active transaction (joint creation).*/
-    virtual int solve(bool enableRedo = false, bool updateJCS = true);
-    virtual int generateSimulation(App::DocumentObject* sim);
-    virtual int updateForFrame(size_t index, bool updateJCS = true);
-    virtual size_t numberOfFrames();
-    virtual void preDrag(std::vector<App::DocumentObject*> dragParts);
-    virtual void doDragStep();
-    virtual void postDrag();
-    virtual void undoSolve();
-    virtual void clearUndo();
+    int solve(bool enableRedo = false, bool updateJCS = true) override;
+    int generateSimulation(App::DocumentObject* sim) override;
+    int updateForFrame(size_t index, bool updateJCS = true) override;
+    size_t numberOfFrames() override;
+    void preDrag(std::vector<App::DocumentObject*> dragParts) override;
+    void doDragStep() override;
+    void postDrag() override;
+    void undoSolve() override;
+    void clearUndo() override;
 
     static void recomputeJointPlacements(std::vector<App::DocumentObject*> joints);
     static void redrawJointPlacements(std::vector<App::DocumentObject*> joints);
 
     // This makes sure that LinkGroups or sub-assemblies have identity placements.
-    virtual void ensureIdentityPlacements();
+    void ensureIdentityPlacements() override;
 
-    virtual JointGroup* getJointGroup() const;
+    JointGroup* getJointGroup() const override;
 
-    virtual std::vector<App::DocumentObject*>
-    getJoints(bool updateJCS = true, bool delBadJoints = false, bool subJoints = true);
-    virtual std::vector<App::DocumentObject*> getGroundedJoints();
-    virtual std::vector<App::DocumentObject*> getJointsOfObj(App::DocumentObject* obj);
-    virtual std::vector<App::DocumentObject*> getJointsOfPart(App::DocumentObject* part);
-    virtual App::DocumentObject* getJointOfPartConnectingToGround(App::DocumentObject* part,
-                                                                  std::string& name);
+    std::vector<App::DocumentObject*>
+    getJoints(bool updateJCS = true, bool delBadJoints = false, bool subJoints = true) override;
+    std::vector<App::DocumentObject*> getGroundedJoints() override;
+    std::vector<App::DocumentObject*> getJointsOfObj(App::DocumentObject* obj) override;
+    std::vector<App::DocumentObject*> getJointsOfPart(App::DocumentObject* part) override;
+    App::DocumentObject* getJointOfPartConnectingToGround(App::DocumentObject* part,
+                                                          std::string& name) override;
 
-    virtual bool isJointConnectingPartToGround(App::DocumentObject* joint,
-                                               const char* partPropName);
+    bool isJointConnectingPartToGround(App::DocumentObject* joint,
+                                       const char* partPropName) override;
 
-    virtual bool isPartGrounded(App::DocumentObject* part);
-    virtual bool isPartConnected(App::DocumentObject* part);
+    bool isPartGrounded(App::DocumentObject* part) override;
+    bool isPartConnected(App::DocumentObject* part) override;
 
-    virtual std::vector<ObjRef> getDownstreamParts(App::DocumentObject* part,
-                                                   App::DocumentObject* joint = nullptr);
-    virtual App::DocumentObject* getUpstreamMovingPart(App::DocumentObject* part,
-                                                       App::DocumentObject*& joint,
-                                                       std::string& name);
+    std::vector<ObjRef> getDownstreamParts(App::DocumentObject* part,
+                                           App::DocumentObject* joint = nullptr) override;
+    App::DocumentObject* getUpstreamMovingPart(App::DocumentObject* part,
+                                               App::DocumentObject*& joint,
+                                               std::string& name) override;
 
-    virtual double getObjMass(App::DocumentObject* obj);
-    virtual void setObjMasses(std::vector<std::pair<App::DocumentObject*, double>> objectMasses);
+    double getObjMass(App::DocumentObject* obj) override;
+    void setObjMasses(std::vector<std::pair<App::DocumentObject*, double>> objectMasses) override;
 
 private:
-    AssemblyObject* instance;
+    AssemblyObjectInterface* instance;
 };
 
 }  // namespace Assembly

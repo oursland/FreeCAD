@@ -53,6 +53,7 @@ SET(Assembly_SRCS
     AssemblyLink.h
     AssemblyObject.cpp
     AssemblyObject.h
+    AssemblyObjectInterface.h
     AssemblyUtils.cpp
     AssemblyUtils.h
     BomGroup.cpp

@@ -48,7 +48,7 @@
 #include <Mod/PartDesign/App/Body.h>
 
 #include "AssemblyUtils.h"
-#include "AssemblyObject.h"
+#include "AssemblyObjectInterface.h"
 #include "AssemblyLink.h"
 
 #include "JointGroup.h"
@@ -642,7 +642,7 @@ App::DocumentObject* getLinkedObjFromRef(const App::DocumentObject* joint, const
     return nullptr;
 }
 
-App::DocumentObject* getMovingPartFromRef(const AssemblyObject* assemblyObject,
+App::DocumentObject* getMovingPartFromRef(const AssemblyObjectInterface* assemblyObject,
                                           App::DocumentObject* obj,
                                           const std::string& sub)
 {
@@ -697,7 +697,7 @@ App::DocumentObject* getMovingPartFromRef(const AssemblyObject* assemblyObject,
     return nullptr;
 }
 
-App::DocumentObject* getMovingPartFromRef(const AssemblyObject* assemblyObject,
+App::DocumentObject* getMovingPartFromRef(const AssemblyObjectInterface* assemblyObject,
                                           App::PropertyXLinkSub* prop)
 {
     if (!prop) {
@@ -716,7 +716,7 @@ App::DocumentObject* getMovingPartFromRef(const AssemblyObject* assemblyObject,
     return getMovingPartFromRef(assemblyObject, obj, subs[0]);
 }
 
-App::DocumentObject* getMovingPartFromRef(const AssemblyObject* assemblyObject,
+App::DocumentObject* getMovingPartFromRef(const AssemblyObjectInterface* assemblyObject,
                                           App::DocumentObject* joint,
                                           const char* pName)
 {

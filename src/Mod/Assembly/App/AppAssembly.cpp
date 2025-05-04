@@ -64,7 +64,6 @@ PyMOD_INIT_FUNC(AssemblyApp)
     // This function is responsible for adding inherited slots from a type's base class.
 
     Assembly::AssemblyObject ::init();
-    Assembly::OndselAssemblyObject ::init();
 
     Assembly::AssemblyLink ::init();
     Assembly::BomObject ::init();
