@@ -133,7 +133,7 @@ jobs:
 
     - name: CMake Configure
       run: |
-        pixi run configure-release
+        pixi run configure
 
     - name: CMake Build
       run: |

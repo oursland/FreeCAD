@@ -60,7 +60,7 @@ jobs:
       CXX: /usr/bin/g++
       #CC: /usr/bin/clang
       #CXX: /usr/bin/clang++
-      builddir: ${{ github.workspace }}/build/release/
+      builddir: ${{ github.workspace }}/build/debug/
       logdir: /tmp/logs/
       reportdir: /tmp/report/
       reportfilename: ${{ inputs.artifactBasename }}-report.md
@@ -119,7 +119,7 @@ jobs:
       - name: CMake Configure
         uses: ./.github/workflows/actions/linux/configure
         with:
-          extraParameters: -G Ninja --preset release
+          extraParameters: -G Ninja --preset debug
           builddir: ${{ env.builddir }}
           logFile: ${{ env.logdir }}Cmake.log
           errorFile: ${{ env.logdir }}CmakeErrors.log
