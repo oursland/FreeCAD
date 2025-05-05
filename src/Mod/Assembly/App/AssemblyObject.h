@@ -25,6 +25,7 @@
 #pragma once
 
 #include "AssemblyObjectInterface.h"
+#include "Mod/Assembly/App/OndselAssemblyObject.h"
 
 #include <Mod/Assembly/AssemblyGlobal.h>
 
@@ -35,70 +36,12 @@
 namespace Assembly
 {
 
-class AssemblyExport AssemblyObject: public AssemblyObjectInterface
+class AssemblyExport AssemblyObject: public OndselAssemblyObject
 {
-    PROPERTY_HEADER_WITH_OVERRIDE(Assembly::AssemblyObject);
+    TYPESYSTEM_HEADER_WITH_OVERRIDE();
 
 public:
-    // explicit AssemblyObject(AssemblyObject *instance = nullptr);
-    AssemblyObject();
-    ~AssemblyObject() override;
-
-    PyObject* getPyObject() override;
-
-    const char* getViewProviderName() const override
-    {
-        return "AssemblyGui::ViewProviderAssembly";
-    }
-
-    App::DocumentObjectExecReturn* execute() override;
-
-    /* Solve the assembly. It will update first the joints, solve, update placements of the parts
-    and redraw the joints Args : enableRedo : This store initial positions to enable undo while
-    being in an active transaction (joint creation).*/
-    int solve(bool enableRedo = false, bool updateJCS = true) override;
-    int generateSimulation(App::DocumentObject* sim) override;
-    int updateForFrame(size_t index, bool updateJCS = true) override;
-    size_t numberOfFrames() override;
-    void preDrag(std::vector<App::DocumentObject*> dragParts) override;
-    void doDragStep() override;
-    void postDrag() override;
-    void undoSolve() override;
-    void clearUndo() override;
-
-    static void recomputeJointPlacements(std::vector<App::DocumentObject*> joints);
-    static void redrawJointPlacements(std::vector<App::DocumentObject*> joints);
-
-    // This makes sure that LinkGroups or sub-assemblies have identity placements.
-    void ensureIdentityPlacements() override;
-
-    JointGroup* getJointGroup() const override;
-
-    std::vector<App::DocumentObject*>
-    getJoints(bool updateJCS = true, bool delBadJoints = false, bool subJoints = true) override;
-    std::vector<App::DocumentObject*> getGroundedJoints() override;
-    std::vector<App::DocumentObject*> getJointsOfObj(App::DocumentObject* obj) override;
-    std::vector<App::DocumentObject*> getJointsOfPart(App::DocumentObject* part) override;
-    App::DocumentObject* getJointOfPartConnectingToGround(App::DocumentObject* part,
-                                                          std::string& name) override;
-
-    bool isJointConnectingPartToGround(App::DocumentObject* joint,
-                                       const char* partPropName) override;
-
-    bool isPartGrounded(App::DocumentObject* part) override;
-    bool isPartConnected(App::DocumentObject* part) override;
-
-    std::vector<ObjRef> getDownstreamParts(App::DocumentObject* part,
-                                           App::DocumentObject* joint = nullptr) override;
-    App::DocumentObject* getUpstreamMovingPart(App::DocumentObject* part,
-                                               App::DocumentObject*& joint,
-                                               std::string& name) override;
-
-    double getObjMass(App::DocumentObject* obj) override;
-    void setObjMasses(std::vector<std::pair<App::DocumentObject*, double>> objectMasses) override;
-
-private:
-    AssemblyObjectInterface* instance;
+    ~AssemblyObject() override = default;
 };
 
 }  // namespace Assembly

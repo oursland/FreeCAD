@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "App/DocumentObject.h"
 #include "AssemblyObjectInterface.h"
 
 #include <Mod/Assembly/AssemblyGlobal.h>

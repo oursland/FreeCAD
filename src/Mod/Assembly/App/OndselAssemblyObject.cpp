@@ -109,7 +109,6 @@ OndselAssemblyObject::~OndselAssemblyObject() = default;
 
 App::DocumentObjectExecReturn* OndselAssemblyObject::execute()
 {
-    FC_WARN("OndselAssemblyObject::execute()");
     App::DocumentObjectExecReturn* ret = App::Part::execute();
 
     ParameterGrp::handle hGrp = App::GetApplication().GetParameterGroupByPath(
