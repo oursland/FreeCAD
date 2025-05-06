@@ -49,9 +49,11 @@
 
 #include <OndselSolver/CREATE.h>
 #include <OndselSolver/ASMTSimulationParameters.h>
+
 #include <OndselSolver/ASMTAssembly.h>
 #include <OndselSolver/ASMTMarker.h>
 #include <OndselSolver/ASMTPart.h>
+
 #include <OndselSolver/ASMTJoint.h>
 #include <OndselSolver/ASMTAngleJoint.h>
 #include <OndselSolver/ASMTFixedJoint.h>
@@ -69,20 +71,20 @@
 #include <OndselSolver/ASMTRevCylJoint.h>
 #include <OndselSolver/ASMTCylSphJoint.h>
 #include <OndselSolver/ASMTRackPinionJoint.h>
+#include <OndselSolver/ASMTScrewJoint.h>
+#include <OndselSolver/ASMTSphSphJoint.h>
+
 #include <OndselSolver/ASMTRotationLimit.h>
 #include <OndselSolver/ASMTTranslationLimit.h>
+
 #include <OndselSolver/ASMTRotationalMotion.h>
 #include <OndselSolver/ASMTTranslationalMotion.h>
 #include <OndselSolver/ASMTGeneralMotion.h>
-#include <OndselSolver/ASMTScrewJoint.h>
-#include <OndselSolver/ASMTSphSphJoint.h>
-#include <OndselSolver/ASMTTime.h>
-#include <OndselSolver/ASMTConstantGravity.h>
+
 #include <OndselSolver/ExternalSystem.h>
 #include <OndselSolver/enum.h>
 
 #include "AssemblyLink.h"
-#include "AssemblyObjectPy.h"
 #include "AssemblyUtils.h"
 #include "JointGroup.h"
 #include "ViewGroup.h"
@@ -121,7 +123,6 @@ App::DocumentObjectExecReturn* OndselAssemblyObject::execute()
 
 int OndselAssemblyObject::solve(bool enableRedo, bool updateJCS)
 {
-    FC_WARN("AssemblyObject::solve()");
     ensureIdentityPlacements();
 
     mbdAssembly = makeMbdAssembly();
@@ -622,7 +623,6 @@ ViewGroup* OndselAssemblyObject::getExplodedViewGroup() const
 std::vector<App::DocumentObject*>
 OndselAssemblyObject::getJoints(bool updateJCS, bool delBadJoints, bool subJoints)
 {
-    FC_WARN("OndselAssemblyObject::getJoints()");
     std::vector<App::DocumentObject*> joints = {};
 
     JointGroup* jointGroup = getJointGroup();
