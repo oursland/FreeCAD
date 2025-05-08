@@ -159,15 +159,15 @@
         </UserDocu>
       </Documentation>
     </Methode>
-    <Methode Name="exportAsASMT" Const="true">
+    <Methode Name="exportFile" Const="true">
       <Documentation>
         <UserDocu>
-          Export the assembly in a text format called ASMT.
+          Export the assembly in a file.
 
-          exportAsASMT(fileName:str)
+          exportFile(fileName:str)
 
           Args:
-          fileName: The name of the file where the ASMT will be exported.
+          fileName: The name of the file where the assembly will be exported.
         </UserDocu>
       </Documentation>
     </Methode>

@@ -169,7 +169,7 @@ PyObject* AssemblyObjectPy::isJointConnectingPartToGround(PyObject* args) const
     return Py_BuildValue("O", (ok ? Py_True : Py_False));
 }
 
-PyObject* AssemblyObjectPy::exportAsASMT(PyObject* args) const
+PyObject* AssemblyObjectPy::exportFile(PyObject* args) const
 {
     char* utf8Name;
     if (!PyArg_ParseTuple(args, "et", "utf-8", &utf8Name)) {
@@ -184,7 +184,7 @@ PyObject* AssemblyObjectPy::exportAsASMT(PyObject* args) const
         return nullptr;
     }
 
-    this->getAssemblyObjectPtr()->exportAsASMT(fileName);
+    this->getAssemblyObjectPtr()->exportFile(fileName);
 
     Py_Return;
 }

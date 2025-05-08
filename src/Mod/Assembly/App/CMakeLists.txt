@@ -49,22 +49,26 @@ SET(Module_SRCS
 SOURCE_GROUP("Module" FILES ${Module_SRCS})
 
 SET(Assembly_SRCS
-    AssemblyObject.cpp
-    AssemblyObject.h
     AssemblyLink.cpp
     AssemblyLink.h
+    AssemblyObject.cpp
+    AssemblyObject.h
     AssemblyUtils.cpp
     AssemblyUtils.h
-    BomObject.cpp
-    BomObject.h
     BomGroup.cpp
     BomGroup.h
+    BomObject.cpp
+    BomObject.h
     JointGroup.cpp
     JointGroup.h
-    ViewGroup.cpp
-    ViewGroup.h
+    OndselSolver.cpp
+    OndselSolver.h
     SimulationGroup.cpp
     SimulationGroup.h
+    Solver.cpp
+    Solver.h
+    ViewGroup.cpp
+    ViewGroup.h
     ${Module_SRCS}
     ${Python_SRCS}
 )
