@@ -98,7 +98,7 @@ jobs:
       - name: Checkout Source
         shell: bash -l {0}
         run: |
-          wget -O- https://github.com/FreeCAD/FreeCAD/releases/download/${BUILD_TAG}/freecad_source_${BUILD_TAG}.tar.gz | tar -C ${GITHUB_WORKSPACE} xf -
+          wget -O- https://github.com/FreeCAD/FreeCAD/releases/download/${BUILD_TAG}/freecad_source_${BUILD_TAG}.tar.gz | tar xf - -C ${GITHUB_WORKSPACE}
 
       - uses: prefix-dev/setup-pixi@19eac09b398e3d0c747adc7921926a6d802df4da # v0.8.8
         with:
