@@ -19,7 +19,7 @@ macro(ConfigureCMakeVariables)
         "${CMAKE_SOURCE_DIR}/src/3rdParty/PyCXX" CACHE PATH
         "Path to the directory containing PyCXX's CXX/Config.hxx include file")
     set(PYCXX_SOURCE_DIR
-        "${CMAKE_SOURCE_DIR}/src/3rdParty/PyCXX/CXX" CACHE PATH
+        "${CMAKE_SOURCE_DIR}/src/3rdParty/PyCXX/Src" CACHE PATH
         "Path to the directory containing PyCXX's cxxextensions.c source file")
 
     # used as compiler defines
