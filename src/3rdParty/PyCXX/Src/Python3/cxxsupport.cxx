@@ -36,15 +36,8 @@
 //-----------------------------------------------------------------------------
 
 #include "CXX/Objects.hxx"
-#include <limits>
 namespace Py
 {
-
-Py_ssize_t numeric_limits_max()
-{
-    return std::numeric_limits<Py_ssize_t>::max();
-}
-
 #if !defined(Py_LIMITED_API)
 Py_UNICODE unicode_null_string[1] = { 0 };
 #endif

@@ -545,10 +545,8 @@ PythonType::PythonType( size_t basic_size, int itemsize, const char *default_nam
 
     // Methods to implement standard operations
     table->tp_dealloc = (destructor)standard_dealloc;
-#if PY_VERSION_HEX < 0x03080000
+#if PY_MINOR_VERSION <= 7
     table->tp_print = 0;
-#else
-    table->tp_vectorcall_offset = 0;
 #endif
     table->tp_getattr = 0;
     table->tp_setattr = 0;
@@ -744,9 +742,7 @@ PythonType &PythonType::supportClass()
 #if defined( PYCXX_PYTHON_2TO3 ) && !defined( Py_LIMITED_API ) && PY_MINOR_VERSION <= 7
 PythonType &PythonType::supportPrint()
 {
-#if PY_VERSION_HEX < 0x03080000
     table->tp_print = print_handler;
-#endif
     return *this;
 }
 #endif
@@ -1399,7 +1395,7 @@ Object PythonExtensionBase::callOnSelf( const std::string &fn_name,
     return self().callMemberFunction( fn_name, args );
 }
 
-void PythonExtensionBase::reinit( Tuple & /* args */, Dict & /* kwds */)
+void PythonExtensionBase::reinit( Tuple &/*args*/, Dict &/*kwds*/ )
 {
     throw RuntimeError( "Must not call __init__ twice on this class" );
 }
@@ -1484,7 +1480,7 @@ PyObject *PythonExtensionBase::iternext()
 }
 
 // Sequence methods
-PyCxx_ssize_t PythonExtensionBase::sequence_length()
+Sequence::size_type PythonExtensionBase::sequence_length()
 {
     missing_method( sequence_length );
 }

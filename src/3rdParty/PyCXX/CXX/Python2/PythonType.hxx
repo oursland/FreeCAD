@@ -40,10 +40,11 @@
 
 namespace Py
 {
-    class PYCXX_EXPORT PythonType
+    class PythonType
     {
     public:
-        // if you define one sequence method you must define 
+#define B(n) (1<<(n))
+        // if you define one sequence method you must define
         // all of them except the assigns
 
         PythonType( size_t base_size, int itemsize, const char *default_name );
@@ -73,12 +74,105 @@ namespace Py
         PythonType &supportStr( void );
         PythonType &supportHash( void );
         PythonType &supportCall( void );
-        PythonType &supportIter( void );
 
-        PythonType &supportSequenceType( void );
-        PythonType &supportMappingType( void );
-        PythonType &supportNumberType( void );
-        PythonType &supportBufferType( void );
+        enum {
+            support_iter_iter =                 B(0),
+            support_iter_iternext =             B(1)
+        };
+        PythonType &supportIter( int methods_to_support=
+                        support_iter_iter |
+                        support_iter_iternext );
+
+        enum {
+            support_sequence_length =           B(0),
+            support_sequence_repeat =           B(1),
+            support_sequence_item =             B(2),
+            support_sequence_slice =            B(3),
+            support_sequence_concat =           B(4),
+            support_sequence_ass_item =         B(5),
+            support_sequence_ass_slice =        B(6),
+            support_sequence_inplace_concat =   B(7),
+            support_sequence_inplace_repeat =   B(8),
+            support_sequence_contains =         B(9)
+        };
+        PythonType &supportSequenceType( int methods_to_support=
+                        support_sequence_length |
+                        support_sequence_repeat |
+                        support_sequence_item |
+                        support_sequence_slice |
+                        support_sequence_concat
+                        );
+
+        enum {
+            support_mapping_length =            B(0),
+            support_mapping_subscript =         B(1),
+            support_mapping_ass_subscript =     B(2)
+        };
+        PythonType &supportMappingType( int methods_to_support=
+                        support_mapping_length |
+                        support_mapping_subscript
+                        );
+
+        enum {
+            support_number_add =                B(0),
+            support_number_subtract =           B(1),
+            support_number_multiply =           B(2),
+            support_number_divide =             B(3),
+            support_number_remainder =          B(4),
+            support_number_divmod =             B(5),
+            support_number_power =              B(6),
+            support_number_negative =           B(7),
+            support_number_positive =           B(8),
+            support_number_absolute =           B(9),
+            support_number_nonzero =            B(10),
+            support_number_invert =             B(11),
+            support_number_lshift =             B(12),
+            support_number_rshift =             B(13),
+            support_number_and =                B(14),
+            support_number_xor =                B(15),
+            support_number_or =                 B(16),
+            support_number_int =                B(17),
+            support_number_long =               B(18),
+            support_number_float =              B(19),
+            support_number_oct =                B(20),
+            support_number_hex =                B(21)
+        };
+        PythonType &supportNumberType( int methods_to_support=
+                        support_number_add |
+                        support_number_subtract |
+                        support_number_multiply |
+                        support_number_divide |
+                        support_number_remainder |
+                        support_number_divmod |
+                        support_number_power |
+                        support_number_negative |
+                        support_number_positive |
+                        support_number_absolute |
+                        support_number_nonzero |
+                        support_number_invert |
+                        support_number_lshift |
+                        support_number_rshift |
+                        support_number_and |
+                        support_number_xor |
+                        support_number_or |
+                        support_number_int |
+                        support_number_long |
+                        support_number_float |
+                        support_number_oct |
+                        support_number_hex
+                        );
+
+        enum {
+            support_buffer_getreadbuffer =      B(0),
+            support_buffer_getwritebuffer =     B(1),
+            support_buffer_getsegcount =        B(2)
+       };
+       PythonType &supportBufferType( int methods_to_support=
+                        support_buffer_getreadbuffer |
+                        support_buffer_getwritebuffer |
+                        support_buffer_getsegcount
+                        );
+#undef B
 
         PythonType &set_tp_dealloc( void (*tp_dealloc)( PyObject * ) );
         PythonType &set_tp_init( int (*tp_init)( PyObject *self, PyObject *args, PyObject *kwds ) );
@@ -89,11 +183,6 @@ namespace Py
         bool readyType();
 
     protected:
-        void init_sequence();
-        void init_mapping();
-        void init_number();
-        void init_buffer();
-
         PyTypeObject            *table;
         PySequenceMethods       *sequence_table;
         PyMappingMethods        *mapping_table;

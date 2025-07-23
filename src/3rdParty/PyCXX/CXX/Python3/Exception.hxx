@@ -40,9 +40,9 @@
 
 #include "CXX/WrapPython.h"
 #include "CXX/Version.hxx"
-#include "CXX/Python3/Config.hxx"
-#include "CXX/Python3/CxxDebug.hxx"
-#include "CXX/Python3/IndirectPythonInterface.hxx"
+#include "CXX/Config.hxx"
+#include "CXX/CxxDebug.hxx"
+#include "CXX/IndirectPythonInterface.hxx"
 
 #include <string>
 #include <iostream>
@@ -54,7 +54,7 @@ namespace Py
 
     class Object;
 
-    class PYCXX_EXPORT BaseException
+    class BaseException
     {
     public:
         BaseException( ExtensionExceptionType &exception, const std::string &reason );
@@ -77,7 +77,7 @@ namespace Py
     void addPythonException( ExtensionExceptionType &py_exc_type, throw_exception_func_t throw_func );
 
 #if defined( PYCXX_6_2_COMPATIBILITY )
-    class PYCXX_EXPORT Exception : public BaseException
+    class Exception : public BaseException
     {
     public:
         Exception( ExtensionExceptionType &exception, const std::string &reason )
@@ -103,7 +103,7 @@ namespace Py
 #endif
 
 #define PYCXX_STANDARD_EXCEPTION( eclass, bclass ) \
-    class PYCXX_EXPORT eclass : public bclass \
+    class eclass : public bclass \
     { \
     public: \
         eclass() {} \
@@ -120,7 +120,7 @@ namespace Py
 #undef PYCXX_STANDARD_EXCEPTION
 
 #define PYCXX_USER_EXCEPTION_STR_ARG( uclass ) \
-class PYCXX_EXPORT uclass : public Py::BaseException \
+class uclass : public Py::BaseException \
 { \
 public: \
     uclass( const std::string &reason ) \
@@ -145,7 +145,7 @@ private: \
 Py::ExtensionExceptionType uclass::m_error;
 
 #define PYCXX_USER_EXCEPTION_NO_ARG( uclass ) \
-class PYCXX_EXPORT uclass : public Py::BaseException \
+class uclass : public Py::BaseException \
 { \
 public: \
     uclass() \

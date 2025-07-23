@@ -39,7 +39,6 @@
 #define __CXX_INDIRECT_PYTHON_INTERFACE__HXX__
 
 #include "CXX/WrapPython.h"
-#include "CXX/Config.hxx"
 
 namespace Py
 {
@@ -48,152 +47,113 @@ bool InitialisePythonIndirectInterface();
 //
 //    Wrap Exception variables as function calls
 //
-PYCXX_EXPORT PyObject * _Exc_Exception();
-PYCXX_EXPORT PyObject * _Exc_StandardError();
-PYCXX_EXPORT PyObject * _Exc_ArithmeticError();
-PYCXX_EXPORT PyObject * _Exc_LookupError();
+PyObject * _Exc_BaseException();
 
-PYCXX_EXPORT PyObject * _Exc_AssertionError();
-PYCXX_EXPORT PyObject * _Exc_AttributeError();
-PYCXX_EXPORT PyObject * _Exc_EOFError();
-PYCXX_EXPORT PyObject * _Exc_FloatingPointError();
-PYCXX_EXPORT PyObject * _Exc_EnvironmentError();
-PYCXX_EXPORT PyObject * _Exc_IOError();
-PYCXX_EXPORT PyObject * _Exc_OSError();
-PYCXX_EXPORT PyObject * _Exc_ImportError();
-PYCXX_EXPORT PyObject * _Exc_IndexError();
-PYCXX_EXPORT PyObject * _Exc_KeyError();
-PYCXX_EXPORT PyObject * _Exc_KeyboardInterrupt();
-PYCXX_EXPORT PyObject * _Exc_MemoryError();
-PYCXX_EXPORT PyObject * _Exc_NameError();
-PYCXX_EXPORT PyObject * _Exc_OverflowError();
-PYCXX_EXPORT PyObject * _Exc_RuntimeError();
-PYCXX_EXPORT PyObject * _Exc_NotImplementedError();
-PYCXX_EXPORT PyObject * _Exc_SyntaxError();
-PYCXX_EXPORT PyObject * _Exc_SystemError();
-PYCXX_EXPORT PyObject * _Exc_SystemExit();
-PYCXX_EXPORT PyObject * _Exc_TypeError();
-PYCXX_EXPORT PyObject * _Exc_ValueError();
-PYCXX_EXPORT PyObject * _Exc_ZeroDivisionError();
-#ifdef MS_WINDOWS
-PYCXX_EXPORT PyObject * _Exc_WindowsError();
-#endif
+#define PYCXX_STANDARD_EXCEPTION( eclass, bclass ) \
+    PyObject * _Exc_##eclass();
 
-PYCXX_EXPORT PyObject * _Exc_MemoryErrorInst();
-
-#if PY_MAJOR_VERSION >= 2
-PYCXX_EXPORT PyObject * _Exc_IndentationError();
-PYCXX_EXPORT PyObject * _Exc_TabError();
-PYCXX_EXPORT PyObject * _Exc_UnboundLocalError();
-PYCXX_EXPORT PyObject * _Exc_UnicodeError();
-#endif
+#include "CXX/Python2/cxx_standard_exceptions.hxx"
+#undef PYCXX_STANDARD_EXCEPTION
 
 //
 //    Wrap Object variables as function calls
 //
-PYCXX_EXPORT PyObject * _None();
+PyObject * _None();
 
-PYCXX_EXPORT PyObject * _False();
-PYCXX_EXPORT PyObject * _True();
+PyObject * _False();
+PyObject * _True();
 
 //
 //    Wrap Type variables as function calls
 //
-PYCXX_EXPORT PyTypeObject * _List_Type();
-PYCXX_EXPORT bool _List_Check( PyObject *o );
+PyTypeObject * _List_Type();
+bool _List_Check( PyObject *o );
 
-PYCXX_EXPORT PyTypeObject * _Buffer_Type();
-PYCXX_EXPORT bool _Buffer_Check( PyObject *op );
+PyTypeObject * _Buffer_Type();
+bool _Buffer_Check( PyObject *op );
 
-PYCXX_EXPORT PyTypeObject * _Class_Type();
-PYCXX_EXPORT bool _Class_Check( PyObject *op );
+PyTypeObject * _Class_Type();
+bool _Class_Check( PyObject *op );
 
-PYCXX_EXPORT PyTypeObject * _Instance_Type();
-PYCXX_EXPORT bool _Instance_Check( PyObject *op );
+PyTypeObject * _Instance_Type();
+bool _Instance_Check( PyObject *op );
 
-PYCXX_EXPORT PyTypeObject * _Method_Type();
-PYCXX_EXPORT bool _Method_Check( PyObject *op );
+PyTypeObject * _Method_Type();
+bool _Method_Check( PyObject *op );
 
-PYCXX_EXPORT PyTypeObject * _CObject_Type();
-PYCXX_EXPORT bool _CObject_Check( PyObject *op );
+PyTypeObject * _CObject_Type();
+bool _CObject_Check( PyObject *op );
 
-PYCXX_EXPORT PyTypeObject * _Complex_Type();
-PYCXX_EXPORT bool _Complex_Check( PyObject *op );
+PyTypeObject * _Complex_Type();
+bool _Complex_Check( PyObject *op );
 
-PYCXX_EXPORT PyTypeObject * _Dict_Type();
-PYCXX_EXPORT bool _Dict_Check( PyObject *op );
+PyTypeObject * _Dict_Type();
+bool _Dict_Check( PyObject *op );
 
-PYCXX_EXPORT PyTypeObject * _File_Type();
-PYCXX_EXPORT bool _File_Check( PyObject *op );
+PyTypeObject * _File_Type();
+bool _File_Check( PyObject *op );
 
-PYCXX_EXPORT PyTypeObject * _Float_Type();
-PYCXX_EXPORT bool _Float_Check( PyObject *op );
+PyTypeObject * _Float_Type();
+bool _Float_Check( PyObject *op );
 
-PYCXX_EXPORT PyTypeObject * _Frame_Type();
-PYCXX_EXPORT bool _Frame_Check( PyObject *op );
+PyTypeObject * _Frame_Type();
+bool _Frame_Check( PyObject *op );
 
-PYCXX_EXPORT PyTypeObject * _Function_Type();
-PYCXX_EXPORT bool _Function_Check( PyObject *op );
+PyTypeObject * _Function_Type();
+bool _Function_Check( PyObject *op );
 
-PYCXX_EXPORT PyTypeObject * _Bool_Type();
-PYCXX_EXPORT bool _Boolean_Check( PyObject *op );
+PyTypeObject * _Bool_Type();
+bool _Boolean_Check( PyObject *op );
 
-PYCXX_EXPORT PyTypeObject * _Int_Type();
-PYCXX_EXPORT bool _Int_Check( PyObject *op );
+PyTypeObject * _Int_Type();
+bool _Int_Check( PyObject *op );
 
-PYCXX_EXPORT PyTypeObject * _List_Type();
-PYCXX_EXPORT bool _List_Check( PyObject *op );
+PyTypeObject * _List_Type();
+bool _List_Check( PyObject *op );
 
-PYCXX_EXPORT PyTypeObject * _Long_Type();
-PYCXX_EXPORT bool _Long_Check( PyObject *op );
+PyTypeObject * _Long_Type();
+bool _Long_Check( PyObject *op );
 
-PYCXX_EXPORT PyTypeObject * _CFunction_Type();
-PYCXX_EXPORT bool _CFunction_Check( PyObject *op );
+PyTypeObject * _CFunction_Type();
+bool _CFunction_Check( PyObject *op );
 
-PYCXX_EXPORT PyTypeObject * _Module_Type();
-PYCXX_EXPORT bool _Module_Check( PyObject *op );
+PyTypeObject * _Module_Type();
+bool _Module_Check( PyObject *op );
 
-PYCXX_EXPORT PyTypeObject * _Type_Type();
-PYCXX_EXPORT bool _Type_Check( PyObject *op );
+PyTypeObject * _Type_Type();
+bool _Type_Check( PyObject *op );
 
-PYCXX_EXPORT PyTypeObject * _Range_Type();
-PYCXX_EXPORT bool _Range_Check( PyObject *op );
+PyTypeObject * _Range_Type();
+bool _Range_Check( PyObject *op );
 
-PYCXX_EXPORT PyTypeObject * _Slice_Type();
-PYCXX_EXPORT bool _Slice_Check( PyObject *op );
+PyTypeObject * _Slice_Type();
+bool _Slice_Check( PyObject *op );
 
-PYCXX_EXPORT PyTypeObject * _String_Type();
-PYCXX_EXPORT bool _String_Check( PyObject *op );
+PyTypeObject * _String_Type();
+bool _String_Check( PyObject *op );
 
-PYCXX_EXPORT PyTypeObject * _Unicode_Type();
-PYCXX_EXPORT bool _Unicode_Check( PyObject *op );
+PyTypeObject * _TraceBack_Type();
+bool _TraceBack_Check( PyObject *v );
 
-PYCXX_EXPORT PyTypeObject * _TraceBack_Type();
-PYCXX_EXPORT bool _TraceBack_Check( PyObject *v );
-
-PYCXX_EXPORT PyTypeObject * _Tuple_Type();
-PYCXX_EXPORT bool _Tuple_Check( PyObject *op );
+PyTypeObject * _Tuple_Type();
+bool _Tuple_Check( PyObject *op );
 
 #if PY_MAJOR_VERSION >= 2
-PYCXX_EXPORT PyTypeObject * _Unicode_Type();
-PYCXX_EXPORT bool _Unicode_Check( PyObject *op );
+PyTypeObject * _Unicode_Type();
+bool _Unicode_Check( PyObject *op );
 #endif
 
-PYCXX_EXPORT int &_Py_DebugFlag();
-PYCXX_EXPORT int &_Py_InteractiveFlag();
-PYCXX_EXPORT int &_Py_OptimizeFlag();
-PYCXX_EXPORT int &_Py_NoSiteFlag();
-PYCXX_EXPORT int &_Py_TabcheckFlag();
-PYCXX_EXPORT int &_Py_VerboseFlag();
+int &_Py_DebugFlag();
+int &_Py_InteractiveFlag();
+int &_Py_OptimizeFlag();
+int &_Py_NoSiteFlag();
+int &_Py_TabcheckFlag();
+int &_Py_VerboseFlag();
 
-#if PY_MAJOR_VERSION >= 2
-PYCXX_EXPORT int &_Py_UnicodeFlag();
-#endif
+void _XINCREF( PyObject *op );
+void _XDECREF( PyObject *op );
 
-PYCXX_EXPORT void _XINCREF( PyObject *op );
-PYCXX_EXPORT void _XDECREF( PyObject *op );
-
-PYCXX_EXPORT const char *__Py_PackageContext();
+char *__Py_PackageContext();
 }
 
 #endif    // __CXX_INDIRECT_PYTHON_INTERFACE__HXX__

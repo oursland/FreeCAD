@@ -53,7 +53,7 @@
 #endif
 
 //
-//	Assume all other compilers do
+// Assume all other compilers do
 //
 #else
 
@@ -68,7 +68,7 @@
 #endif
 
 //
-//	Which C++ standard is in use?
+// Which C++ standard is in use?
 //
 #if defined( _MSC_VER )
 #  if _MSC_VER <= 1200
@@ -113,20 +113,6 @@
 #endif
 #if PY_MAJOR_VERSION < 2 || (PY_MAJOR_VERSION == 2 && PY_MINOR_VERSION < 5)
 typedef int Py_ssize_t;
-#endif
-
-// export macro
-#if defined( _MSC_VER )
-#  pragma warning( disable : 4251 )
-#endif
-#if defined( _MSC_VER ) || defined( __MINGW32__ )
-#  ifdef PYCXX_DLL
-#    define PYCXX_EXPORT  __declspec(dllexport)
-#  else
-#    define PYCXX_EXPORT  __declspec(dllimport)
-#  endif
-#else
-#    define PYCXX_EXPORT
 #endif
 
 #endif //  __PyCXX_config_hh__

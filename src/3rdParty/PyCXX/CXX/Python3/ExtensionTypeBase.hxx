@@ -42,7 +42,7 @@ namespace Py
 {
     // Class PythonExtension is what you inherit from to create
     // a new Python extension type. You give your class itself
-    // as the template parameter.
+    // as the template paramter.
 
     // There are two ways that extension objects can get destroyed.
     // 1. Their reference count goes to zero
@@ -59,7 +59,7 @@ namespace Py
 
     // This special deallocator does a delete on the pointer.
 
-    class PYCXX_EXPORT PythonExtensionBase : public PyObject
+    class PythonExtensionBase : public PyObject
     {
     public:
         PythonExtensionBase();

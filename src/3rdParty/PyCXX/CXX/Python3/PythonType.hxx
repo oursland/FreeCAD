@@ -44,7 +44,7 @@
 
 namespace Py
 {
-    class PYCXX_EXPORT PythonType
+    class PythonType
     {
     public:
         // if you define one sequence method you must define

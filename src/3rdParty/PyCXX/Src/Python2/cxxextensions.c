@@ -1,4 +1,4 @@
-//-----------------------------------------------------------------------------
+/*----------------------------------------------------------------------------
 //
 // Copyright (c) 1998 - 2007, The Regents of the University of California
 // Produced at the Lawrence Livermore National Laboratory
@@ -33,11 +33,17 @@
 // OUT OF THE  USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 // DAMAGE.
 //
-//-----------------------------------------------------------------------------
-#include "WrapPython.h"
+//---------------------------------------------------------------------------*/
 
-#if PY_MAJOR_VERSION == 2
-#include "Python2/cxxsupport.cxx"
-#else
-#include "Python3/cxxsupport.cxx"
+#include "CXX/WrapPython.h"
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+PyObject py_object_initializer = {PyObject_HEAD_INIT(0)};
+
+#ifdef __cplusplus
+}
 #endif

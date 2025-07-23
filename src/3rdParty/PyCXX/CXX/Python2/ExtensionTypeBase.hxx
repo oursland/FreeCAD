@@ -42,31 +42,31 @@ namespace Py
 {
     // Class PythonExtension is what you inherit from to create
     // a new Python extension type. You give your class itself
-    // as the template parameter.
+    // as the template paramter.
 
     // There are two ways that extension objects can get destroyed.
     // 1. Their reference count goes to zero
     // 2. Someone does an explicit delete on a pointer.
-    // In(1) the problem is to get the destructor called 
+    // In(1) the problem is to get the destructor called
     //      We register a special deallocator in the Python type object
     //      (see behaviors()) to do this.
     // In(2) there is no problem, the dtor gets called.
 
-    // PythonExtension does not use the usual Python heap allocator, 
+    // PythonExtension does not use the usual Python heap allocator,
     // instead using new/delete. We do the setting of the type object
-    // and reference count, usually done by PyObject_New, in the 
+    // and reference count, usually done by PyObject_New, in the
     // base class ctor.
 
     // This special deallocator does a delete on the pointer.
 
-    class PYCXX_EXPORT PythonExtensionBase : public PyObject
+    class PythonExtensionBase : public PyObject
     {
     public:
         PythonExtensionBase();
         virtual ~PythonExtensionBase();
 
     public:
-        // object 
+        // object
         virtual void reinit( Tuple &args, Dict &kwds );
 
         // object basics
@@ -87,16 +87,22 @@ namespace Py
         virtual PyObject *iternext();
 
         // Sequence methods
-        virtual int sequence_length();
+        virtual PyCxx_ssize_t sequence_length();
         virtual Object sequence_concat( const Object & );
         virtual Object sequence_repeat( Py_ssize_t );
         virtual Object sequence_item( Py_ssize_t );
         virtual Object sequence_slice( Py_ssize_t, Py_ssize_t );
+
         virtual int sequence_ass_item( Py_ssize_t, const Object & );
         virtual int sequence_ass_slice( Py_ssize_t, Py_ssize_t, const Object & );
 
+        virtual Object sequence_inplace_concat( const Object & );
+        virtual Object sequence_inplace_repeat( Py_ssize_t );
+
+        virtual int sequence_contains( const Object & );
+
         // Mapping
-        virtual int mapping_length();
+        virtual PyCxx_ssize_t mapping_length();
         virtual Object mapping_subscript( const Object & );
         virtual int mapping_ass_subscript( const Object &, const Object & );
 

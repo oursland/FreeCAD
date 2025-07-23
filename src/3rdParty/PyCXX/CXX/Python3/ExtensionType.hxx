@@ -96,22 +96,22 @@
 // need to support METH_STATIC and METH_CLASS
 
 #define PYCXX_ADD_NOARGS_METHOD( PYNAME, NAME, docs ) \
-    add_method( #PYNAME, (PyCFunction)(void (*) (void))PYCXX_NOARGS_METHOD_NAME( NAME ), METH_NOARGS, docs )
+    add_method( #PYNAME, (PyCFunction)PYCXX_NOARGS_METHOD_NAME( NAME ), METH_NOARGS, docs )
 #define PYCXX_ADD_VARARGS_METHOD( PYNAME, NAME, docs ) \
-    add_method( #PYNAME, (PyCFunction)(void (*) (void))PYCXX_VARARGS_METHOD_NAME( NAME ), METH_VARARGS, docs )
+    add_method( #PYNAME, (PyCFunction)PYCXX_VARARGS_METHOD_NAME( NAME ), METH_VARARGS, docs )
 #define PYCXX_ADD_KEYWORDS_METHOD( PYNAME, NAME, docs ) \
-    add_method( #PYNAME, (PyCFunction)(void (*) (void))PYCXX_KEYWORDS_METHOD_NAME( NAME ), METH_VARARGS | METH_KEYWORDS, docs )
+    add_method( #PYNAME, (PyCFunction)PYCXX_KEYWORDS_METHOD_NAME( NAME ), METH_VARARGS | METH_KEYWORDS, docs )
 
 namespace Py
 {
-    PYCXX_EXPORT extern PythonExtensionBase *getPythonExtensionBase( PyObject *self );
+    extern PythonExtensionBase *getPythonExtensionBase( PyObject *self );
     struct PythonClassInstance
     {
         PyObject_HEAD
         PythonExtensionBase *m_pycxx_object;
     };
 
-    class PYCXX_EXPORT ExtensionClassMethodsTable
+    class ExtensionClassMethodsTable
     {
     public:
         ExtensionClassMethodsTable()

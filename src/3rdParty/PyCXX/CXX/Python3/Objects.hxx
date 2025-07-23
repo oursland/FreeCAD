@@ -55,10 +55,9 @@
 
 namespace Py
 {
-    PYCXX_EXPORT void ifPyErrorThrowCxxException();
+    void ifPyErrorThrowCxxException();
 
     typedef Py_ssize_t sequence_index_type;    // type of an index into a sequence
-    PYCXX_EXPORT Py_ssize_t numeric_limits_max();
 
     // Forward declarations
     class Object;
@@ -139,7 +138,7 @@ namespace Py
     // which you can use in accepts when writing a wrapper class.
     // See Demo/range.h and Demo/range.cxx for an example.
 
-    class PYCXX_EXPORT Object
+    class Object
     {
     private:
         // the pointer to the Python object
@@ -404,7 +403,7 @@ namespace Py
     // End of class Object
 
     // Null can be return from when it is require to return NULL to Python from a method
-    class PYCXX_EXPORT Null: public Object
+    class Null: public Object
     {
     public:
         Null()
@@ -422,12 +421,12 @@ namespace Py
     };
 
     //------------------------------------------------------------
-    PYCXX_EXPORT bool operator==( const Object &o1, const Object &o2 );
-    PYCXX_EXPORT bool operator!=( const Object &o1, const Object &o2 );
-    PYCXX_EXPORT bool operator>=( const Object &o1, const Object &o2 );
-    PYCXX_EXPORT bool operator<=( const Object &o1, const Object &o2 );
-    PYCXX_EXPORT bool operator<( const Object &o1, const Object &o2 );
-    PYCXX_EXPORT bool operator>( const Object &o1, const Object &o2 );
+    bool operator==( const Object &o1, const Object &o2 );
+    bool operator!=( const Object &o1, const Object &o2 );
+    bool operator>=( const Object &o1, const Object &o2 );
+    bool operator<=( const Object &o1, const Object &o2 );
+    bool operator<( const Object &o1, const Object &o2 );
+    bool operator>( const Object &o1, const Object &o2 );
 
     //------------------------------------------------------------
 
@@ -471,13 +470,13 @@ namespace Py
         return Object( Py::_True() );
     }
 
-    // TMM: 31May'01 - Added the #ifndef so I can exclude iostreams.
+    // TMM: 31May'01 - Added the #ifndef so I can exlude iostreams.
 #ifndef CXX_NO_IOSTREAMS
-    PYCXX_EXPORT std::ostream &operator<<( std::ostream &os, const Object &ob );
+    std::ostream &operator<<( std::ostream &os, const Object &ob );
 #endif
 
     // Class Type
-    class PYCXX_EXPORT Type: public Object
+    class Type: public Object
     {
     public:
         explicit Type( PyObject *pyob, bool owned = false )
@@ -518,7 +517,7 @@ namespace Py
 
     // ===============================================
     // class boolean
-    class PYCXX_EXPORT Boolean: public Object
+    class Boolean: public Object
     {
     public:
         // Constructor
@@ -581,7 +580,7 @@ namespace Py
 
     // ===============================================
     // class Long
-    class PYCXX_EXPORT Long: public Object
+    class Long: public Object
     {
     public:
         // Constructor
@@ -858,7 +857,7 @@ namespace Py
     // ===============================================
     // class Float
     //
-    class PYCXX_EXPORT Float: public Object
+    class Float: public Object
     {
     public:
         // Constructor
@@ -971,7 +970,7 @@ namespace Py
 
     // ===============================================
     // class Complex
-    class PYCXX_EXPORT Complex: public Object
+    class Complex: public Object
     {
     public:
         // Constructor
@@ -1068,7 +1067,7 @@ namespace Py
 
     // seqref<T> is what you get if you get elements from a non-const SeqBase<T>.
     // Note: seqref<T> could probably be a nested class in SeqBase<T> but that might stress
-    // some compilers needlessly. Similarly for mapref later.
+    // some compilers needlessly. Simlarly for mapref later.
 
     // While this class is not intended for enduser use, it needs some public
     // constructors for the benefit of the STL.
@@ -1292,16 +1291,7 @@ namespace Py
 
         virtual size_type max_size() const
         {
-            // Hint: Upstream version returns std::string::npos that is the maximum
-            // value of a size_t. But when assigned to a ssize_t it will become -1.
-            // Now Python provides 'sys.maxsize' that is the maximum value of a ssize_t
-            // and thus this method should return the same value.
-            // This can be done with 'std::numeric_limits<size_type>::max()' but due
-            // to a name collision with a macro on Windows we cannot directly call it
-            // here.
-            // So, a workaround is to implement the helper function 'numeric_limits_max'.
-            //return std::string::npos; // ?
-            return numeric_limits_max();
+            return static_cast<size_type>( std::string::npos ); // why this constant its not from python
         }
 
         virtual size_type capacity() const
@@ -1396,7 +1386,7 @@ namespace Py
             return SeqBase<T>( PySequence_Concat( ptr(), *other ), true );
         }
 
-        // more STL compatibility
+        // more STL compatability
         const T front() const
         {
             return getItem( 0 );
@@ -1434,15 +1424,8 @@ namespace Py
             }
         }
 
-        class iterator
+        class iterator: public random_access_iterator_parent( seqref<T> )
         {
-        public:
-            using iterator_category = std::random_access_iterator_tag;
-            using value_type = seqref<T>;
-            using difference_type = int;
-            using pointer = value_type*;
-            using reference = value_type&;
-
         protected:
             friend class SeqBase<T>;
             SeqBase<T> *seq;
@@ -1594,14 +1577,8 @@ namespace Py
         }
 
         class const_iterator
+        : public random_access_iterator_parent( const Object )
         {
-        public:
-            using iterator_category = std::random_access_iterator_tag;
-            using value_type = const Object;
-            using difference_type = int;
-            using pointer = value_type*;
-            using reference = value_type&;
-
         protected:
             friend class SeqBase<T>;
             const SeqBase<T> *seq;
@@ -1764,19 +1741,19 @@ namespace Py
     template <TEMPLATE_TYPENAME T> bool operator>=( const EXPLICIT_TYPENAME SeqBase<T>::const_iterator &left, const EXPLICIT_TYPENAME SeqBase<T>::const_iterator &right );
 
 
-    PYCXX_EXPORT extern bool operator==( const Sequence::iterator &left, const Sequence::iterator &right );
-    PYCXX_EXPORT extern bool operator!=( const Sequence::iterator &left, const Sequence::iterator &right );
-    PYCXX_EXPORT extern bool operator< ( const Sequence::iterator &left, const Sequence::iterator &right );
-    PYCXX_EXPORT extern bool operator> ( const Sequence::iterator &left, const Sequence::iterator &right );
-    PYCXX_EXPORT extern bool operator<=( const Sequence::iterator &left, const Sequence::iterator &right );
-    PYCXX_EXPORT extern bool operator>=( const Sequence::iterator &left, const Sequence::iterator &right );
+    extern bool operator==( const Sequence::iterator &left, const Sequence::iterator &right );
+    extern bool operator!=( const Sequence::iterator &left, const Sequence::iterator &right );
+    extern bool operator< ( const Sequence::iterator &left, const Sequence::iterator &right );
+    extern bool operator> ( const Sequence::iterator &left, const Sequence::iterator &right );
+    extern bool operator<=( const Sequence::iterator &left, const Sequence::iterator &right );
+    extern bool operator>=( const Sequence::iterator &left, const Sequence::iterator &right );
 
-    PYCXX_EXPORT extern bool operator==( const Sequence::const_iterator &left, const Sequence::const_iterator &right );
-    PYCXX_EXPORT extern bool operator!=( const Sequence::const_iterator &left, const Sequence::const_iterator &right );
-    PYCXX_EXPORT extern bool operator< ( const Sequence::const_iterator &left, const Sequence::const_iterator &right );
-    PYCXX_EXPORT extern bool operator> ( const Sequence::const_iterator &left, const Sequence::const_iterator &right );
-    PYCXX_EXPORT extern bool operator<=( const Sequence::const_iterator &left, const Sequence::const_iterator &right );
-    PYCXX_EXPORT extern bool operator>=( const Sequence::const_iterator &left, const Sequence::const_iterator &right );
+    extern bool operator==( const Sequence::const_iterator &left, const Sequence::const_iterator &right );
+    extern bool operator!=( const Sequence::const_iterator &left, const Sequence::const_iterator &right );
+    extern bool operator< ( const Sequence::const_iterator &left, const Sequence::const_iterator &right );
+    extern bool operator> ( const Sequence::const_iterator &left, const Sequence::const_iterator &right );
+    extern bool operator<=( const Sequence::const_iterator &left, const Sequence::const_iterator &right );
+    extern bool operator>=( const Sequence::const_iterator &left, const Sequence::const_iterator &right );
 
     // ==================================================
     // class Char
@@ -1790,7 +1767,7 @@ namespace Py
     typedef std::basic_string<Py_UCS4> ucs4string;
     extern Py_UCS4 ucs4_null_string[1];
 
-    class PYCXX_EXPORT Byte: public Object
+    class Byte: public Object
     {
     public:
         // Membership
@@ -1855,7 +1832,7 @@ namespace Py
         operator Bytes() const;
     };
 
-    class PYCXX_EXPORT Bytes: public SeqBase<Byte>
+    class Bytes: public SeqBase<Byte>
     {
     public:
         // Membership
@@ -1950,7 +1927,7 @@ namespace Py
         }
     };
 
-    class PYCXX_EXPORT Char: public Object
+    class Char: public Object
     {
     public:
         // Membership
@@ -2019,7 +1996,7 @@ namespace Py
 #if !defined( Py_LIMITED_API )
         Char &operator=( int v_ )
         {
-            Py_UNICODE v( v_ );
+            Py_UNICODE v( static_cast<Py_UNICODE>( v_ ) );
             set( PyUnicode_FromKindAndData( PyUnicode_4BYTE_KIND, &v, 1 ), true );
             return *this;
         }
@@ -2063,7 +2040,7 @@ namespace Py
         operator String() const;
     };
 
-    class PYCXX_EXPORT String: public SeqBase<Char>
+    class String: public SeqBase<Char>
     {
     public:
         virtual size_type capacity() const
@@ -2258,7 +2235,7 @@ namespace Py
 
     // ==================================================
     // class Tuple
-    class PYCXX_EXPORT Tuple: public Sequence
+    class Tuple: public Sequence
     {
     public:
         virtual void setItem( sequence_index_type offset, const Object&ob )
@@ -2284,7 +2261,7 @@ namespace Py
         }
 
         // New tuple of a given size
-        explicit Tuple( size_type size=0 )
+        explicit Tuple( int size=0 )
         {
             set( PyTuple_New( size ), true );
             validate();
@@ -2338,11 +2315,11 @@ namespace Py
 
     };
 
-    class PYCXX_EXPORT TupleN: public Tuple
+    class TupleN: public Tuple
     {
     public:
         TupleN()
-        : Tuple( (size_type)0 )
+        : Tuple( 0 )
         {
         }
 
@@ -2452,7 +2429,7 @@ namespace Py
     // ==================================================
     // class List
 
-    class PYCXX_EXPORT List: public Sequence
+    class List: public Sequence
     {
     public:
         // Constructor
@@ -2520,7 +2497,7 @@ namespace Py
             return pyob && Py::_List_Check( pyob );
         }
 
-        List getSlice( Py_ssize_t i, Py_ssize_t j ) const
+        List getSlice( int i, int j ) const
         {
             return List( PyList_GetSlice( ptr(), i, j ), true );
         }
@@ -2967,7 +2944,7 @@ namespace Py
             , pos( other.pos )
             {}
 
-            iterator( MapBase<T> *map_, List keys_, size_type pos_ )
+            iterator( MapBase<T> *map_, List keys_, int pos_ )
             : map( map_ )
             , keys( keys_ )
             , pos( pos_ )
@@ -3164,15 +3141,15 @@ namespace Py
     template <TEMPLATE_TYPENAME T> bool operator==( const EXPLICIT_TYPENAME MapBase<T>::const_iterator &left, const EXPLICIT_TYPENAME MapBase<T>::const_iterator &right );
     template <TEMPLATE_TYPENAME T> bool operator!=( const EXPLICIT_TYPENAME MapBase<T>::const_iterator &left, const EXPLICIT_TYPENAME MapBase<T>::const_iterator &right );
 
-    PYCXX_EXPORT extern bool operator==( const Mapping::iterator &left, const Mapping::iterator &right );
-    PYCXX_EXPORT extern bool operator!=( const Mapping::iterator &left, const Mapping::iterator &right );
-    PYCXX_EXPORT extern bool operator==( const Mapping::const_iterator &left, const Mapping::const_iterator &right );
-    PYCXX_EXPORT extern bool operator!=( const Mapping::const_iterator &left, const Mapping::const_iterator &right );
+    extern bool operator==( const Mapping::iterator &left, const Mapping::iterator &right );
+    extern bool operator!=( const Mapping::iterator &left, const Mapping::iterator &right );
+    extern bool operator==( const Mapping::const_iterator &left, const Mapping::const_iterator &right );
+    extern bool operator!=( const Mapping::const_iterator &left, const Mapping::const_iterator &right );
 
 
     // ==================================================
     // class Dict
-    class PYCXX_EXPORT Dict: public Mapping
+    class Dict: public Mapping
     {
     public:
         // Constructor
@@ -3214,7 +3191,7 @@ namespace Py
         }
     };
 
-    class PYCXX_EXPORT Callable: public Object
+    class Callable: public Object
     {
     public:
         // Constructor
@@ -3313,7 +3290,7 @@ namespace Py
 #endif
     };
 
-    class PYCXX_EXPORT Module: public Object
+    class Module: public Object
     {
     public:
         explicit Module( PyObject *pyob, bool owned = false )

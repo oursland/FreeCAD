@@ -58,7 +58,7 @@
 #include <Python.h>
 
 // fix issue with Python assuming that isspace, toupper etc are macros
-#if defined(isspace) || defined(FC_OS_MACOSX)
+#if defined(isspace)
 #undef isspace
 #undef isupper
 #undef islower
