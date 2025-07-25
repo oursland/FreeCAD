@@ -25,7 +25,6 @@ unset CMAKE_GENERATOR_PLATFORM
 cmake \
     ${CMAKE_ARGS} \
     --preset ${CMAKE_PRESET} \
-    -D CMAKE_OSX_DEPLOYMENT_TARGET:STRING="10.13" \
     -D CMAKE_IGNORE_PREFIX_PATH="/opt/homebrew;/usr/local/homebrew" \
     -D CMAKE_INCLUDE_PATH:FILEPATH="$PREFIX/include" \
     -D CMAKE_INSTALL_LIBDIR:FILEPATH="$PREFIX/lib" \
