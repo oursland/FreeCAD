@@ -29,6 +29,8 @@
 #include <unordered_map>
 #endif
 
+#include <cpptrace/from_current.hpp>
+
 #include <App/Application.h>
 #include <App/Datums.h>
 #include <App/Document.h>
@@ -153,14 +155,18 @@ int AssemblyObject::solve(bool enableRedo, bool updateJCS)
         savePlacementsForUndo();
     }
 
-    try {
+    CPPTRACE_TRY
+    {
         mbdAssembly->runKINEMATIC();
     }
-    catch (const std::exception& e) {
+    CPPTRACE_CATCH(const std::exception& e)
+    {
         FC_ERR("Solve failed: " << e.what());
+        FC_ERR(cpptrace::from_current_exception().to_string(true));
         return -1;
     }
-    catch (...) {
+    catch (...)
+    {
         FC_ERR("Solve failed: unhandled exception");
         return -1;
     }

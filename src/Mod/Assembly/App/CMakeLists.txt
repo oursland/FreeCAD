@@ -12,6 +12,7 @@ set(Assembly_LIBS
 	Spreadsheet
     FreeCADApp
 	OndselSolver
+    cpptrace::cpptrace
 )
 
 generate_from_xml(AssemblyObjectPy)
