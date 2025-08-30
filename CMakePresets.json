@@ -97,7 +97,7 @@
           },
           "FREECAD_USE_PCL": {
             "type": "BOOL",
-            "value": "ON"
+            "value": "OFF"
           },
           "FREECAD_USE_PYBIND11": {
             "type": "BOOL",
