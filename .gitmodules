@@ -13,3 +13,6 @@
 [submodule "src/3rdParty/coin3d"]
 	path = src/3rdParty/coin3d
 	url = https://github.com/FreeCAD/coin.git
+[submodule "src/3rdParty/pivy"]
+	path = src/3rdParty/pivy
+	url = https://github.com/FreeCAD/pivy.git
