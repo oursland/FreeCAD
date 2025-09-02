@@ -1,5 +1,5 @@
-# As of February 2025 we require CMake 3.22.0
-cmake_minimum_required(VERSION 3.22.0 FATAL_ERROR)
+# As of February 2025 we require CMake 3.24.0
+cmake_minimum_required(VERSION 3.31.0 FATAL_ERROR)
 
 
 # As of cMake 3.27, find_package() will look for both case-sensitive and all-uppercase versions

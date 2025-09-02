@@ -1,5 +1,18 @@
 macro(SetupCoin3D)
     # -------------------------------- Coin3D --------------------------------
+    include(FetchContent)
+    FetchContent_Declare(
+        Coin
+        SOURCE_DIR ${CMAKE_SOURCE_DIR}/src/3rdParty/coin3d
+        OVERRIDE_FIND_PACKAGE
+        CMAKE_ARGS
+            -DCMAKE_INSTALL_LIBDIR:FILEPATH=${CMAKE_PREFIX_PATH}/lib
+            -DCMAKE_INSTALL_PREFIX:FILEPATH=${CMAKE_PREFIX_PATH}
+            -DCMAKE_PREFIX_PATH:FILEPATH=${CMAKE_PREFIX_PATH}
+            -DCOIN_BUILD_TESTS:BOOL=OFF
+            -DSIMAGE_RUNTIME_LINKING:BOOL=ON
+            -DUSE_EXTERNAL_EXPAT:BOOL=ON
+        )
 
     if (WIN32 AND MINGW)
         find_path(COIN3D_INCLUDE_DIRS Inventor/So.h)
@@ -23,6 +36,12 @@ macro(SetupCoin3D)
         endif ()
     endif ()
 
+    message("COIN_VERSION = " ${COIN_VERSION})
+    IF(COIN_VERSION)
+        set(COIN3D_VERSION ${COIN_VERSION})
+        message("COIN3D_VERSION = " ${COIN3D_VERSION})
+    ENDIF()
+
     IF (NOT COIN3D_VERSION)
         file(READ "${COIN3D_INCLUDE_DIRS}/Inventor/C/basic.h" _coin3d_basic_h)
         string(REGEX MATCH "define[ \t]+COIN_MAJOR_VERSION[ \t]+([0-9?])" _coin3d_major_version_match "${_coin3d_basic_h}")
@@ -37,8 +56,20 @@ endmacro(SetupCoin3D)
 
 macro(SetupPivy)
     # -------------------------------- Pivy --------------------------------
+    include(FetchContent)
+    FetchContent_Declare(
+        Pivy
+        SOURCE_DIR ${CMAKE_SOURCE_DIR}/src/3rdParty/pivy
+        CMAKE_ARGS
+            -DCMAKE_PREFIX_PATH:FILEPATH=${CMAKE_PREFIX_PATH}
+            -DPython_EXECUTABLE:PATH=${PYTHON}
+            -DPython_INCLUDE_DIR:PATH=${Python_INCLUDE_DIR}
+            -DPIVY_USE_QT6:BOOL=ON
+            -DQT_HOST_PATH:PATH="${PREFIX}"
+        )
+    FetchContent_MakeAvailable(Pivy)
 
-    IF (FREECAD_CHECK_PIVY) # do not make pivy a host dependency for cross compiling
+    IF (FALSE) #FREECAD_CHECK_PIVY) # do not make pivy a host dependency for cross compiling
         IF (NOT PIVY_VERSION)
             message(STATUS "Checking Pivy version by importing it in a Python program...")
             execute_process(
