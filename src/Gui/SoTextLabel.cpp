@@ -25,14 +25,12 @@
 # ifdef FC_OS_WIN32
 # include <windows.h>
 # endif
-# ifdef FC_OS_MACOSX
-# include <OpenGL/gl.h>
-# else
-# include <GL/gl.h>
-# endif
+# include <QFont>
 # include <QFontMetrics>
+# include <QImage>
 # include <QPainter>
 # include <QPen>
+# include <QStringList>
 # include <Inventor/actions/SoGLRenderAction.h>
 # include <Inventor/bundles/SoMaterialBundle.h>
 # include <Inventor/elements/SoLazyElement.h>
@@ -51,10 +49,9 @@
 #include <Inventor/elements/SoViewVolumeElement.h>
 #include <Inventor/elements/SoMultiTextureEnabledElement.h>
 
-#include <Gui/ViewVolumeUtils.h>
-
 #include <cstdint>
 #include <cstring>
+#include <algorithm>
 
 #include "SoTextLabel.h"
 #include "SoFCInteractiveElement.h"
@@ -374,6 +371,26 @@ SoStringLabel::SoStringLabel()
     SO_NODE_ADD_FIELD(textColor, (SbVec3f(1.0f,1.0f,1.0f)));
     SO_NODE_ADD_FIELD(name, ("Helvetica"));
     SO_NODE_ADD_FIELD(size, (12));
+
+    textSwitch = new SoSwitch;
+    textSwitch->ref();
+
+    textSeparator = new SoSeparator;
+
+    textTexture = new SoTexture2;
+    textTexture->wrapS = SoTexture2::CLAMP;
+    textTexture->wrapT = SoTexture2::CLAMP;
+    textTexture->model = SoTexture2::MODULATE;
+    textSeparator->addChild(textTexture);
+
+    textVertexProperty = new SoVertexProperty;
+    textFaceSet = new SoFaceSet;
+    textFaceSet->vertexProperty.setValue(textVertexProperty);
+    textFaceSet->numVertices.set1Value(0, 4);
+    textSeparator->addChild(textFaceSet);
+
+    textSwitch->addChild(textSeparator);
+    textSwitch->whichChild.setValue(SO_SWITCH_NONE);
 }
 
 /**
@@ -381,57 +398,201 @@ SoStringLabel::SoStringLabel()
  */
 void SoStringLabel::GLRender(SoGLRenderAction *action)
 {
-    QOpenGLWidget* window;
+    if (!action || !textSwitch)
+        return;
+
     SoState * state = action->getState();
+    if (!state)
+        return;
+
     state->push();
     SoLazyElement::setLightModel(state, SoLazyElement::BASE_COLOR);
-    SoGLWidgetElement::get(state, window);
-    if (!window) {
+
+    ensureTextGeometry(state);
+
+    if (textSwitch->whichChild.getValue() == SO_SWITCH_NONE) {
         state->pop();
         return;
     }
 
-    // Enter in 2D screen mode
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    Gui::GL::loadOrthoMatrix(-1.0, 1.0, -1.0, 1.0, -1.0, 1.0);
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
-    glPushAttrib(GL_ENABLE_BIT);
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_LIGHTING);
-    glDisable(GL_TEXTURE_2D);
-    glEnable(GL_BLEND);
+    const SbViewportRegion & vp = SoViewportRegionElement::get(state);
+    SbVec2s vpsize = vp.getViewportSizePixels();
 
-    QFont font;
-    font.setStyleStrategy(QFont::NoAntialias);
-    font.setFamily(QLatin1String(this->name.getValue()));
-    font.setPixelSize(this->size.getValue());
+    SbViewVolume ortho;
+    ortho.ortho(0.0f,
+                static_cast<float>(vpsize[0]),
+                0.0f,
+                static_cast<float>(vpsize[1]),
+                -1.0f,
+                1.0f);
+    SbMatrix affine;
+    SbMatrix projection;
+    ortho.getMatrices(affine, projection);
 
-    glBlendFunc(GL_ONE,GL_SRC_ALPHA);
+    SoModelMatrixElement::set(state,this,SbMatrix::identity());
+    SoViewingMatrixElement::set(state,this,SbMatrix::identity());
+    SoProjectionMatrixElement::set(state,this,projection);
+    SoViewVolumeElement::set(state,this,ortho);
 
-    // text color
-    SbColor color = this->textColor.getValue();
-    glColor4f(color[0], color[1], color[2], 1);
-    const SbMatrix & mat = SoModelMatrixElement::get(state);
-    const SbMatrix & projmatrix = (mat * SoViewingMatrixElement::get(state) *
-                                   SoProjectionMatrixElement::get(state));
-    SbVec3f nil(0.0f, 0.0f, 0.0f);
-    projmatrix.multVecMatrix(nil, nil);
-    QStringList list;
-    for (int i=0; i<this->string.getNum(); i++)
-        list << QLatin1String(this->string[i].getString());
+    SoDepthBufferElement::set(state, FALSE, FALSE,
+        SoDepthBufferElement::ALWAYS, SbVec2f(0.0f, 1.0f));
 
-    // Leave 2D screen mode
-    glPopAttrib();
-    glPopMatrix();
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
+    SbColor white(1.0f, 1.0f, 1.0f);
+    SoLazyElement::setDiffuse(state, this, 1, &white, 0);
+    SoLazyElement::setTransparencyType(state, static_cast<int32_t>(SoGLRenderAction::BLEND));
+    SoGLTextureEnabledElement::set(state, this, TRUE);
+    SoMultiTextureEnabledElement::set(state, this, FALSE);
+
+    textSwitch->whichChild.setValue(0);
+    textSwitch->GLRender(action);
 
     state->pop();
+}
+
+SoStringLabel::~SoStringLabel()
+{
+    if (textSwitch) {
+        textSwitch->unref();
+        textSwitch = nullptr;
+    }
+    textSeparator = nullptr;
+    textTexture = nullptr;
+    textFaceSet = nullptr;
+    textVertexProperty = nullptr;
+}
+
+void SoStringLabel::notify(SoNotList * list)
+{
+    if (list) {
+        SoField *f = list->getLastField();
+        if (f == &this->string ||
+            f == &this->textColor ||
+            f == &this->name ||
+            f == &this->size) {
+            textGeometryDirty = true;
+        }
+    }
+
+    inherited::notify(list);
+}
+
+void SoStringLabel::ensureTextGeometry(SoState* state)
+{
+    if (!state || !textTexture || !textVertexProperty || !textFaceSet || !textSwitch)
+        return;
+
+    const SbString* values = string.getValues(0);
+    const int count = string.getNum();
+    if (count <= 0) {
+        textSwitch->whichChild.setValue(SO_SWITCH_NONE);
+        textVertexProperty->vertex.setNum(0);
+        textVertexProperty->texCoord.setNum(0);
+        textFaceSet->numVertices.setNum(0);
+        textTexture->image.setValue(SbVec2s(0,0), 0, nullptr);
+        cachedImageWidth = 0;
+        cachedImageHeight = 0;
+        textGeometryDirty = false;
+        return;
+    }
+
+    const SbMatrix& model = SoModelMatrixElement::get(state);
+    const SbMatrix& viewing = SoViewingMatrixElement::get(state);
+    const SbMatrix& projection = SoProjectionMatrixElement::get(state);
+    const SbViewportRegion& viewport = SoViewportRegionElement::get(state);
+    SbVec2s viewportSize = viewport.getViewportSizePixels();
+
+    bool dirty = textGeometryDirty ||
+                 !model.equals(cachedModelMatrix, 0.0f) ||
+                 !viewing.equals(cachedViewingMatrix, 0.0f) ||
+                 !projection.equals(cachedProjectionMatrix, 0.0f) ||
+                 cachedViewportSize != viewportSize;
+
+    if (!dirty)
+        return;
+
+    cachedModelMatrix = model;
+    cachedViewingMatrix = viewing;
+    cachedProjectionMatrix = projection;
+    cachedViewportSize = viewportSize;
+    textGeometryDirty = false;
+
+    SbMatrix combined = model * viewing * projection;
+    SbVec3f anchor3(0.0f, 0.0f, 0.0f);
+    combined.multVecMatrix(anchor3, anchor3);
+    anchor3[0] = (anchor3[0] + 1.0f) * 0.5f * viewportSize[0];
+    anchor3[1] = (anchor3[1] + 1.0f) * 0.5f * viewportSize[1];
+    cachedAnchor.setValue(anchor3[0], anchor3[1]);
+
+    QStringList lines;
+    lines.reserve(count);
+    QString fontFamily = QString::fromLatin1(name.getValue().getString());
+    QFont font(fontFamily);
+    const int fontSize = std::max(1, size.getValue());
+    font.setPixelSize(fontSize);
+    font.setStyleStrategy(QFont::NoAntialias);
+
+    QFontMetrics metrics(font);
+    int maxWidth = 0;
+    for (int i = 0; i < count; ++i) {
+        QString line = QString::fromUtf8(values[i].getString());
+        maxWidth = std::max<int>(maxWidth, QtTools::horizontalAdvance(metrics, line));
+        lines << line;
+    }
+
+    if (maxWidth <= 0)
+        maxWidth = 1;
+
+    const int lineHeight = std::max(1, metrics.height());
+    const int ascent = metrics.ascent();
+    const int descent = metrics.descent();
+    const int textHeight = std::max(1, ascent + descent + (count - 1) * lineHeight);
+
+    QImage image(maxWidth, textHeight, QImage::Format_ARGB32_Premultiplied);
+    image.fill(Qt::transparent);
+    QPainter painter(&image);
+    painter.setRenderHint(QPainter::TextAntialiasing);
+    painter.setFont(font);
+
+    const SbColor sbColor = this->textColor.getValue();
+    QColor colorQt;
+    colorQt.setRgbF(sbColor[0], sbColor[1], sbColor[2]);
+    painter.setPen(colorQt);
+
+    int baseline = ascent;
+    for (const QString& line : lines) {
+        painter.drawText(0, baseline, line);
+        baseline += lineHeight;
+    }
+    painter.end();
+
+    SoSFImage sfImage;
+    Gui::BitmapFactory().convert(image, sfImage);
+    textTexture->image = sfImage;
+
+    cachedImageWidth = maxWidth;
+    cachedImageHeight = textHeight;
+
+    const float anchorX = cachedAnchor[0];
+    const float anchorY = cachedAnchor[1];
+    const float left = anchorX;
+    const float right = anchorX + static_cast<float>(maxWidth);
+    const float bottom = anchorY - static_cast<float>(ascent);
+    const float top = bottom + static_cast<float>(textHeight);
+
+    textVertexProperty->vertex.setNum(4);
+    textVertexProperty->vertex.set1Value(0, SbVec3f(left, bottom, 0.0f));
+    textVertexProperty->vertex.set1Value(1, SbVec3f(right, bottom, 0.0f));
+    textVertexProperty->vertex.set1Value(2, SbVec3f(right, top, 0.0f));
+    textVertexProperty->vertex.set1Value(3, SbVec3f(left, top, 0.0f));
+
+    textVertexProperty->texCoord.setNum(4);
+    textVertexProperty->texCoord.set1Value(0, SbVec2f(0.0f, 0.0f));
+    textVertexProperty->texCoord.set1Value(1, SbVec2f(1.0f, 0.0f));
+    textVertexProperty->texCoord.set1Value(2, SbVec2f(1.0f, 1.0f));
+    textVertexProperty->texCoord.set1Value(3, SbVec2f(0.0f, 1.0f));
+
+    textFaceSet->numVertices.set1Value(0, 4);
+    textSwitch->whichChild.setValue(0);
 }
 
 // ------------------------------------------------------

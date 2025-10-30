@@ -30,6 +30,7 @@
 #include <Inventor/fields/SoSFName.h>
 #include <Inventor/SbColor.h>
 #include <Inventor/SbMatrix.h>
+#include <Inventor/SbVec2f.h>
 #include <Inventor/SbVec2s.h>
 #include <Inventor/SbVec3f.h>
 #include <Inventor/manips/SoTransformManip.h>
@@ -38,6 +39,7 @@
 #include <Inventor/nodes/SoSeparator.h>
 #include <Inventor/nodes/SoShapeHints.h>
 #include <Inventor/nodes/SoSwitch.h>
+#include <Inventor/nodes/SoTexture2.h>
 #include <Inventor/nodes/SoVertexProperty.h>
 #include <Inventor/nodes/SoText2.h>
 #include <FCGlobal.h>
@@ -122,8 +124,26 @@ public:
     SoSFInt32  size;
 
 protected:
-    ~SoStringLabel() override = default;
+    ~SoStringLabel() override;
     void GLRender(SoGLRenderAction *action) override;
+    void notify(SoNotList * list) override;
+
+private:
+    void ensureTextGeometry(SoState* state);
+
+    mutable SoSwitch* textSwitch {nullptr};
+    mutable SoSeparator* textSeparator {nullptr};
+    mutable SoTexture2* textTexture {nullptr};
+    mutable SoFaceSet* textFaceSet {nullptr};
+    mutable SoVertexProperty* textVertexProperty {nullptr};
+    mutable bool textGeometryDirty {true};
+    mutable SbMatrix cachedModelMatrix;
+    mutable SbMatrix cachedViewingMatrix;
+    mutable SbMatrix cachedProjectionMatrix;
+    mutable SbVec2s cachedViewportSize;
+    mutable SbVec2f cachedAnchor;
+    mutable int cachedImageWidth {0};
+    mutable int cachedImageHeight {0};
 };
 
 class GuiExport SoFrameLabel : public SoImage {
