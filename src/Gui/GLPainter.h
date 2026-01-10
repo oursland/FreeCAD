@@ -74,12 +74,21 @@ public:
     //@}
 
 private:
-    GLfloat depthrange[2];
-    GLdouble projectionmatrix[16];
     GLint width {0}, height {0};
-    QOpenGLWidget* viewer {nullptr};
+    QOpenGLWidget* glWidget {nullptr};
+    View3DInventorViewer* viewer {nullptr};
+
+    float lineWidth {1.0f};
+    float pointSize {1.0f};
+    float colorR {1.0f};
+    float colorG {1.0f};
+    float colorB {1.0f};
+    float transparency {0.0f};
+
     bool logicOp {false};
     bool lineStipple {false};
+    GLint lineStippleFactor {1};
+    GLushort lineStipplePattern {0xFFFF};
 };
 
 class GuiExport GLGraphicsItem: public Base::BaseClass
