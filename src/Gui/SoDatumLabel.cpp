@@ -35,6 +35,7 @@
 #endif
 
 #include <algorithm>
+#include <cstdint>
 #include <cmath>
 #include <limits>
 #include <numbers>
@@ -47,6 +48,15 @@
 #include <Inventor/elements/SoViewportRegionElement.h>
 #include <Inventor/elements/SoViewVolumeElement.h>
 #include <Inventor/misc/SoState.h>
+#include <Inventor/nodes/SoBaseColor.h>
+#include <Inventor/nodes/SoCullFace.h>
+#include <Inventor/nodes/SoDepthBuffer.h>
+#include <Inventor/nodes/SoDrawStyle.h>
+#include <Inventor/nodes/SoFaceSet.h>
+#include <Inventor/nodes/SoLightModel.h>
+#include <Inventor/nodes/SoLineSet.h>
+#include <Inventor/nodes/SoSeparator.h>
+#include <Inventor/nodes/SoVertexProperty.h>
 
 #include <Base/Tools.h>
 
@@ -70,63 +80,66 @@ using namespace Gui;
 namespace
 {
 
-void glVertex(const SbVec3f& pt)
+SbVec3f withZ(const SbVec3f& point, float z)
 {
-    glVertex3f(pt[0], pt[1], pt[2]);
+    SbVec3f out = point;
+    out[2] = z;
+    return out;
 }
 
-void glVertexes(const std::vector<SbVec3f>& pts)
+void appendLine(std::vector<SbVec3f>& vertices, std::vector<int32_t>& counts, const SbVec3f& a, const SbVec3f& b)
 {
-    for (auto pt : pts) {
-        glVertex3f(pt[0], pt[1], pt[2]);
-    }
+    vertices.push_back(a);
+    vertices.push_back(b);
+    counts.push_back(2);
 }
 
-void glDrawLine(const SbVec3f& p1, const SbVec3f& p2)
-{
-    glBegin(GL_LINES);
-    glVertexes({p1, p2});
-    glEnd();
-}
-
-void glDrawArc(
+void appendArc(
+    std::vector<SbVec3f>& vertices,
+    std::vector<int32_t>& counts,
     const SbVec3f& center,
     float radius,
-    float startAngle = 0.,
-    float endAngle = 2.0 * std::numbers::pi,
+    float startAngle,
+    float endAngle,
     int countSegments = 0
 )
 {
-    float range = endAngle - startAngle;
+    const float range = endAngle - startAngle;
 
     if (countSegments == 0) {
         countSegments = std::max(6, abs(int(25.0 * range / std::numbers::pi)));
     }
 
-    float segment = range / (countSegments - 1);
+    const float segment = range / (countSegments - 1);
 
-    glBegin(GL_LINE_STRIP);
     for (int i = 0; i < countSegments; i++) {
-        float theta = startAngle + segment * i;
-        SbVec3f v1 = center + radius * SbVec3f(cos(theta), sin(theta), 0);
-        glVertex(v1);
+        const float theta = startAngle + segment * i;
+        const SbVec3f v = center + radius * SbVec3f(cos(theta), sin(theta), 0);
+        vertices.push_back(v);
     }
-    glEnd();
+    counts.push_back(countSegments);
 }
 
-void glDrawArrow(const SbVec3f& base, const SbVec3f& dir, float width, float length)
+void appendArrowTriangle(
+    std::vector<SbVec3f>& vertices,
+    std::vector<int32_t>& counts,
+    const SbVec3f& base,
+    const SbVec3f& dir,
+    float width,
+    float length
+)
 {
-    // Calculate arrowhead points
-    SbVec3f normal(dir[1], -dir[0], 0);
-    SbVec3f arrowLeft = base - length * dir + width * normal;
-    SbVec3f arrowRight = base - length * dir - width * normal;
+    SbVec3f unitDir = dir;
+    unitDir.normalize();
 
-    // Draw arrowheads at elevated Z to render ON TOP of geometry lines
-    glBegin(GL_TRIANGLES);
-    glVertex3f(base[0], base[1], ZARROW_TEXT_OFFSET);
-    glVertex3f(arrowLeft[0], arrowLeft[1], ZARROW_TEXT_OFFSET);
-    glVertex3f(arrowRight[0], arrowRight[1], ZARROW_TEXT_OFFSET);
-    glEnd();
+    const SbVec3f normal(unitDir[1], -unitDir[0], 0);
+    const SbVec3f arrowLeft = base - length * unitDir + width * normal;
+    const SbVec3f arrowRight = base - length * unitDir - width * normal;
+
+    vertices.push_back(withZ(base, ZARROW_TEXT_OFFSET));
+    vertices.push_back(withZ(arrowLeft, ZARROW_TEXT_OFFSET));
+    vertices.push_back(withZ(arrowRight, ZARROW_TEXT_OFFSET));
+    counts.push_back(3);
 }
 
 }  // namespace
@@ -178,6 +191,58 @@ SoDatumLabel::SoDatumLabel()
     this->imgWidth = 0;
     this->imgHeight = 0;
     this->glimagevalid = false;
+
+    m_Root = new SoSeparator;
+    m_Root->ref();
+
+    m_GeometryDepth = new SoDepthBuffer;
+    m_GeometryDepth->test.setValue(true);
+    m_GeometryDepth->write.setValue(false);
+    m_Root->addChild(m_GeometryDepth);
+
+    m_LightModel = new SoLightModel;
+    m_LightModel->model.setValue(SoLightModel::BASE_COLOR);
+    m_Root->addChild(m_LightModel);
+
+    m_GeometryColor = new SoBaseColor;
+    m_GeometryColor->rgb.connectFrom(&this->textColor);
+    m_Root->addChild(m_GeometryColor);
+
+    m_DrawStyle = new SoDrawStyle;
+    m_DrawStyle->style.setValue(SoDrawStyle::LINES);
+    m_DrawStyle->lineWidth.connectFrom(&this->lineWidth);
+    m_Root->addChild(m_DrawStyle);
+
+    m_CullFace = new SoCullFace;
+    m_CullFace->mode.setValue(SoCullFace::OFF);
+    m_Root->addChild(m_CullFace);
+
+    m_LineVertexProperty = new SoVertexProperty;
+    m_LineSet = new SoLineSet;
+    m_LineSet->vertexProperty.setValue(m_LineVertexProperty);
+    m_Root->addChild(m_LineSet);
+
+    m_TriangleVertexProperty = new SoVertexProperty;
+    m_TriangleFaceSet = new SoFaceSet;
+    m_TriangleFaceSet->vertexProperty.setValue(m_TriangleVertexProperty);
+    m_Root->addChild(m_TriangleFaceSet);
+}
+
+SoDatumLabel::~SoDatumLabel()
+{
+    if (m_Root) {
+        m_Root->unref();
+        m_Root = nullptr;
+    }
+    m_GeometryDepth = nullptr;
+    m_LightModel = nullptr;
+    m_GeometryColor = nullptr;
+    m_DrawStyle = nullptr;
+    m_CullFace = nullptr;
+    m_LineVertexProperty = nullptr;
+    m_LineSet = nullptr;
+    m_TriangleVertexProperty = nullptr;
+    m_TriangleFaceSet = nullptr;
 }
 
 void SoDatumLabel::drawImage()
@@ -1155,6 +1220,193 @@ float SoDatumLabel::getScaleFactor(SoState* state) const
     return scale;
 }
 
+void SoDatumLabel::setVertexZ(SbVec3f& point, float z) const
+{
+    point[2] = z;
+}
+
+void SoDatumLabel::ensureCoinGeometry(const SbVec3f* points, int numPoints)
+{
+    if (!points || numPoints <= 0 || !m_LineVertexProperty || !m_LineSet || !m_TriangleVertexProperty
+        || !m_TriangleFaceSet) {
+        return;
+    }
+
+    std::vector<SbVec3f> lineVertices;
+    std::vector<int32_t> lineCounts;
+    std::vector<SbVec3f> triangleVertices;
+    std::vector<int32_t> triangleCounts;
+
+    const auto addTriangle = [&](SbVec3f a, SbVec3f b, SbVec3f c) {
+        setVertexZ(a, ZARROW_TEXT_OFFSET);
+        setVertexZ(b, ZARROW_TEXT_OFFSET);
+        setVertexZ(c, ZARROW_TEXT_OFFSET);
+        triangleVertices.push_back(a);
+        triangleVertices.push_back(b);
+        triangleVertices.push_back(c);
+        triangleCounts.push_back(3);
+    };
+
+    const auto type = static_cast<Type>(datumtype.getValue());
+
+    if (type == DISTANCE || type == DISTANCEX || type == DISTANCEY) {
+        if (numPoints >= 2) {
+            const DistanceGeometry geom = calculateDistanceGeometry(points);
+
+            if (param1.getValue() != 0.0F) {
+                appendLine(lineVertices, lineCounts, geom.p1, geom.perp1);
+                appendLine(lineVertices, lineCounts, geom.p2, geom.perp2);
+            }
+            appendLine(lineVertices, lineCounts, geom.par1, geom.par2);
+            appendLine(lineVertices, lineCounts, geom.par3, geom.par4);
+
+            addTriangle(geom.par1, geom.ar1, geom.ar2);
+            addTriangle(geom.par4, geom.ar3, geom.ar4);
+
+            if (type == DISTANCE && numPoints >= 4) {
+                const float range1 = param4.getValue();
+                if (range1 != 0.0F) {
+                    const float startAngle1 = param3.getValue();
+                    const float radius1 = param5.getValue();
+                    const SbVec3f center1 = points[2];
+                    appendArc(lineVertices, lineCounts, center1, radius1, startAngle1, startAngle1 + range1);
+                }
+
+                const float range2 = param7.getValue();
+                if (range2 != 0.0F) {
+                    const float startAngle2 = param6.getValue();
+                    const float radius2 = param8.getValue();
+                    const SbVec3f center2 = points[3];
+                    appendArc(lineVertices, lineCounts, center2, radius2, startAngle2, startAngle2 + range2);
+                }
+            }
+        }
+    }
+    else if (type == RADIUS || type == DIAMETER) {
+        if (numPoints >= 2) {
+            const DiameterGeometry geom = calculateDiameterGeometry(points);
+
+            appendLine(lineVertices, lineCounts, geom.p1, geom.pnt1);
+            appendLine(lineVertices, lineCounts, geom.pnt2, geom.p2);
+
+            addTriangle(geom.ar0, geom.ar1, geom.ar2);
+            if (geom.isDiameter) {
+                addTriangle(geom.ar0_1, geom.ar1_1, geom.ar2_1);
+            }
+
+            if (geom.startRange != 0.0F) {
+                appendArc(
+                    lineVertices,
+                    lineCounts,
+                    geom.center,
+                    geom.radius,
+                    geom.startAngle,
+                    geom.startAngle + geom.startRange
+                );
+            }
+            if (geom.endRange != 0.0F) {
+                appendArc(
+                    lineVertices,
+                    lineCounts,
+                    geom.center,
+                    geom.radius,
+                    geom.endAngle,
+                    geom.endAngle + geom.endRange
+                );
+            }
+        }
+    }
+    else if (type == ANGLE) {
+        if (numPoints >= 1) {
+            const AngleGeometry geom = calculateAngleGeometry(points);
+
+            appendArc(
+                lineVertices,
+                lineCounts,
+                geom.p0,
+                geom.r,
+                geom.startangle,
+                geom.startangle + geom.range / 2.0F - static_cast<float>(geom.textMargin)
+            );
+            appendArc(
+                lineVertices,
+                lineCounts,
+                geom.p0,
+                geom.r,
+                geom.startangle + geom.range / 2.0F + static_cast<float>(geom.textMargin),
+                geom.endangle
+            );
+
+            appendLine(lineVertices, lineCounts, geom.pnt1, geom.pnt2);
+            appendLine(lineVertices, lineCounts, geom.pnt3, geom.pnt4);
+
+            appendArrowTriangle(triangleVertices, triangleCounts, geom.startArrowBase, geom.dirStart, geom.arrowWidth, geom.arrowLength);
+            appendArrowTriangle(triangleVertices, triangleCounts, geom.endArrowBase, geom.dirEnd, geom.arrowWidth, geom.arrowLength);
+        }
+    }
+    else if (type == SYMMETRIC) {
+        if (numPoints >= 2) {
+            const SymmetricGeometry geom = calculateSymmetricGeometry(points);
+
+            SbVec3f p1 = geom.p1;
+            SbVec3f ar0 = geom.ar0;
+            SbVec3f p2 = geom.p2;
+            SbVec3f ar3 = geom.ar3;
+            setVertexZ(p1, ZCONSTR);
+            setVertexZ(ar0, ZCONSTR);
+            setVertexZ(p2, ZCONSTR);
+            setVertexZ(ar3, ZCONSTR);
+            appendLine(lineVertices, lineCounts, p1, ar0);
+            appendLine(lineVertices, lineCounts, p2, ar3);
+
+            appendLine(lineVertices, lineCounts, withZ(geom.ar0, ZARROW_TEXT_OFFSET), withZ(geom.ar1, ZARROW_TEXT_OFFSET));
+            appendLine(lineVertices, lineCounts, withZ(geom.ar0, ZARROW_TEXT_OFFSET), withZ(geom.ar2, ZARROW_TEXT_OFFSET));
+            appendLine(lineVertices, lineCounts, withZ(geom.ar3, ZARROW_TEXT_OFFSET), withZ(geom.ar4, ZARROW_TEXT_OFFSET));
+            appendLine(lineVertices, lineCounts, withZ(geom.ar3, ZARROW_TEXT_OFFSET), withZ(geom.ar5, ZARROW_TEXT_OFFSET));
+        }
+    }
+    else if (type == ARCLENGTH) {
+        if (numPoints >= 3) {
+            const ArcLengthGeometry geom = calculateArcLengthGeometry(points);
+
+            appendArc(lineVertices, lineCounts, geom.arcCenter, geom.arcRadius, geom.startangle, geom.endangle);
+            appendLine(lineVertices, lineCounts, geom.pnt1, geom.pnt2);
+            appendLine(lineVertices, lineCounts, geom.pnt3, geom.pnt4);
+
+            const float arrowLength = geom.margin * 2.0F;
+            const float arrowWidth = geom.margin * 0.5F;
+            appendArrowTriangle(triangleVertices, triangleCounts, geom.pnt2, geom.dirStart, arrowWidth, arrowLength);
+            appendArrowTriangle(triangleVertices, triangleCounts, geom.pnt4, geom.dirEnd, arrowWidth, arrowLength);
+        }
+    }
+
+    if (!lineVertices.empty()) {
+        m_LineVertexProperty->vertex.setValues(0, static_cast<int>(lineVertices.size()), lineVertices.data());
+        m_LineSet->numVertices.setValues(0, static_cast<int>(lineCounts.size()), lineCounts.data());
+    }
+    else {
+        m_LineVertexProperty->vertex.setNum(0);
+        m_LineSet->numVertices.setNum(0);
+    }
+
+    if (!triangleVertices.empty()) {
+        m_TriangleVertexProperty->vertex.setValues(
+            0,
+            static_cast<int>(triangleVertices.size()),
+            triangleVertices.data()
+        );
+        m_TriangleFaceSet->numVertices.setValues(
+            0,
+            static_cast<int>(triangleCounts.size()),
+            triangleCounts.data()
+        );
+    }
+    else {
+        m_TriangleVertexProperty->vertex.setNum(0);
+        m_TriangleFaceSet->numVertices.setNum(0);
+    }
+}
+
 void SoDatumLabel::GLRender(SoGLRenderAction* action)
 {
     SoState* state = action->getState();
@@ -1186,60 +1438,41 @@ void SoDatumLabel::GLRender(SoGLRenderAction* action)
 
     state->push();
 
-    // Set General OpenGL Properties
-    glPushAttrib(GL_ENABLE_BIT | GL_PIXEL_MODE_BIT | GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glDisable(GL_LIGHTING);
-    glDisable(GL_CULL_FACE);
-
-    // Explicitly enable depth testing for constraint lines. This is needed because the
-    // constraint group may have depth testing disabled (to allow icons to render on top),
-    // but we want constraint LINES to render BELOW geometry lines.
-    // Arrowheads are drawn at elevated Z (ZARROW_TEXT_OFFSET) so they render on top.
-    // Text rendering disables depth testing separately.
-    glEnable(GL_DEPTH_TEST);
-
-    // Enable Anti-alias
-    if (action->isSmoothing()) {
-        glEnable(GL_LINE_SMOOTH);
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-    }
-
-    // Position for Datum Text Label
-    float angle = 0;
-
-    // Get the colour
-    const SbColor& t = textColor.getValue();
-
-    // Set GL Properties
-    glLineWidth(this->lineWidth.getValue());
-    glColor3f(t[0], t[1], t[2]);
-
-    SbVec3f textOffset;
-
-    if (this->datumtype.getValue() == DISTANCE || this->datumtype.getValue() == DISTANCEX
-        || this->datumtype.getValue() == DISTANCEY) {
-        drawDistance(points, angle, textOffset);
-    }
-    else if (this->datumtype.getValue() == RADIUS || this->datumtype.getValue() == DIAMETER) {
-        drawRadiusOrDiameter(points, angle, textOffset);
-    }
-    else if (this->datumtype.getValue() == ANGLE) {
-        drawAngle(points, angle, textOffset);
-    }
-    else if (this->datumtype.getValue() == SYMMETRIC) {
-        drawSymmetric(points);
-    }
-    else if (this->datumtype.getValue() == ARCLENGTH) {
-        drawArcLength(points, angle, textOffset);
+    ensureCoinGeometry(points, this->pnts.getNum());
+    if (m_Root) {
+        m_Root->GLRender(action);
     }
 
     if (hasText) {
+        float angle = 0.0F;
+        SbVec3f textOffset;
+        const auto type = static_cast<Type>(datumtype.getValue());
+        if (type == DISTANCE || type == DISTANCEX || type == DISTANCEY) {
+            const DistanceGeometry geom = calculateDistanceGeometry(points);
+            angle = geom.angle;
+            textOffset = geom.textOffset;
+        }
+        else if (type == RADIUS || type == DIAMETER) {
+            const DiameterGeometry geom = calculateDiameterGeometry(points);
+            angle = geom.angle;
+            textOffset = geom.textOffset;
+        }
+        else if (type == ANGLE) {
+            const AngleGeometry geom = calculateAngleGeometry(points);
+            angle = geom.angle;
+            textOffset = geom.textOffset;
+        }
+        else if (type == ARCLENGTH && this->pnts.getNum() >= 3) {
+            const ArcLengthGeometry geom = calculateArcLengthGeometry(points);
+            angle = geom.angle;
+            textOffset = geom.textOffset;
+        }
+
+        glPushAttrib(GL_ENABLE_BIT | GL_PIXEL_MODE_BIT | GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         drawText(state, srcw, srch, angle, textOffset);
+        glPopAttrib();
     }
 
-    glPopAttrib();
     state->pop();
 }
 
@@ -1274,191 +1507,40 @@ void SoDatumLabel::getDimension(float scale, int& srcw, int& srch)
 
 void SoDatumLabel::drawDistance(const SbVec3f* points, float& angle, SbVec3f& textOffset)
 {
-    SoDatumLabel::DistanceGeometry geom = this->calculateDistanceGeometry(points);
-
-    angle = geom.angle;
-    textOffset = geom.textOffset;
-
-    // Get the colour
-    const SbColor& t = textColor.getValue();
-
-    // Set GL Properties
-    glLineWidth(this->lineWidth.getValue());
-    glColor3f(t[0], t[1], t[2]);
-
-    // Perp Lines
-    glBegin(GL_LINES);
-    if (this->param1.getValue() != 0.) {
-        glVertex2f(geom.p1[0], geom.p1[1]);
-        glVertex2f(geom.perp1[0], geom.perp1[1]);
-
-        glVertex2f(geom.p2[0], geom.p2[1]);
-        glVertex2f(geom.perp2[0], geom.perp2[1]);
-    }
-
-    glVertex2f(geom.par1[0], geom.par1[1]);
-    glVertex2f(geom.par2[0], geom.par2[1]);
-
-    glVertex2f(geom.par3[0], geom.par3[1]);
-    glVertex2f(geom.par4[0], geom.par4[1]);
-    glEnd();
-
-    // Draw the arrowheads at elevated Z to render ON TOP of geometry lines
-    glBegin(GL_TRIANGLES);
-    glVertex3f(geom.par1[0], geom.par1[1], ZARROW_TEXT_OFFSET);
-    glVertex3f(geom.ar1[0], geom.ar1[1], ZARROW_TEXT_OFFSET);
-    glVertex3f(geom.ar2[0], geom.ar2[1], ZARROW_TEXT_OFFSET);
-
-    glVertex3f(geom.par4[0], geom.par4[1], ZARROW_TEXT_OFFSET);
-    glVertex3f(geom.ar3[0], geom.ar3[1], ZARROW_TEXT_OFFSET);
-    glVertex3f(geom.ar4[0], geom.ar4[1], ZARROW_TEXT_OFFSET);
-    glEnd();
-
-    if (this->datumtype.getValue() == DISTANCE) {
-        drawDistance(points);
-    }
+    (void)points;
+    angle = 0.0F;
+    textOffset = {};
 }
 
 void SoDatumLabel::drawDistance(const SbVec3f* points)
 {
-    // Draw arc helpers if needed
-    float range1 = this->param4.getValue();
-    if (range1 != 0.0) {
-        float startAngle1 = this->param3.getValue();
-        float radius1 = this->param5.getValue();
-        SbVec3f center1 = points[2];
-        glDrawArc(center1, radius1, startAngle1, startAngle1 + range1);
-    }
-
-    float range2 = this->param7.getValue();
-    if (range2 != 0.0) {
-        float startAngle2 = this->param6.getValue();
-        float radius2 = this->param8.getValue();
-        SbVec3f center2 = points[3];
-        glDrawArc(center2, radius2, startAngle2, startAngle2 + range2);
-    }
+    (void)points;
 }
 
 void SoDatumLabel::drawRadiusOrDiameter(const SbVec3f* points, float& angle, SbVec3f& textOffset)
 {
-    // Use shared geometry calculation
-    DiameterGeometry geom = calculateDiameterGeometry(points);
-
-    angle = geom.angle;
-    textOffset = geom.textOffset;
-
-    // Draw the Lines
-    glBegin(GL_LINES);
-    glVertex2f(geom.p1[0], geom.p1[1]);
-    glVertex2f(geom.pnt1[0], geom.pnt1[1]);
-
-    glVertex2f(geom.pnt2[0], geom.pnt2[1]);
-    glVertex2f(geom.p2[0], geom.p2[1]);
-    glEnd();
-
-    // Draw arrowhead at elevated Z to render ON TOP of geometry lines
-    glBegin(GL_TRIANGLES);
-    glVertex3f(geom.ar0[0], geom.ar0[1], ZARROW_TEXT_OFFSET);
-    glVertex3f(geom.ar1[0], geom.ar1[1], ZARROW_TEXT_OFFSET);
-    glVertex3f(geom.ar2[0], geom.ar2[1], ZARROW_TEXT_OFFSET);
-    glEnd();
-
-    if (geom.isDiameter) {
-        // Draw second arrowhead at elevated Z
-        glBegin(GL_TRIANGLES);
-        glVertex3f(geom.ar0_1[0], geom.ar0_1[1], ZARROW_TEXT_OFFSET);
-        glVertex3f(geom.ar1_1[0], geom.ar1_1[1], ZARROW_TEXT_OFFSET);
-        glVertex3f(geom.ar2_1[0], geom.ar2_1[1], ZARROW_TEXT_OFFSET);
-        glEnd();
-    }
-
-    // Draw arc helpers if needed
-    if (geom.startRange != 0.0) {
-        glDrawArc(geom.center, geom.radius, geom.startAngle, geom.startAngle + geom.startRange);
-    }
-
-    if (geom.endRange != 0.0) {
-        glDrawArc(geom.center, geom.radius, geom.endAngle, geom.endAngle + geom.endRange);
-    }
+    (void)points;
+    angle = 0.0F;
+    textOffset = {};
 }
 
 void SoDatumLabel::drawAngle(const SbVec3f* points, float& angle, SbVec3f& textOffset)
 {
-    // use shared geometry calculation
-    AngleGeometry geom = calculateAngleGeometry(points);
-
-    angle = geom.angle;
-    textOffset = geom.textOffset;
-
-    // draw arc segments
-    glDrawArc(geom.p0, geom.r, geom.startangle, geom.startangle + geom.range / 2.0 - geom.textMargin);
-    glDrawArc(geom.p0, geom.r, geom.startangle + geom.range / 2.0 + geom.textMargin, geom.endangle);
-
-    // draw extension lines
-    glDrawLine(geom.pnt1, geom.pnt2);
-    glDrawLine(geom.pnt3, geom.pnt4);
-
-    // draw arrowheads
-    glDrawArrow(geom.startArrowBase, geom.dirStart, geom.arrowWidth, geom.arrowLength);
-    glDrawArrow(geom.endArrowBase, geom.dirEnd, geom.arrowWidth, geom.arrowLength);
+    (void)points;
+    angle = 0.0F;
+    textOffset = {};
 }
 
 void SoDatumLabel::drawSymmetric(const SbVec3f* points)
 {
-    // use shared geometry calculation
-    SymmetricGeometry geom = calculateSymmetricGeometry(points);
-
-    // draw first constraint line (at constraint Z)
-    glBegin(GL_LINES);
-    glVertex3f(geom.p1[0], geom.p1[1], ZCONSTR);
-    glVertex3f(geom.ar0[0], geom.ar0[1], ZCONSTR);
-    glEnd();
-
-    // draw first arrowhead at elevated Z to render ON TOP of geometry lines
-    glBegin(GL_LINES);
-    glVertex3f(geom.ar0[0], geom.ar0[1], ZARROW_TEXT_OFFSET);
-    glVertex3f(geom.ar1[0], geom.ar1[1], ZARROW_TEXT_OFFSET);
-    glVertex3f(geom.ar0[0], geom.ar0[1], ZARROW_TEXT_OFFSET);
-    glVertex3f(geom.ar2[0], geom.ar2[1], ZARROW_TEXT_OFFSET);
-    glEnd();
-
-    // draw second constraint line (at constraint Z)
-    glBegin(GL_LINES);
-    glVertex3f(geom.p2[0], geom.p2[1], ZCONSTR);
-    glVertex3f(geom.ar3[0], geom.ar3[1], ZCONSTR);
-    glEnd();
-
-    // draw second arrowhead at elevated Z to render ON TOP of geometry lines
-    glBegin(GL_LINES);
-    glVertex3f(geom.ar3[0], geom.ar3[1], ZARROW_TEXT_OFFSET);
-    glVertex3f(geom.ar4[0], geom.ar4[1], ZARROW_TEXT_OFFSET);
-    glVertex3f(geom.ar3[0], geom.ar3[1], ZARROW_TEXT_OFFSET);
-    glVertex3f(geom.ar5[0], geom.ar5[1], ZARROW_TEXT_OFFSET);
-    glEnd();
+    (void)points;
 }
 
 void SoDatumLabel::drawArcLength(const SbVec3f* points, float& angle, SbVec3f& textOffset)
 {
-    // use shared geometry calculation
-    ArcLengthGeometry geom = calculateArcLengthGeometry(points);
-
-    // set output parameters
-    angle = geom.angle;
-    textOffset = geom.textOffset;
-
-    // draw arc
-    glDrawArc(geom.arcCenter, geom.arcRadius, geom.startangle, geom.endangle);
-
-    // draw lines
-    glDrawLine(geom.pnt1, geom.pnt2);
-    glDrawLine(geom.pnt3, geom.pnt4);
-
-    // create the arrowheads
-    float arrowLength = geom.margin * 2;
-    float arrowWidth = geom.margin * 0.5F;
-
-    glDrawArrow(geom.pnt2, geom.dirStart, arrowWidth, arrowLength);
-    glDrawArrow(geom.pnt4, geom.dirEnd, arrowWidth, arrowLength);
+    (void)points;
+    angle = 0.0F;
+    textOffset = {};
 }
 
 // NOLINTNEXTLINE

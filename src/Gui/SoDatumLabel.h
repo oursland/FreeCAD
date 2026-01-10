@@ -41,6 +41,17 @@
 namespace Gui
 {
 
+class SoBaseColor;
+class SoCullFace;
+class SoDepthBuffer;
+class SoDrawStyle;
+class SoFaceSet;
+class SoLineSet;
+class SoSeparator;
+class SoLightModel;
+class SoSwitch;
+class SoVertexProperty;
+
 class GuiExport SoDatumLabel: public SoShape
 {
     using inherited = SoShape;
@@ -94,7 +105,7 @@ public:
     bool useAntialiasing;
 
 protected:
-    ~SoDatumLabel() override = default;
+    ~SoDatumLabel() override;
     void GLRender(SoGLRenderAction* action) override;
     void computeBBox(SoAction*, SbBox3f& box, SbVec3f& center) override;
     void generatePrimitives(SoAction* action) override;
@@ -232,9 +243,22 @@ private:
 
 private:
     void drawImage();
+    void ensureCoinGeometry(const SbVec3f* points, int numPoints);
+    void setVertexZ(SbVec3f& point, float z) const;
     float imgWidth;
     float imgHeight;
     bool glimagevalid;
+
+    SoSeparator* m_Root {nullptr};
+    SoDepthBuffer* m_GeometryDepth {nullptr};
+    SoLightModel* m_LightModel {nullptr};
+    SoBaseColor* m_GeometryColor {nullptr};
+    SoDrawStyle* m_DrawStyle {nullptr};
+    SoCullFace* m_CullFace {nullptr};
+    SoVertexProperty* m_LineVertexProperty {nullptr};
+    SoLineSet* m_LineSet {nullptr};
+    SoVertexProperty* m_TriangleVertexProperty {nullptr};
+    SoFaceSet* m_TriangleFaceSet {nullptr};
 };
 
 }  // namespace Gui
