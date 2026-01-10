@@ -76,5 +76,5 @@ public:
     SoNode* getCoinNode() const;
 
 private:
-    NaviCubeImplementation* m_NaviCubeImplementation;
+    NaviCubeImplementation* naviCubeImplementation;
 };
