@@ -37,6 +37,14 @@ class SbViewport;
 class SoState;
 class SbColor;
 class SbVec2s;
+class SoBaseColor;
+class SoCoordinate3;
+class SoDrawStyle;
+class SoLineSet;
+class SoPointSet;
+class SoSeparator;
+class SoText2;
+class SoTranslation;
 
 namespace Gui
 {
@@ -117,7 +125,20 @@ protected:
     void generatePrimitives(SoAction* action) override;
 
 private:
-    SoSeparator* root;
+    SoSeparator* root {nullptr};
+    SoSeparator* geometryRoot {nullptr};
+    SoBaseColor* geometryColor {nullptr};
+    SoCoordinate3* lineCoordinates {nullptr};
+    SoLineSet* lineSet {nullptr};
+    SoCoordinate3* basePointCoordinates {nullptr};
+    SoPointSet* basePointSet {nullptr};
+    SoCoordinate3* tipPointCoordinates {nullptr};
+    SoPointSet* tipPointSet {nullptr};
+
+    SoSeparator* textRoot {nullptr};
+    SoTranslation* move {nullptr};
+    SoBaseColor* textColor {nullptr};
+    SoText2* label {nullptr};
 };
 
 }  // namespace Gui

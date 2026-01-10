@@ -58,7 +58,14 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--nodes",
         nargs="*",
-        default=["SoDrawingGrid", "SoFCBackgroundGradient", "SoTextLabel", "SoStringLabel", "SoNaviCube"],
+        default=[
+            "SoDrawingGrid",
+            "SoRegPoint",
+            "SoFCBackgroundGradient",
+            "SoTextLabel",
+            "SoStringLabel",
+            "SoNaviCube",
+        ],
         help="Coin node type names to snapshot (default: a small curated set)",
     )
     parser.add_argument(
@@ -136,6 +143,35 @@ def _make_scene_for_node(coin: object, type_name: str, width: int, height: int) 
         grid = _instantiate(coin, "SoDrawingGrid")
         root.addChild(grid)
         return "so_drawing_grid", root
+
+    if type_name == "SoRegPoint":
+        # Simple probe (line + 2 points + text) with a background cube for depth context.
+        material = coin.SoMaterial()
+        material.diffuseColor.setValue(0.7, 0.7, 0.75)
+
+        cube_trans = coin.SoTranslation()
+        cube_trans.translation.setValue(0.0, 0.0, -0.5)
+
+        cube = coin.SoCube()
+        cube.width = 1.2
+        cube.height = 1.2
+        cube.depth = 1.2
+
+        root.addChild(material)
+        root.addChild(cube_trans)
+        root.addChild(cube)
+
+        probe = _instantiate(coin, "SoRegPoint")
+        try:
+            probe.base.setValue(0.0, 0.0, 0.0)
+            probe.normal.setValue(0.6, 0.7, 0.4)
+            probe.length.setValue(1.2)
+            probe.color.setValue(1.0, 0.45, 0.34)
+            probe.text.setValue("SoRegPoint")
+        except Exception:
+            pass
+        root.addChild(probe)
+        return "so_reg_point", root
 
     if type_name == "SoTextLabel":
         trans = coin.SoTranslation()
