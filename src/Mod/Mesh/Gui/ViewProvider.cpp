@@ -1540,8 +1540,11 @@ std::vector<Mesh::FacetIndex> ViewProviderMesh::getVisibleFacets(
     mat->diffuseColor.setNum(count);
     SbColor* diffcol = mat->diffuseColor.startEditing();
     for (uint32_t i = 0; i < count; i++) {
-        float t {};
-        diffcol[i].setPackedValue(i << 8, t);
+        const uint32_t id = i + 1;
+        const float r = static_cast<float>((id >> 16U) & 0xffU) / 255.0F;
+        const float g = static_cast<float>((id >> 8U) & 0xffU) / 255.0F;
+        const float b = static_cast<float>(id & 0xffU) / 255.0F;
+        diffcol[i].setValue(r, g, b);
     }
 
     mat->diffuseColor.finishEditing();
@@ -1566,15 +1569,17 @@ std::vector<Mesh::FacetIndex> ViewProviderMesh::getVisibleFacets(
 
     int width = img.width();
     int height = img.height();
-    QRgb color = 0;
+    uint32_t color = 0;
     std::vector<Mesh::FacetIndex> faces;
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
-            QRgb rgb = img.pixel(x, y);
-            rgb = rgb - (0xff << 24);
-            if (rgb != 0 && rgb != color) {
-                color = rgb;
-                faces.push_back((Mesh::FacetIndex)rgb);
+            const QRgb pixel = img.pixel(x, y);
+            const uint32_t packed = (static_cast<uint32_t>(qRed(pixel)) << 16U)
+                | (static_cast<uint32_t>(qGreen(pixel)) << 8U)
+                | static_cast<uint32_t>(qBlue(pixel));
+            if (packed != 0 && packed != color) {
+                color = packed;
+                faces.push_back(static_cast<Mesh::FacetIndex>(packed - 1));
             }
         }
     }
