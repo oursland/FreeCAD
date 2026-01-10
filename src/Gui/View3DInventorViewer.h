@@ -550,8 +550,7 @@ private:
     static SoPath* pickFilterCB(void* viewer, const SoPickedPoint* pp);
     void initialize();
     void drawAxisCross();
-    static void drawArrow();
-    static void drawSingleBackground(const QColor&);
+    void drawSingleBackground(const QColor&);
     void setCursorRepresentation(int mode);
     void aboutToDestroyGLContext();
     void createStandardCursors();
