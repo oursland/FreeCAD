@@ -1,26 +1,28 @@
-// SPDX-License-Identifier: LGPL-2.1-or-later
-// SPDX-FileCopyrightText: 2017 Kustaa Nyholm <kustaa.nyholm@sparetimelabs.com>
-// SPDX-FileCopyrightText: 2025 Joao Matos
-// SPDX-FileNotice: Part of the FreeCAD project.
+/***************************************************************************
+ *   Copyright (c) 2017 Kustaa Nyholm  <kustaa.nyholm@sparetimelabs.com>   *
+ *   Copyright (c) 2025 Joao Matos                                         *
+ *                                                                         *
+ *   This file is part of the FreeCAD CAx development system.              *
+ *                                                                         *
+ *   This library is free software; you can redistribute it and/or         *
+ *   modify it under the terms of the GNU Library General Public           *
+ *   License as published by the Free Software Foundation; either          *
+ *   version 2 of the License, or (at your option) any later version.      *
+ *                                                                         *
+ *   This library  is distributed in the hope that it will be useful,      *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU Library General Public License for more details.                  *
+ *                                                                         *
+ *   You should have received a copy of the GNU Library General Public     *
+ *   License along with this library; see the file COPYING.LIB. If not,    *
+ *   write to the Free Software Foundation, Inc., 59 Temple Place,         *
+ *   Suite 330, Boston, MA  02111-1307, USA                                *
+ *                                                                         *
+ ***************************************************************************/
 
-/******************************************************************************
- *                                                                            *
- *   FreeCAD is free software: you can redistribute it and/or modify          *
- *   it under the terms of the GNU Lesser General Public License as           *
- *   published by the Free Software Foundation, either version 2.1            *
- *   of the License, or (at your option) any later version.                   *
- *                                                                            *
- *   FreeCAD is distributed in the hope that it will be useful,               *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty              *
- *   of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.                  *
- *   See the GNU Lesser General Public License for more details.              *
- *                                                                            *
- *   You should have received a copy of the GNU Lesser General Public         *
- *   License along with FreeCAD. If not, see https://www.gnu.org/licenses     *
- *                                                                            *
- ******************************************************************************/
-
-#pragma once
+#ifndef GUI_INVENTOR_SONAVICUBE_H
+#define GUI_INVENTOR_SONAVICUBE_H
 
 #include <FCGlobal.h>
 #include <Inventor/SbColor.h>
@@ -38,14 +40,16 @@
 #include <map>
 #include <vector>
 
-namespace Gui
-{
+namespace Gui {
 
 /**
  * Coin node for the navigation cube overlay.
+ *
+ * This initial step keeps the legacy OpenGL rendering path (moved from the
+ * controller) inside this node so it can be exercised as a regular scene
+ * graph element.
  */
-class GuiExport SoNaviCube: public SoShape
-{
+class GuiExport SoNaviCube : public SoShape {
     using inherited = SoShape;
 
     SO_NODE_HEADER(SoNaviCube);
@@ -54,11 +58,10 @@ public:
     static void initClass();
     SoNaviCube();
 
-    //! Cube edge length in viewer units.
+    //! Cube edge length in viewer units (wired up by the controller later).
     SoSFFloat size;
 
-    enum class PickId
-    {
+    enum class PickId {
         None,
         Front,
         Top,
@@ -96,8 +99,7 @@ public:
         ViewMenu
     };
 
-    enum class FaceType
-    {
+    enum class FaceType {
         None,
         Main,
         Edge,
@@ -105,8 +107,7 @@ public:
         Button
     };
 
-    struct Face
-    {
+    struct Face {
         FaceType type {FaceType::None};
         std::vector<SbVec3f> vertexArray;
         SbRotation rotation;
@@ -114,25 +115,20 @@ public:
 
     using FaceMap = std::map<PickId, Face>;
 
-    struct LabelSlot
-    {
+    struct LabelSlot {
         std::vector<SbVec3f> quad;
         unsigned int textureId {0};
     };
 
     using LabelMap = std::map<PickId, LabelSlot>;
 
-    struct ColorWithAlpha
-    {
+    struct ColorWithAlpha {
         SbColor rgb {1.0F, 1.0F, 1.0F};
         float alpha {1.0F};
     };
 
     void setChamfer(float chamfer);
-    [[nodiscard]] float chamfer() const
-    {
-        return m_Chamfer;
-    }
+    [[nodiscard]] float chamfer() const { return m_Chamfer; }
     [[nodiscard]] const FaceMap& faces() const;
     [[nodiscard]] const Face* faceForId(PickId id) const;
     [[nodiscard]] const FaceMap& buttonFaces() const;
@@ -148,14 +144,21 @@ protected:
 
     void GLRender(SoGLRenderAction* action) override;
     void generatePrimitives(SoAction* action) override;
-    void computeBBox(SoAction* action, SbBox3f& box, SbVec3f& center) override;
+    void computeBBox(SoAction* action,
+                     SbBox3f& box,
+                     SbVec3f& center) override;
 
 private:
     void ensureGeometry() const;
     void rebuildGeometry() const;
-    void addCubeFace(const SbVec3f& x, const SbVec3f& z, FaceType type, PickId pickId, float rotZ) const;
+    void addCubeFace(const SbVec3f& x,
+                     const SbVec3f& z,
+                     FaceType type,
+                     PickId pickId,
+                     float rotZ) const;
     void rebuildButtonFaces() const;
-    void addButtonFace(PickId pickId, const SbVec3f& direction = SbVec3f(0, 0, 0)) const;
+    void addButtonFace(PickId pickId,
+                       const SbVec3f& direction = SbVec3f(0, 0, 0)) const;
 
 private:
     float m_Chamfer {0.12F};
@@ -184,3 +187,5 @@ public:
 };
 
 }  // namespace Gui
+
+#endif  // GUI_INVENTOR_SONAVICUBE_H

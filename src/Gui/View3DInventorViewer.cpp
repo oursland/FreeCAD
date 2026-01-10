@@ -697,10 +697,15 @@ void View3DInventorViewer::init()
     );
 
     naviCube = new NaviCube(this);
-    if (auto node = naviCube->getCoinNode()) {
-        if (naviCubeAnnotation) {
-            naviCubeAnnotation->removeAllChildren();
-            naviCubeAnnotation->addChild(node);
+    if (naviCubeAnnotation) {
+        if (auto node = naviCube->getCoinNode()) {
+            const bool needsReset =
+                naviCubeAnnotation->getNumChildren() != 1 ||
+                naviCubeAnnotation->getChild(0) != node;
+            if (needsReset) {
+                naviCubeAnnotation->removeAllChildren();
+                naviCubeAnnotation->addChild(node);
+            }
         }
     }
     naviCubeEnabled = true;
@@ -811,7 +816,12 @@ void View3DInventorViewer::aboutToDestroyGLContext()
             gl->makeCurrent();
         }
         if (naviCubeAnnotation) {
-            naviCubeAnnotation->removeAllChildren();
+            if (auto node = naviCube->getCoinNode()) {
+                const int idx = naviCubeAnnotation->findChild(node);
+                if (idx >= 0) {
+                    naviCubeAnnotation->removeChild(idx);
+                }
+            }
         }
         delete naviCube;
         naviCube = nullptr;
@@ -2658,6 +2668,7 @@ void View3DInventorViewer::renderScene()
             );
         }
 
+<<<<<<< HEAD
         fpsCounter->setText(QString::fromStdString(stream.str()));
         fpsCounter->adjustSize();
 

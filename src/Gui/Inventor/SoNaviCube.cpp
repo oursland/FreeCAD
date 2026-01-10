@@ -1,25 +1,3 @@
-// SPDX-License-Identifier: LGPL-2.1-or-later
-// SPDX-FileCopyrightText: 2017 Kustaa Nyholm <kustaa.nyholm@sparetimelabs.com>
-// SPDX-FileCopyrightText: 2025 Joao Matos
-// SPDX-FileNotice: Part of the FreeCAD project.
-
-/******************************************************************************
- *                                                                            *
- *   FreeCAD is free software: you can redistribute it and/or modify          *
- *   it under the terms of the GNU Lesser General Public License as           *
- *   published by the Free Software Foundation, either version 2.1            *
- *   of the License, or (at your option) any later version.                   *
- *                                                                            *
- *   FreeCAD is distributed in the hope that it will be useful,               *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty              *
- *   of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.                  *
- *   See the GNU Lesser General Public License for more details.              *
- *                                                                            *
- *   You should have received a copy of the GNU Lesser General Public         *
- *   License along with FreeCAD. If not, see https://www.gnu.org/licenses     *
- *                                                                            *
- ******************************************************************************/
-
 #include <FCConfig.h>
 
 #ifdef FC_OS_WIN32
@@ -32,6 +10,28 @@
 #endif
 #include <Inventor/SbVec2f.h>
 #include <Inventor/SbVec4f.h>
+
+/***************************************************************************
+ *   Copyright (c) 2025 Joao Matos                                         *
+ *                                                                         *
+ *   This file is part of the FreeCAD CAx development system.              *
+ *                                                                         *
+ *   This library is free software; you can redistribute it and/or         *
+ *   modify it under the terms of the GNU Library General Public           *
+ *   License as published by the Free Software Foundation; either          *
+ *   version 2 of the License, or (at your option) any later version.      *
+ *                                                                         *
+ *   This library  is distributed in the hope that it will be useful,      *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU Library General Public License for more details.                  *
+ *                                                                         *
+ *   You should have received a copy of the GNU Library General Public     *
+ *   License along with this library; see the file COPYING.LIB. If not,    *
+ *   write to the Free Software Foundation, Inc., 59 Temple Place,         *
+ *   Suite 330, Boston, MA  02111-1307, USA                                *
+ *                                                                         *
+ ***************************************************************************/
 
 #include <Inventor/actions/SoGLRenderAction.h>
 #include <Inventor/bundles/SoMaterialBundle.h>
@@ -68,8 +68,7 @@ using namespace Gui;
 
 SO_NODE_SOURCE(SoNaviCube);
 
-namespace
-{
+namespace {
 
 }  // namespace
 
@@ -190,7 +189,9 @@ void SoNaviCube::renderGL(bool pickMode) const
     const ColorWithAlpha base = {baseColor.getValue(), baseAlpha.getValue()};
     const ColorWithAlpha emph = {emphaseColor.getValue(), emphaseAlpha.getValue()};
     const ColorWithAlpha hilite = {hiliteColor.getValue(), hiliteAlpha.getValue()};
-    const SbColor axisRGB[3] = {axisXColor.getValue(), axisYColor.getValue(), axisZColor.getValue()};
+    const SbColor axisRGB[3] = {axisXColor.getValue(),
+                                axisYColor.getValue(),
+                                axisZColor.getValue()};
     const PickId hilitePick = static_cast<PickId>(hiliteId.getValue());
     const SbRotation camOrientation = cameraOrientation.getValue();
 
@@ -198,7 +199,10 @@ void SoNaviCube::renderGL(bool pickMode) const
 
     glPushAttrib(GL_ALL_ATTRIB_BITS);
 
-    glViewport(viewportX, viewportY, viewportWidth, viewportHeight);
+    glViewport(viewportX,
+               viewportY,
+               viewportWidth,
+               viewportHeight);
 
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);
@@ -243,7 +247,8 @@ void SoNaviCube::renderGL(bool pickMode) const
         glOrtho(-2.1, 2.1, -2.1, 2.1, NEARVAL, FARVAL);
     }
     else {
-        const float dim = NEARVAL * static_cast<float>(std::tan(std::numbers::pi / 8.0)) * 1.1F;
+        const float dim =
+            NEARVAL * static_cast<float>(std::tan(std::numbers::pi / 8.0)) * 1.1F;
         glFrustum(-dim, dim, -dim, dim, NEARVAL, FARVAL);
     }
 
@@ -266,7 +271,15 @@ void SoNaviCube::renderGL(bool pickMode) const
         constexpr float a = -1.1F;
         constexpr float b = -1.05F;
         constexpr float c = 0.5F;
-        const float pointData[] = {b, a, a, c, a, a, a, b, a, a, c, a, a, a, b, a, a, c, a, a, a};
+        const float pointData[] = {
+            b, a, a,
+            c, a, a,
+            a, b, a,
+            a, c, a,
+            a, a, b,
+            a, a, c,
+            a, a, a
+        };
         glVertexPointer(3, GL_FLOAT, 0, pointData);
 
         const float* xColor = axisRGB[0].getValue();
@@ -294,11 +307,15 @@ void SoNaviCube::renderGL(bool pickMode) const
             glColor3ub(static_cast<GLubyte>(pickId), 0, 0);
         }
         else {
-            const auto& color = hilitePick == pickId ? hilite : base;
+            const auto& color =
+                hilitePick == pickId ? hilite : base;
             const float* rgb = color.rgb.getValue();
             glColor4f(rgb[0], rgb[1], rgb[2], color.alpha * currentOpacity);
         }
-        glVertexPointer(3, GL_FLOAT, 0, reinterpret_cast<const float*>(face.vertexArray.data()));
+        glVertexPointer(3,
+                        GL_FLOAT,
+                        0,
+                        reinterpret_cast<const float*>(face.vertexArray.data()));
         glDrawArrays(GL_TRIANGLE_FAN, 0, static_cast<GLsizei>(face.vertexArray.size()));
     }
 
@@ -312,14 +329,20 @@ void SoNaviCube::renderGL(bool pickMode) const
                 continue;
             }
             glColor4f(borderRGB[0], borderRGB[1], borderRGB[2], borderAlpha);
-            glVertexPointer(3, GL_FLOAT, 0, reinterpret_cast<const float*>(face.vertexArray.data()));
+            glVertexPointer(3,
+                            GL_FLOAT,
+                            0,
+                            reinterpret_cast<const float*>(face.vertexArray.data()));
             glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(face.vertexArray.size()));
         }
 
         glDisable(GL_POLYGON_OFFSET_FILL);
         glEnable(GL_TEXTURE_2D);
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-        static const float texCoords[] = {0.0F, 0.0F, 1.0F, 0.0F, 1.0F, 1.0F, 0.0F, 1.0F};
+        static const float texCoords[] = {0.0F, 0.0F,
+                                          1.0F, 0.0F,
+                                          1.0F, 1.0F,
+                                          0.0F, 1.0F};
         glTexCoordPointer(2, GL_FLOAT, 0, texCoords);
 
         const float* emphRGB = emph.rgb.getValue();
@@ -332,7 +355,10 @@ void SoNaviCube::renderGL(bool pickMode) const
             if (slot.quad.size() != 4 || slot.textureId == 0) {
                 continue;
             }
-            glVertexPointer(3, GL_FLOAT, 0, reinterpret_cast<const float*>(slot.quad.data()));
+            glVertexPointer(3,
+                            GL_FLOAT,
+                            0,
+                            reinterpret_cast<const float*>(slot.quad.data()));
             glBindTexture(GL_TEXTURE_2D, slot.textureId);
             glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
         }
@@ -358,11 +384,15 @@ void SoNaviCube::renderGL(bool pickMode) const
             glColor3ub(static_cast<GLubyte>(pickId), 0, 0);
         }
         else {
-            const auto& color = hilitePick == pickId ? hilite : base;
+            const auto& color =
+                hilitePick == pickId ? hilite : base;
             const float* rgb = color.rgb.getValue();
             glColor4f(rgb[0], rgb[1], rgb[2], color.alpha * currentOpacity);
         }
-        glVertexPointer(3, GL_FLOAT, 0, reinterpret_cast<const float*>(face.vertexArray.data()));
+        glVertexPointer(3,
+                        GL_FLOAT,
+                        0,
+                        reinterpret_cast<const float*>(face.vertexArray.data()));
         glDrawArrays(GL_TRIANGLE_FAN, 0, static_cast<GLsizei>(face.vertexArray.size()));
         if (!pickMode) {
             const float* rgb = emph.rgb.getValue();
@@ -387,12 +417,16 @@ void SoNaviCube::GLRender(SoGLRenderAction* action)
 }
 
 void SoNaviCube::generatePrimitives(SoAction*)
-{}
+{
+}
 
-void SoNaviCube::computeBBox(SoAction*, SbBox3f& box, SbVec3f& center)
+void SoNaviCube::computeBBox(SoAction*,
+                             SbBox3f& box,
+                             SbVec3f& center)
 {
     const float halfSize = size.getValue() * 0.5F;
-    box.setBounds(SbVec3f(-halfSize, -halfSize, -halfSize), SbVec3f(halfSize, halfSize, halfSize));
+    box.setBounds(SbVec3f(-halfSize, -halfSize, -halfSize),
+                  SbVec3f(halfSize, halfSize, halfSize));
     center.setValue(0.0F, 0.0F, 0.0F);
 }
 
@@ -421,38 +455,72 @@ void SoNaviCube::rebuildGeometry() const
     const SbVec3f z(0.0F, 0.0F, 1.0F);
 
     // Main faces
-    addCubeFace(x, z, FaceType::Main, PickId::Top, 0.0F);
-    addCubeFace(x, -y, FaceType::Main, PickId::Front, 0.0F);
-    addCubeFace(-y, -x, FaceType::Main, PickId::Left, 0.0F);
-    addCubeFace(-x, y, FaceType::Main, PickId::Rear, 0.0F);
-    addCubeFace(y, x, FaceType::Main, PickId::Right, 0.0F);
-    addCubeFace(x, -z, FaceType::Main, PickId::Bottom, 0.0F);
+    addCubeFace(x,  z,   FaceType::Main,   PickId::Top,    0.0F);
+    addCubeFace(x, -y,   FaceType::Main,   PickId::Front,  0.0F);
+    addCubeFace(-y, -x,  FaceType::Main,   PickId::Left,   0.0F);
+    addCubeFace(-x,  y,  FaceType::Main,   PickId::Rear,   0.0F);
+    addCubeFace( y,  x,  FaceType::Main,   PickId::Right,  0.0F);
+    addCubeFace(x, -z,   FaceType::Main,   PickId::Bottom, 0.0F);
 
     // Corner faces
-    addCubeFace(-x - y, x - y + z, FaceType::Corner, PickId::FrontTopRight, pi);
-    addCubeFace(-x + y, -x - y + z, FaceType::Corner, PickId::FrontTopLeft, pi);
-    addCubeFace(x + y, x - y - z, FaceType::Corner, PickId::FrontBottomRight, 0.0F);
-    addCubeFace(x - y, -x - y - z, FaceType::Corner, PickId::FrontBottomLeft, 0.0F);
-    addCubeFace(x - y, x + y + z, FaceType::Corner, PickId::RearTopRight, pi);
-    addCubeFace(x + y, -x + y + z, FaceType::Corner, PickId::RearTopLeft, pi);
-    addCubeFace(-x + y, x + y - z, FaceType::Corner, PickId::RearBottomRight, 0.0F);
-    addCubeFace(-x - y, -x + y - z, FaceType::Corner, PickId::RearBottomLeft, 0.0F);
+    addCubeFace(-x - y,
+                x - y + z,
+                FaceType::Corner,
+                PickId::FrontTopRight,
+                pi);
+    addCubeFace(-x + y,
+                -x - y + z,
+                FaceType::Corner,
+                PickId::FrontTopLeft,
+                pi);
+    addCubeFace(x + y,
+                x - y - z,
+                FaceType::Corner,
+                PickId::FrontBottomRight,
+                0.0F);
+    addCubeFace(x - y,
+                -x - y - z,
+                FaceType::Corner,
+                PickId::FrontBottomLeft,
+                0.0F);
+    addCubeFace(x - y,
+                x + y + z,
+                FaceType::Corner,
+                PickId::RearTopRight,
+                pi);
+    addCubeFace(x + y,
+                -x + y + z,
+                FaceType::Corner,
+                PickId::RearTopLeft,
+                pi);
+    addCubeFace(-x + y,
+                x + y - z,
+                FaceType::Corner,
+                PickId::RearBottomRight,
+                0.0F);
+    addCubeFace(-x - y,
+                -x + y - z,
+                FaceType::Corner,
+                PickId::RearBottomLeft,
+                0.0F);
 
     // Edge faces
-    addCubeFace(x, z - y, FaceType::Edge, PickId::FrontTop, 0.0F);
+    addCubeFace(x,  z - y, FaceType::Edge, PickId::FrontTop,    0.0F);
     addCubeFace(x, -z - y, FaceType::Edge, PickId::FrontBottom, 0.0F);
-    addCubeFace(x, y - z, FaceType::Edge, PickId::RearBottom, pi);
-    addCubeFace(x, y + z, FaceType::Edge, PickId::RearTop, pi);
-    addCubeFace(z, x + y, FaceType::Edge, PickId::RearRight, piHalf);
-    addCubeFace(z, x - y, FaceType::Edge, PickId::FrontRight, piHalf);
-    addCubeFace(z, -x - y, FaceType::Edge, PickId::FrontLeft, piHalf);
-    addCubeFace(z, y - x, FaceType::Edge, PickId::RearLeft, piHalf);
-    addCubeFace(y, z - x, FaceType::Edge, PickId::TopLeft, pi);
-    addCubeFace(y, x + z, FaceType::Edge, PickId::TopRight, 0.0F);
-    addCubeFace(y, x - z, FaceType::Edge, PickId::BottomRight, 0.0F);
-    addCubeFace(y, -z - x, FaceType::Edge, PickId::BottomLeft, pi);
+    addCubeFace(x,  y - z, FaceType::Edge, PickId::RearBottom,  pi);
+    addCubeFace(x,  y + z, FaceType::Edge, PickId::RearTop,     pi);
+    addCubeFace(z,  x + y, FaceType::Edge, PickId::RearRight,   piHalf);
+    addCubeFace(z,  x - y, FaceType::Edge, PickId::FrontRight,  piHalf);
+    addCubeFace(z, -x - y, FaceType::Edge, PickId::FrontLeft,   piHalf);
+    addCubeFace(z,  y - x, FaceType::Edge, PickId::RearLeft,    piHalf);
+    addCubeFace(y,  z - x, FaceType::Edge, PickId::TopLeft,     pi);
+    addCubeFace(y,  x + z, FaceType::Edge, PickId::TopRight,    0.0F);
+    addCubeFace(y,  x - z, FaceType::Edge, PickId::BottomRight, 0.0F);
+    addCubeFace(y, -z - x, FaceType::Edge, PickId::BottomLeft,  pi);
 
-    auto setLabelQuad = [&](PickId pickId, const SbVec3f& xVec, const SbVec3f& zVec) {
+    auto setLabelQuad = [&](PickId pickId,
+                            const SbVec3f& xVec,
+                            const SbVec3f& zVec) {
         auto& slot = m_LabelSlots[pickId];
         slot.quad.clear();
 
@@ -475,11 +543,11 @@ void SoNaviCube::rebuildGeometry() const
         }
     };
 
-    setLabelQuad(PickId::Top, x, z);
-    setLabelQuad(PickId::Front, x, -y);
-    setLabelQuad(PickId::Left, -y, -x);
-    setLabelQuad(PickId::Rear, -x, y);
-    setLabelQuad(PickId::Right, y, x);
+    setLabelQuad(PickId::Top,    x,  z);
+    setLabelQuad(PickId::Front,  x, -y);
+    setLabelQuad(PickId::Left,  -y, -x);
+    setLabelQuad(PickId::Rear,  -x,  y);
+    setLabelQuad(PickId::Right,  y,  x);
     setLabelQuad(PickId::Bottom, x, -z);
 
     rebuildButtonFaces();
@@ -487,7 +555,11 @@ void SoNaviCube::rebuildGeometry() const
     m_GeometryDirty = false;
 }
 
-void SoNaviCube::addCubeFace(const SbVec3f& x, const SbVec3f& z, FaceType type, PickId pickId, float rotZ) const
+void SoNaviCube::addCubeFace(const SbVec3f& x,
+                             const SbVec3f& z,
+                             FaceType type,
+                             PickId pickId,
+                             float rotZ) const
 {
     auto& face = m_Faces[pickId];
     face.type = type;
@@ -502,7 +574,10 @@ void SoNaviCube::addCubeFace(const SbVec3f& x, const SbVec3f& z, FaceType type, 
     yN.normalize();
     zN.normalize();
 
-    SbMatrix R(xN[0], yN[0], zN[0], 0, xN[1], yN[1], zN[1], 0, xN[2], yN[2], zN[2], 0, 0, 0, 0, 1);
+    SbMatrix R(xN[0], yN[0], zN[0], 0,
+               xN[1], yN[1], zN[1], 0,
+               xN[2], yN[2], zN[2], 0,
+               0,     0,     0,     1);
 
     face.rotation = (SbRotation(R) * SbRotation(SbVec3f(0, 0, 1), rotZ)).inverse();
 
@@ -561,7 +636,8 @@ void SoNaviCube::rebuildButtonFaces() const
     addButtonFace(PickId::ViewMenu);
 }
 
-void SoNaviCube::addButtonFace(PickId pickId, const SbVec3f& direction) const
+void SoNaviCube::addButtonFace(PickId pickId,
+                               const SbVec3f& direction) const
 {
     auto& face = m_ButtonFaces[pickId];
     face.vertexArray.clear();
@@ -575,32 +651,60 @@ void SoNaviCube::addButtonFace(PickId pickId, const SbVec3f& direction) const
             break;
         case PickId::ArrowRight:
         case PickId::ArrowLeft: {
-            pointData = {66.6F,  -66.6F, 58.3F,  -74.0F, 49.2F,  -80.3F, 39.4F,  -85.5F, 29.0F,
-                         -89.5F, 25.3F,  -78.1F, 34.3F,  -74.3F, 42.8F,  -69.9F, 50.8F,  -64.4F,
-                         58.1F,  -58.1F, 53.8F,  -53.8F, 74.7F,  -46.8F, 70.7F,  -70.4F};
+            pointData = {
+                66.6F, -66.6F,
+                58.3F, -74.0F,
+                49.2F, -80.3F,
+                39.4F, -85.5F,
+                29.0F, -89.5F,
+                25.3F, -78.1F,
+                34.3F, -74.3F,
+                42.8F, -69.9F,
+                50.8F, -64.4F,
+                58.1F, -58.1F,
+                53.8F, -53.8F,
+                74.7F, -46.8F,
+                70.7F, -70.4F
+            };
             break;
         }
         case PickId::ArrowWest:
         case PickId::ArrowNorth:
         case PickId::ArrowSouth:
         case PickId::ArrowEast: {
-            pointData = {100.0F, 0.0F, 80.0F, -18.0F, 80.0F, 18.0F};
+            pointData = {
+                100.0F,  0.0F,
+                 80.0F, -18.0F,
+                 80.0F,  18.0F
+            };
             break;
         }
         case PickId::ViewMenu: {
             offx = 0.84F;
             offy = 0.84F;
-            pointData = {0.0F, 0.0F, 15.0F,  -6.0F, 0.0F,   -12.0F, -15.0F, -6.0F,
-                         0.0F, 0.0F, -15.0F, -6.0F, -15.0F, 12.0F,  0.0F,   18.0F,
-                         0.0F, 0.0F, 0.0F,   18.0F, 15.0F,  12.0F,  15.0F,  -6.0F};
+            pointData = {
+                  0.0F,   0.0F,
+                 15.0F,  -6.0F,
+                  0.0F, -12.0F,
+                -15.0F,  -6.0F,
+                  0.0F,   0.0F,
+                -15.0F,  -6.0F,
+                -15.0F,  12.0F,
+                  0.0F,  18.0F,
+                  0.0F,   0.0F,
+                  0.0F,  18.0F,
+                 15.0F,  12.0F,
+                 15.0F,  -6.0F
+            };
             break;
         }
         case PickId::DotBackside: {
             int steps = 16;
             pointData.reserve(steps * 2);
             for (int i = 0; i < steps; i++) {
-                float angle = 2.0F * std::numbers::pi_v<float>
-                    * (static_cast<float>(i) + 0.5F) / static_cast<float>(steps);
+                float angle =
+                    2.0F * std::numbers::pi_v<float> * (static_cast<float>(i) + 0.5F) /
+                    static_cast<float>(steps);
                 pointData.emplace_back(10.0F * std::cos(angle) + 87.0F);
                 pointData.emplace_back(10.0F * std::sin(angle) - 87.0F);
             }
@@ -613,16 +717,12 @@ void SoNaviCube::addButtonFace(PickId pickId, const SbVec3f& direction) const
     for (int i = 0; i < count; i++) {
         float x = pointData[i * 2] * scale + offx;
         float y = pointData[i * 2 + 1] * scale + offy;
-        if (pickId == PickId::ArrowNorth || pickId == PickId::ArrowWest
-            || pickId == PickId::ArrowLeft) {
+        if (pickId == PickId::ArrowNorth || pickId == PickId::ArrowWest || pickId == PickId::ArrowLeft)
             x = 1.0F - x;
-        }
-        if (pickId == PickId::ArrowSouth || pickId == PickId::ArrowNorth) {
+        if (pickId == PickId::ArrowSouth || pickId == PickId::ArrowNorth)
             face.vertexArray.emplace_back(SbVec3f(y, x, 0.0F));
-        }
-        else {
+        else
             face.vertexArray.emplace_back(SbVec3f(x, y, 0.0F));
-        }
     }
     face.type = FaceType::Button;
     face.rotation = SbRotation(direction, 1).inverse();
