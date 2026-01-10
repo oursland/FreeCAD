@@ -37,12 +37,7 @@
 
 #include <FCGlobal.h>
 
-
-namespace Gui
-{
-
 class SoBaseColor;
-class SoCullFace;
 class SoDepthBuffer;
 class SoDrawStyle;
 class SoFaceSet;
@@ -50,7 +45,12 @@ class SoLineSet;
 class SoSeparator;
 class SoLightModel;
 class SoSwitch;
+class SoTexture2;
+class SoTransform;
 class SoVertexProperty;
+
+namespace Gui
+{
 
 class GuiExport SoDatumLabel: public SoShape
 {
@@ -233,17 +233,10 @@ private:
         float width,
         float length
     );
-    void drawDistance(const SbVec3f* points, float& angle, SbVec3f& textOffset);
-    void drawDistance(const SbVec3f* points);
-    void drawRadiusOrDiameter(const SbVec3f* points, float& angle, SbVec3f& textOffset);
-    void drawAngle(const SbVec3f* points, float& angle, SbVec3f& textOffset);
-    void drawSymmetric(const SbVec3f* points);
-    void drawArcLength(const SbVec3f* points, float& angle, SbVec3f& textOffset);
-    void drawText(SoState* state, int srcw, int srch, float angle, const SbVec3f& textOffset);
-
 private:
     void drawImage();
     void ensureCoinGeometry(const SbVec3f* points, int numPoints);
+    void ensureCoinText(SoState* state, int srcw, int srch, float angle, const SbVec3f& textOffset);
     void setVertexZ(SbVec3f& point, float z) const;
     float imgWidth;
     float imgHeight;
@@ -254,11 +247,19 @@ private:
     SoLightModel* m_LightModel {nullptr};
     SoBaseColor* m_GeometryColor {nullptr};
     SoDrawStyle* m_DrawStyle {nullptr};
-    SoCullFace* m_CullFace {nullptr};
     SoVertexProperty* m_LineVertexProperty {nullptr};
     SoLineSet* m_LineSet {nullptr};
     SoVertexProperty* m_TriangleVertexProperty {nullptr};
     SoFaceSet* m_TriangleFaceSet {nullptr};
+
+    SoSwitch* m_TextSwitch {nullptr};
+    SoSeparator* m_TextSeparator {nullptr};
+    SoDepthBuffer* m_TextDepth {nullptr};
+    SoBaseColor* m_TextBaseColor {nullptr};
+    SoTexture2* m_TextTexture {nullptr};
+    SoTransform* m_TextTransform {nullptr};
+    SoVertexProperty* m_TextVertexProperty {nullptr};
+    SoFaceSet* m_TextFaceSet {nullptr};
 };
 
 }  // namespace Gui

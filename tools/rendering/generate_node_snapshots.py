@@ -19,6 +19,12 @@ import argparse
 import sys
 from pathlib import Path
 
+# This is a standalone convenience script intended to be run in different
+# FreeCAD/Python environments; it intentionally uses best-effort imports and
+# broad error handling for optional APIs.
+# pylint: disable=import-outside-toplevel,broad-exception-caught
+# pylint: disable=too-many-branches,too-many-statements,too-many-locals
+
 
 def _require_freecad_gui() -> tuple[object, object, object]:
     try:
@@ -62,6 +68,7 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
             "SoDrawingGrid",
             "SoRegPoint",
             "SoFCBackgroundGradient",
+            "SoDatumLabel",
             "SoTextLabel",
             "SoStringLabel",
             "SoNaviCube",
@@ -96,7 +103,13 @@ def _create_view(FreeCADGui: object) -> object:
     return view_obj
 
 
-def _save_active_view(FreeCADGui: object, out_path: Path, width: int, height: int, background: str) -> None:
+def _save_active_view(
+    FreeCADGui: object,
+    out_path: Path,
+    width: int,
+    height: int,
+    background: str,
+) -> None:
     FreeCADGui.updateGui()
     view = FreeCADGui.activeDocument().activeView()
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -120,7 +133,12 @@ def _instantiate(coin: object, type_name: str) -> object:
     return node
 
 
-def _make_scene_for_node(coin: object, type_name: str, width: int, height: int) -> tuple[str, object]:
+def _make_scene_for_node(
+    coin: object,
+    type_name: str,
+    width: int,
+    height: int,
+) -> tuple[str, object]:
     root = coin.SoSeparator()
 
     if type_name == "SoDrawingGrid":
@@ -172,6 +190,53 @@ def _make_scene_for_node(coin: object, type_name: str, width: int, height: int) 
             pass
         root.addChild(probe)
         return "so_reg_point", root
+
+    if type_name == "SoDatumLabel":
+        material = coin.SoMaterial()
+        material.diffuseColor.setValue(0.7, 0.7, 0.75)
+
+        cube_trans = coin.SoTranslation()
+        cube_trans.translation.setValue(0.0, 0.0, -0.5)
+
+        cube = coin.SoCube()
+        cube.width = 1.2
+        cube.height = 1.2
+        cube.depth = 1.2
+
+        root.addChild(material)
+        root.addChild(cube_trans)
+        root.addChild(cube)
+
+        label_trans = coin.SoTranslation()
+        label_trans.translation.setValue(0.0, 0.0, 0.0)
+
+        label = _instantiate(coin, "SoDatumLabel")
+        try:
+            label.string.setValue("SoDatumLabel")
+            label.textColor.setValue(1.0, 0.45, 0.34)
+            label.size.setValue(18)
+            label.lineWidth.setValue(2.0)
+            label.sampling.setValue(2.0)
+            label.datumtype.setValue(label.DISTANCE)
+            label.param1.setValue(0.25)
+            label.param2.setValue(0.0)
+            if hasattr(label, "setPoints"):
+                label.setPoints(coin.SbVec3f(-0.5, -0.1, 0.0), coin.SbVec3f(0.5, 0.2, 0.0))
+            else:
+                label.pnts.setValues(
+                    0,
+                    2,
+                    [
+                        coin.SbVec3f(-0.5, -0.1, 0.0),
+                        coin.SbVec3f(0.5, 0.2, 0.0),
+                    ],
+                )
+        except Exception:
+            pass
+
+        root.addChild(label_trans)
+        root.addChild(label)
+        return "so_datum_label", root
 
     if type_name == "SoTextLabel":
         trans = coin.SoTranslation()
@@ -233,6 +298,7 @@ def _make_scene_for_node(coin: object, type_name: str, width: int, height: int) 
 
 
 def main(argv: list[str]) -> int:
+    """Script entry point."""
     args = _parse_args(argv)
     FreeCAD, FreeCADGui, coin = _require_freecad_gui()
 
