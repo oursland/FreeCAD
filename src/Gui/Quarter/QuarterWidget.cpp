@@ -139,10 +139,6 @@ using namespace SIM::Coin3D::Quarter;
 
 #define PRIVATE(obj) obj->pimpl
 
-#ifndef GL_MULTISAMPLE_BIT_EXT
-#define GL_MULTISAMPLE_BIT_EXT 0x20000000
-#endif
-
 //We need to avoid buffer swapping when initializing a QPainter on this widget
 class CustomGLWidget : public QOpenGLWidget {
 public:
@@ -866,8 +862,6 @@ void QuarterWidget::paintEvent(QPaintEvent* event)
 
     getSoRenderManager()->activate();
 
-    glMatrixMode(GL_PROJECTION);
-
     QOpenGLWidget* w = static_cast<QOpenGLWidget*>(this->viewport());
     if (!w->isValid()) {
         qWarning() << "No valid GL context found!";
@@ -907,9 +901,8 @@ void QuarterWidget::paintEvent(QPaintEvent* event)
     //start the standard graphics view processing for all widgets and graphic items. As 
     //QGraphicsView initaliizes a QPainter which changes the Opengl context in an unpredictable 
     //manner we need to store the context and recreate it after Qt is done.
-    glPushAttrib(GL_MULTISAMPLE_BIT_EXT);
     inherited::paintEvent(event);
-    glPopAttrib();
+    w->makeCurrent();
 
     // Causes an OpenGL error on resize
     //if (w->format().swapBehavior() == QSurfaceFormat::DoubleBuffer)
