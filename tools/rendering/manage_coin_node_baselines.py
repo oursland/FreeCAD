@@ -12,50 +12,41 @@ Examples:
 
   # Update baselines in-tree (recommended: do this on a controlled setup)
   tools/rendering/manage_coin_node_baselines.py update \
-    --freecadcmd build/<preset>/bin/FreeCADCmd
+    --baseline-dir tests/visual/baselines/coin-nodes \
+    --freecadcmd build/clang-mold-debug/bin/FreeCADCmd
 
   # Compare current renders against baselines (writes actual/expected/diff under --out-dir)
   tools/rendering/manage_coin_node_baselines.py compare \
+    --baseline-dir tests/visual/baselines/coin-nodes \
     --out-dir /tmp/FreeCADTesting/CoinNodeSnapshots \
-    --freecadcmd build/<preset>/bin/FreeCADCmd
+    --freecadcmd build/clang-mold-debug/bin/FreeCADCmd
 """
 
 from __future__ import annotations
 
 import argparse
 import os
-import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 # pylint: disable=broad-exception-caught,duplicate-code
 
-
 def _default_freecadcmd() -> str | None:
-    # Allow explicit override from the environment.
-    for env_var in ("FREECADCMD", "FC_FREECADCMD", "FREECAD_CMD"):
-        val = os.environ.get(env_var, "").strip()
-        if val:
-            return val
-
-    # Common local build layouts.
-    candidates: list[Path] = [
-        Path("build/bin/FreeCADCmd"),
-        *sorted(Path("build").glob("*/bin/FreeCADCmd")),
-        *sorted(Path("build").glob("*/bin/FreeCADCmd.exe")),
+    candidates = [
+        Path("build/clang-mold-debug/bin/FreeCADCmd"),
+        Path("build/clang-mold-release/bin/FreeCADCmd"),
     ]
-    for candidate in candidates:
-        if candidate.is_file():
-            return str(candidate)
+    for p in candidates:
+        if p.is_file():
+            return str(p)
 
-    return shutil.which("FreeCADCmd")
+    # Fall back to first build/*/bin/FreeCADCmd
+    for p in sorted(Path("build").glob("*/bin/FreeCADCmd")):
+        if p.is_file():
+            return str(p)
 
-
-def _default_baseline_dir() -> str:
-    # This script lives in-tree under `tools/rendering/`.
-    repo_root = Path(__file__).resolve().parents[2]
-    return str(repo_root / "tests" / "visual" / "baselines" / "coin-nodes")
+    return None
 
 
 def _parse_args(argv: list[str]) -> argparse.Namespace:
@@ -66,22 +57,17 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     common.add_argument(
         "--freecadcmd",
         default=_default_freecadcmd(),
-        help=(
-            "Path to FreeCADCmd (default: $FREECADCMD or auto-detect under build/*/bin/FreeCADCmd or PATH)"
-        ),
+        help="Path to FreeCADCmd (default: auto-detect under build/*/bin/FreeCADCmd)",
     )
     common.add_argument(
         "--qt-platform",
-        default="",
-        help=(
-            "Value for QT_QPA_PLATFORM. By default this script does not override it; "
-            "if no DISPLAY/WAYLAND is available, it auto-sets QT_QPA_PLATFORM=offscreen."
-        ),
+        default="offscreen",
+        help="Value for QT_QPA_PLATFORM (default: %(default)s)",
     )
     common.add_argument(
         "--baseline-dir",
-        default=_default_baseline_dir(),
-        help="Baseline directory containing/writing *.png files (default: %(default)s)",
+        required=True,
+        help="Baseline directory containing/writing *.png files",
     )
     common.add_argument(
         "--out-dir",
@@ -127,7 +113,7 @@ def main(argv: list[str]) -> int:
     if not args.freecadcmd:
         print(
             "ERROR: could not auto-detect FreeCADCmd; pass --freecadcmd "
-            "build/<preset>/bin/FreeCADCmd (or set $FREECADCMD)",
+            "build/<preset>/bin/FreeCADCmd",
             file=sys.stderr,
         )
         return 2
@@ -137,25 +123,9 @@ def main(argv: list[str]) -> int:
         print(f"ERROR: FreeCADCmd not found: {freecadcmd}", file=sys.stderr)
         return 2
 
-    baseline_dir = Path(args.baseline_dir)
-    if args.mode == "update":
-        baseline_dir.mkdir(parents=True, exist_ok=True)
-    elif not baseline_dir.is_dir():
-        print(
-            f"ERROR: baseline directory not found: {baseline_dir} "
-            "(pass --baseline-dir or run `update` first)",
-            file=sys.stderr,
-        )
-        return 2
-
     env = os.environ.copy()
-    if args.qt_platform.strip():
-        env["QT_QPA_PLATFORM"] = args.qt_platform.strip()
-    else:
-        has_display = bool(env.get("DISPLAY") or env.get("WAYLAND_DISPLAY"))
-        if not has_display and not env.get("QT_QPA_PLATFORM"):
-            env["QT_QPA_PLATFORM"] = "offscreen"
-    env["FC_VISUAL_BASELINE_DIR"] = str(baseline_dir.resolve())
+    env["QT_QPA_PLATFORM"] = args.qt_platform
+    env["FC_VISUAL_BASELINE_DIR"] = str(Path(args.baseline_dir).resolve())
     env["FC_VISUAL_OUT_DIR"] = str(Path(args.out_dir).resolve())
     env["FC_VISUAL_WIDTH"] = str(int(args.width))
     env["FC_VISUAL_HEIGHT"] = str(int(args.height))
@@ -173,8 +143,7 @@ def main(argv: list[str]) -> int:
         cmd = [str(freecadcmd), "-t", "TestCoinNodeSnapshots"]
 
     print(f"Running: {' '.join(cmd)}")
-    if "QT_QPA_PLATFORM" in env:
-        print(f"  QT_QPA_PLATFORM={env['QT_QPA_PLATFORM']}")
+    print(f"  QT_QPA_PLATFORM={env['QT_QPA_PLATFORM']}")
     print(f"  FC_VISUAL_BASELINE_DIR={env['FC_VISUAL_BASELINE_DIR']}")
     print(f"  FC_VISUAL_OUT_DIR={env['FC_VISUAL_OUT_DIR']}")
     if "FC_VISUAL_NODES" in env:
