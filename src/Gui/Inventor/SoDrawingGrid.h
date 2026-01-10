@@ -24,8 +24,14 @@
 
 #pragma once
 
+#include <Inventor/SbVec2s.h>
 #include <Inventor/nodes/SoShape.h>
 #include <FCGlobal.h>
+
+class SoLineSet;
+class SoSeparator;
+class SoState;
+class SoVertexProperty;
 
 namespace Gui
 {
@@ -52,8 +58,15 @@ public:
 
 private:
     void renderGrid(SoGLRenderAction* action);
+    void ensureGeometry(SoState* state);
     // Force using the reference count mechanism.
-    ~SoDrawingGrid() override = default;
+    ~SoDrawingGrid() override;
+
+private:
+    SoSeparator* m_Root {nullptr};
+    SoVertexProperty* m_VertexProperty {nullptr};
+    SoLineSet* m_LineSet {nullptr};
+    SbVec2s m_CachedViewportSize {0, 0};
 };
 
 }  // namespace Inventor
