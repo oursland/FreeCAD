@@ -42,6 +42,7 @@
 #include <Inventor/SoPickedPoint.h>
 #include <Inventor/actions/SoGetBoundingBoxAction.h>
 #include <Inventor/actions/SoGetMatrixAction.h>
+#include <Inventor/actions/SoGLRenderAction.h>
 #include <Inventor/actions/SoHandleEventAction.h>
 #include <Inventor/actions/SoRayPickAction.h>
 #include <Inventor/annex/HardCopy/SoVectorizePSAction.h>
@@ -74,6 +75,11 @@
 #include <Inventor/nodes/SoSwitch.h>
 #include <Inventor/nodes/SoTransform.h>
 #include <Inventor/nodes/SoTranslation.h>
+#include <Inventor/nodes/SoDepthBuffer.h>
+#include <Inventor/nodes/SoFaceSet.h>
+#include <Inventor/nodes/SoTexture2.h>
+#include <Inventor/nodes/SoTextureCoordinate2.h>
+#include <Inventor/nodes/SoVertexProperty.h>
 #include <QBitmap>
 #include <QEventLoop>
 #if defined(Q_OS_LINUX) && QT_VERSION < QT_VERSION_CHECK(6, 6, 0)
@@ -149,6 +155,141 @@ FC_LOG_LEVEL_INIT("3DViewer", true, true)
 // #define FC_LOGGING_CB
 
 using namespace Gui;
+
+namespace
+{
+int qImageByteCount(const QImage& image)
+{
+#if QT_VERSION >= QT_VERSION_CHECK(5, 10, 0)
+    return static_cast<int>(image.sizeInBytes());
+#else
+    return image.byteCount();
+#endif
+}
+
+SoSeparator* create2DOverlayRoot(int viewportWidth, int viewportHeight)
+{
+    auto* root = new SoSeparator;
+    root->ref();
+
+    auto* camera = new SoOrthographicCamera;
+    camera->aspectRatio.setValue(static_cast<float>(viewportWidth) / static_cast<float>(viewportHeight));
+    camera->height.setValue(static_cast<float>(viewportHeight));
+    root->addChild(camera);
+
+    auto* depth = new SoDepthBuffer;
+    depth->test.setValue(false);
+    depth->write.setValue(false);
+    depth->function.setValue(SoDepthBuffer::ALWAYS);
+    root->addChild(depth);
+
+    auto* lightModel = new SoLightModel;
+    lightModel->model.setValue(SoLightModel::BASE_COLOR);
+    root->addChild(lightModel);
+
+    return root;
+}
+
+void applyOverlay(SoNode* root, int viewportWidth, int viewportHeight)
+{
+    SoGLRenderAction action(SbViewportRegion(viewportWidth, viewportHeight));
+    action.setTransparencyType(SoGLRenderAction::BLEND);
+    action.apply(root);
+}
+
+struct OverlayImageState {
+    SoSeparator* root {nullptr};
+    SoOrthographicCamera* camera {nullptr};
+    SoDepthBuffer* depth {nullptr};
+    SoLightModel* lightModel {nullptr};
+    SoMaterial* material {nullptr};
+    SoTexture2* texture {nullptr};
+    SoTextureCoordinate2* texCoord {nullptr};
+    SoVertexProperty* vertices {nullptr};
+    SoFaceSet* quad {nullptr};
+    std::vector<unsigned char> pixelStorage;
+
+    void ensureCreated()
+    {
+        if (root) {
+            return;
+        }
+
+        root = new SoSeparator;
+        root->ref();
+
+        camera = new SoOrthographicCamera;
+        root->addChild(camera);
+
+        depth = new SoDepthBuffer;
+        depth->test.setValue(false);
+        depth->write.setValue(false);
+        depth->function.setValue(SoDepthBuffer::ALWAYS);
+        root->addChild(depth);
+
+        lightModel = new SoLightModel;
+        lightModel->model.setValue(SoLightModel::BASE_COLOR);
+        root->addChild(lightModel);
+
+        material = new SoMaterial;
+        material->diffuseColor.setValue(1.0f, 1.0f, 1.0f);
+        material->transparency.setValue(0.0f);
+        root->addChild(material);
+
+        texture = new SoTexture2;
+        texture->wrapS.setValue(SoTexture2::CLAMP);
+        texture->wrapT.setValue(SoTexture2::CLAMP);
+        root->addChild(texture);
+
+        texCoord = new SoTextureCoordinate2;
+        texCoord->point.set1Value(0, SbVec2f(0.0f, 0.0f));
+        texCoord->point.set1Value(1, SbVec2f(1.0f, 0.0f));
+        texCoord->point.set1Value(2, SbVec2f(1.0f, 1.0f));
+        texCoord->point.set1Value(3, SbVec2f(0.0f, 1.0f));
+        root->addChild(texCoord);
+
+        vertices = new SoVertexProperty;
+
+        quad = new SoFaceSet;
+        quad->vertexProperty.setValue(vertices);
+        quad->numVertices.setValue(4);
+        root->addChild(quad);
+    }
+};
+
+OverlayImageState& overlayImageState()
+{
+    static OverlayImageState state;
+    return state;
+}
+
+void renderOverlaySolidColor(const QColor& col, int viewportWidth, int viewportHeight)
+{
+    SoSeparator* root = create2DOverlayRoot(viewportWidth, viewportHeight);
+
+    auto* material = new SoMaterial;
+    material->diffuseColor.setValue(static_cast<float>(col.redF()),
+                                    static_cast<float>(col.greenF()),
+                                    static_cast<float>(col.blueF()));
+    material->transparency.setValue(1.0f - static_cast<float>(col.alphaF()));
+    root->addChild(material);
+
+    auto* vertices = new SoVertexProperty;
+    vertices->vertex.set1Value(0, SbVec3f(-0.5f * viewportWidth, -0.5f * viewportHeight, 0.0f));
+    vertices->vertex.set1Value(1, SbVec3f(0.5f * viewportWidth, -0.5f * viewportHeight, 0.0f));
+    vertices->vertex.set1Value(2, SbVec3f(0.5f * viewportWidth, 0.5f * viewportHeight, 0.0f));
+    vertices->vertex.set1Value(3, SbVec3f(-0.5f * viewportWidth, 0.5f * viewportHeight, 0.0f));
+
+    auto* face = new SoFaceSet;
+    face->vertexProperty.setValue(vertices);
+    face->numVertices.setValue(4);
+    root->addChild(face);
+
+    applyOverlay(root, viewportWidth, viewportHeight);
+    root->unref();
+}
+
+}  // namespace
 
 /*!
 As ProgressBar has no chance to control the incoming Qt events of Quarter so we need to stop
@@ -2405,8 +2546,6 @@ void View3DInventorViewer::renderToFramebuffer(QOpenGLFramebufferObject* fbo)
     int width = fbo->size().width();
     int height = fbo->size().height();
 
-    glDisable(GL_TEXTURE_2D);
-    glEnable(GL_LIGHTING);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_LINE_SMOOTH);
 
@@ -2461,68 +2600,82 @@ void View3DInventorViewer::renderFramebuffer()
 {
     const SbViewportRegion vp = this->getSoRenderManager()->getViewportRegion();
     SbVec2s size = vp.getViewportSizePixels();
+    const int viewportWidth = size[0];
+    const int viewportHeight = size[1];
+    if (!this->framebuffer || viewportWidth <= 0 || viewportHeight <= 0) {
+        return;
+    }
 
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
-    glDisable(GL_LIGHTING);
-    glViewport(0, 0, size[0], size[1]);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glDisable(GL_DEPTH_TEST);
+    static_cast<QOpenGLWidget*>(this->viewport())->makeCurrent();  // NOLINT
+    glViewport(0, 0, viewportWidth, viewportHeight);
 
-    glClear(GL_COLOR_BUFFER_BIT);
-    glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, this->framebuffer->texture());
-    glColor3f(1.0, 1.0, 1.0);
-
-    glBegin(GL_QUADS);
-    glTexCoord2f(0.0F, 0.0F);
-    glVertex2f(-1.0, -1.0F);
-    glTexCoord2f(1.0F, 0.0F);
-    glVertex2f(1.0F, -1.0F);
-    glTexCoord2f(1.0F, 1.0F);
-    glVertex2f(1.0F, 1.0F);
-    glTexCoord2f(0.0F, 1.0F);
-    glVertex2f(-1.0F, 1.0F);
-    glEnd();
+    const QSize srcSize = this->framebuffer->size();
+    QOpenGLFramebufferObject::blitFramebuffer(
+        nullptr,
+        QRect(0, 0, viewportWidth, viewportHeight),
+        this->framebuffer,
+        QRect(0, 0, srcSize.width(), srcSize.height()),
+        GL_COLOR_BUFFER_BIT,
+        GL_NEAREST
+    );
 
     printDimension();
 
     for (auto it : this->graphicsItems) {
         it->paintGL();
     }
-
-    glPopAttrib();
 }
 
 void View3DInventorViewer::renderGLImage()
 {
     const SbViewportRegion vp = this->getSoRenderManager()->getViewportRegion();
     SbVec2s size = vp.getViewportSizePixels();
+    const int viewportWidth = size[0];
+    const int viewportHeight = size[1];
+    if (viewportWidth <= 0 || viewportHeight <= 0 || glImage.isNull()) {
+        return;
+    }
 
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
-    glDisable(GL_LIGHTING);
-    glViewport(0, 0, size[0], size[1]);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glOrtho(0, size[0], 0, size[1], 0, 100);  // NOLINT
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
+    static_cast<QOpenGLWidget*>(this->viewport())->makeCurrent();  // NOLINT
+    glViewport(0, 0, viewportWidth, viewportHeight);
 
-    glDisable(GL_DEPTH_TEST);
-    glClear(GL_COLOR_BUFFER_BIT);
+    auto& overlay = overlayImageState();
+    overlay.ensureCreated();
+    if (!overlay.root || !overlay.camera || !overlay.texture || !overlay.vertices) {
+        return;
+    }
 
-    glRasterPos2f(0, 0);
-    glDrawPixels(glImage.width(), glImage.height(), GL_BGRA, GL_UNSIGNED_BYTE, glImage.bits());
+    overlay.camera->aspectRatio.setValue(static_cast<float>(viewportWidth) / static_cast<float>(viewportHeight));
+    overlay.camera->height.setValue(static_cast<float>(viewportHeight));
+
+    QImage rgba = glImage.convertToFormat(QImage::Format_RGBA8888);
+    overlay.pixelStorage.assign(
+        rgba.constBits(),
+        rgba.constBits() + qImageByteCount(rgba)
+    );
+    overlay.texture->image.setValue(
+        SbVec2s(rgba.width(), rgba.height()),
+        4,
+        overlay.pixelStorage.data()
+    );
+
+    const float baseX = -0.5f * static_cast<float>(viewportWidth);
+    const float baseY = -0.5f * static_cast<float>(viewportHeight);
+    const float imgW = static_cast<float>(rgba.width());
+    const float imgH = static_cast<float>(rgba.height());
+
+    overlay.vertices->vertex.set1Value(0, SbVec3f(baseX, baseY, 0.0f));
+    overlay.vertices->vertex.set1Value(1, SbVec3f(baseX + imgW, baseY, 0.0f));
+    overlay.vertices->vertex.set1Value(2, SbVec3f(baseX + imgW, baseY + imgH, 0.0f));
+    overlay.vertices->vertex.set1Value(3, SbVec3f(baseX, baseY + imgH, 0.0f));
+
+    applyOverlay(overlay.root, viewportWidth, viewportHeight);
 
     printDimension();
 
     for (auto it : this->graphicsItems) {
         it->paintGL();
     }
-
-    glPopAttrib();
 }
 
 // #define ENABLE_GL_DEPTH_RANGE
@@ -2692,11 +2845,17 @@ void View3DInventorViewer::renderScene()
     // https://bugreports.qt.io/browse/QTBUG-119214
     // https://github.com/FreeCAD/FreeCAD/issues/8341
     // https://github.com/FreeCAD/FreeCAD/issues/6177
-    glPushAttrib(GL_COLOR_BUFFER_BIT);
+    GLboolean colorMask[4] = {GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE};
+    glGetBooleanv(GL_COLOR_WRITEMASK, colorMask);
+    GLfloat clearColor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    glGetFloatv(GL_COLOR_CLEAR_VALUE, clearColor);
+
     glColorMask(false, false, false, true);
     glClearColor(0, 0, 0, 1);
     glClear(GL_COLOR_BUFFER_BIT);
-    glPopAttrib();
+
+    glColorMask(colorMask[0], colorMask[1], colorMask[2], colorMask[3]);
+    glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
 }
 
 void View3DInventorViewer::setSeekMode(bool on)
@@ -4352,32 +4511,15 @@ void View3DInventorViewer::drawSingleBackground(const QColor& col)
     // Note: After changing the NaviCube code the content of an image plane may appear black.
     // A workaround is this function.
     // See also: https://github.com/FreeCAD/FreeCAD/pull/9356#issuecomment-1529521654
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    glOrtho(-1, 1, -1, 1, -1, 1);
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
-    glPushAttrib(GL_ENABLE_BIT);
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_LIGHTING);
-    glDisable(GL_TEXTURE_2D);
-    glBegin(GL_TRIANGLE_STRIP);
-    glColor3f(float(col.redF()), float(col.greenF()), float(col.blueF()));
-    glVertex2f(-1, 1);
-    glColor3f(float(col.redF()), float(col.greenF()), float(col.blueF()));
-    glVertex2f(-1, -1);
-    glColor3f(float(col.redF()), float(col.greenF()), float(col.blueF()));
-    glVertex2f(1, 1);
-    glColor3f(float(col.redF()), float(col.greenF()), float(col.blueF()));
-    glVertex2f(1, -1);
-    glEnd();
-    glPopAttrib();
-    glPopMatrix();
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
+    const SbViewportRegion vp = this->getSoRenderManager()->getViewportRegion();
+    const SbVec2s size = vp.getViewportSizePixels();
+    const int viewportWidth = size[0];
+    const int viewportHeight = size[1];
+    if (viewportWidth <= 0 || viewportHeight <= 0) {
+        return;
+    }
+
+    renderOverlaySolidColor(col, viewportWidth, viewportHeight);
 }
 
 // ************************************************************************
