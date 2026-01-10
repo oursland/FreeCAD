@@ -31,10 +31,8 @@
 #endif
 #ifdef FC_OS_MACOSX
 # include <OpenGL/gl.h>
-# include <OpenGL/glu.h>
 #else
 # include <GL/gl.h>
-# include <GL/glu.h>
 #endif
 #include <Inventor/SbLine.h>
 #include <Inventor/SoPickedPoint.h>
@@ -49,10 +47,19 @@
 #include <Inventor/bundles/SoTextureCoordinateBundle.h>
 #include <Inventor/details/SoFaceDetail.h>
 #include <Inventor/details/SoLineDetail.h>
+#include <Inventor/elements/SoViewportRegionElement.h>
 #include <Inventor/misc/SoState.h>
+#include <Inventor/nodes/SoCamera.h>
+#include <Inventor/nodes/SoLightModel.h>
+#include <Inventor/nodes/SoMaterial.h>
+#include <Inventor/nodes/SoMaterialBinding.h>
+#include <Inventor/nodes/SoSeparator.h>
+
+#include <QImage>
 
 #include <Base/Console.h>
 #include <Base/Exception.h>
+#include <Gui/SoFCOffscreenRenderer.h>
 #include <Gui/SoFCInteractiveElement.h>
 #include <Gui/Selection/SoFCSelectionAction.h>
 #include <Mod/Mesh/App/Core/Algorithm.h>
@@ -634,11 +641,6 @@ void SoFCMeshObjectShape::GLRender(SoGLRenderAction* action)
     if (shouldGLRender(action)) {
         SoState* state = action->getState();
 
-        // Here we must save the model and projection matrices because
-        // we need them later for picking
-        glGetFloatv(GL_MODELVIEW_MATRIX, this->modelview);
-        glGetFloatv(GL_PROJECTION_MATRIX, this->projection);
-
         SbBool mode = Gui::SoFCInteractiveElement::get(state);
         const Mesh::MeshObject* mesh = SoFCMeshObjectElement::get(state);
         if (!mesh || mesh->countPoints() == 0) {
@@ -959,119 +961,161 @@ void SoFCMeshObjectShape::doAction(SoAction* action)
             return;
         }
 
-        // The node we have is the parent of this node and the coordinate node
-        // thus we search there for it.
-        SoSearchAction sa;
-        sa.setInterest(SoSearchAction::FIRST);
-        sa.setSearchingAll(false);
-        sa.setType(SoFCMeshObjectNode::getClassTypeId(), 1);
-        sa.apply(node);
-        SoPath* path = sa.getPath();
-        if (!path) {
+        auto* doaction = static_cast<Gui::SoGLSelectAction*>(action);
+        SoCamera* camera = nullptr;
+        SoFCMeshObjectNode* meshNode = nullptr;
+
+        {
+            SoSearchAction sa;
+            sa.setInterest(SoSearchAction::FIRST);
+            sa.setSearchingAll(false);
+            sa.setType(SoCamera::getClassTypeId(), 1);
+            sa.apply(node);
+            SoPath* path = sa.getPath();
+            if (path) {
+                SoNode* found = path->getNodeFromTail(0);
+                if (found && found->getTypeId().isDerivedFrom(SoCamera::getClassTypeId())) {
+                    camera = static_cast<SoCamera*>(found);
+                }
+            }
+        }
+
+        {
+            SoSearchAction sa;
+            sa.setInterest(SoSearchAction::FIRST);
+            sa.setSearchingAll(false);
+            sa.setType(SoFCMeshObjectNode::getClassTypeId(), 1);
+            sa.apply(node);
+            SoPath* path = sa.getPath();
+            if (path) {
+                SoNode* found = path->getNodeFromTail(0);
+                if (found
+                    && found->getTypeId().isDerivedFrom(SoFCMeshObjectNode::getClassTypeId())) {
+                    meshNode = static_cast<SoFCMeshObjectNode*>(found);
+                }
+            }
+        }
+
+        if (!camera || !meshNode) {
             return;
         }
 
-        // make sure we got the node we wanted
-        SoNode* coords = path->getNodeFromTail(0);
-        if (!(coords && coords->getTypeId().isDerivedFrom(SoFCMeshObjectNode::getClassTypeId()))) {
+        const Mesh::MeshObject* mesh = meshNode->mesh.getValue();
+        if (!mesh) {
             return;
         }
-        const Mesh::MeshObject* mesh = static_cast<SoFCMeshObjectNode*>(coords)->mesh.getValue();
-        startSelection(action, mesh);
-        renderSelectionGeometry(mesh);
-        stopSelection(action, mesh);
+
+        const uint32_t numFaces = static_cast<uint32_t>(mesh->countFacets());
+        if (numFaces == 0 || numFaces >= 0x00ffffffU) {
+            return;
+        }
+
+        const SbViewportRegion& fullVp = SoViewportRegionElement::get(action->getState());
+        const SbViewportRegion& selVp = doaction->getViewportRegion();
+
+        const SbVec2s fullOrigin = fullVp.getViewportOriginPixels();
+        const SbVec2s selCenter = selVp.getViewportOriginPixels();
+        const SbVec2s selSize = selVp.getViewportSizePixels();
+
+        const int selW = selSize[0];
+        const int selH = selSize[1];
+        if (selW <= 0 || selH <= 0) {
+            return;
+        }
+
+        const int centerX = selCenter[0] - fullOrigin[0];
+        const int centerY = selCenter[1] - fullOrigin[1];
+
+        const int minX = centerX - (selW / 2);
+        const int minY = centerY - (selH / 2);
+        const int maxX = minX + selW - 1;
+        const int maxY = minY + selH - 1;
+
+        auto root = new SoSeparator;
+        root->ref();
+        root->addChild(camera);
+
+        auto lm = new SoLightModel();
+        lm->model = SoLightModel::BASE_COLOR;
+        root->addChild(lm);
+
+        auto mat = new SoMaterial();
+        mat->transparency = 0.0F;
+        mat->diffuseColor.setNum(numFaces);
+        SbColor* diffcol = mat->diffuseColor.startEditing();
+        for (uint32_t i = 0; i < numFaces; i++) {
+            const uint32_t id = i + 1;
+            const float r = static_cast<float>((id >> 16U) & 0xffU) / 255.0F;
+            const float g = static_cast<float>((id >> 8U) & 0xffU) / 255.0F;
+            const float b = static_cast<float>(id & 0xffU) / 255.0F;
+            diffcol[i].setValue(r, g, b);
+        }
+        mat->diffuseColor.finishEditing();
+
+        auto bind = new SoMaterialBinding();
+        bind->value = SoMaterialBinding::PER_FACE;
+
+        root->addChild(mat);
+        root->addChild(bind);
+        root->addChild(meshNode);
+        root->addChild(this);
+
+        Gui::SoQtOffscreenRenderer renderer(fullVp);
+        renderer.setBackgroundColor(SbColor4f(0.0F, 0.0F, 0.0F, 0.0F));
+
+        QImage img;
+        const SbBool rendered = renderer.render(root);
+        if (rendered) {
+            renderer.writeToImage(img);
+        }
+        root->unref();
+
+        if (!rendered || img.isNull()) {
+            return;
+        }
+
+        const int imgW = img.width();
+        const int imgH = img.height();
+        if (imgW <= 0 || imgH <= 0) {
+            return;
+        }
+
+        const auto clamp = [](int v, int lo, int hi) {
+            return std::max(lo, std::min(v, hi));
+        };
+
+        const int x0 = clamp(minX, 0, imgW - 1);
+        const int x1 = clamp(maxX, 0, imgW - 1);
+        const int y0 = clamp(minY, 0, imgH - 1);
+        const int y1 = clamp(maxY, 0, imgH - 1);
+
+        std::vector<unsigned long> picked;
+        picked.reserve(256);
+
+        for (int y = y0; y <= y1; y++) {
+            const int imgY = (imgH - 1) - y;
+            for (int x = x0; x <= x1; x++) {
+                const QRgb pixel = img.pixel(x, imgY);
+                const uint32_t packed = (static_cast<uint32_t>(qRed(pixel)) << 16U)
+                    | (static_cast<uint32_t>(qGreen(pixel)) << 8U)
+                    | static_cast<uint32_t>(qBlue(pixel));
+                if (packed == 0) {
+                    continue;
+                }
+                const uint32_t face = packed - 1;
+                if (face < numFaces) {
+                    picked.push_back(static_cast<unsigned long>(face));
+                }
+            }
+        }
+
+        std::sort(picked.begin(), picked.end());
+        picked.erase(std::unique(picked.begin(), picked.end()), picked.end());
+        doaction->indices.insert(doaction->indices.end(), picked.begin(), picked.end());
+        doaction->setHandled();
     }
 
     inherited::doAction(action);
-}
-
-void SoFCMeshObjectShape::startSelection(SoAction* action, const Mesh::MeshObject* mesh)
-{
-    Gui::SoGLSelectAction* doaction = static_cast<Gui::SoGLSelectAction*>(action);
-    const SbViewportRegion& vp = doaction->getViewportRegion();
-    int x = vp.getViewportOriginPixels()[0];
-    int y = vp.getViewportOriginPixels()[1];
-    int w = vp.getViewportSizePixels()[0];
-    int h = vp.getViewportSizePixels()[1];
-
-    unsigned int bufSize = 5 * mesh->countFacets();  // make the buffer big enough
-    this->selectBuf = new GLuint[bufSize];
-
-    glSelectBuffer(bufSize, selectBuf);
-    glRenderMode(GL_SELECT);
-
-    glInitNames();
-    glPushName(-1);
-
-    GLint viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    if (w > 0 && h > 0) {
-        glTranslatef(
-            (viewport[2] - 2 * (x - viewport[0])) / w,
-            (viewport[3] - 2 * (y - viewport[1])) / h,
-            0
-        );
-        glScalef(viewport[2] / w, viewport[3] / h, 1.0);
-    }
-    glMultMatrixf(/*mp*/ this->projection);
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadMatrixf(this->modelview);
-}
-
-void SoFCMeshObjectShape::stopSelection(SoAction* action, const Mesh::MeshObject* mesh)
-{
-    // restoring the original projection matrix
-    glPopMatrix();
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
-    glFlush();
-
-    // returning to normal rendering mode
-    GLint hits = glRenderMode(GL_RENDER);
-
-    unsigned int bufSize = 5 * mesh->countFacets();
-    std::vector<std::pair<double, unsigned int>> hit;
-    GLuint index = 0;
-    for (GLint ii = 0; ii < hits && index < bufSize; ii++) {
-        GLint ct = (GLint)selectBuf[index];
-        hit.emplace_back(selectBuf[index + 1] / 4294967295.0, selectBuf[index + 3]);
-        index = index + ct + 3;
-    }
-
-    delete[] selectBuf;
-    selectBuf = nullptr;
-    std::sort(hit.begin(), hit.end());
-
-    Gui::SoGLSelectAction* doaction = static_cast<Gui::SoGLSelectAction*>(action);
-    doaction->indices.reserve(hit.size());
-    for (GLint ii = 0; ii < hits; ii++) {
-        doaction->indices.push_back(hit[ii].second);
-    }
-}
-
-void SoFCMeshObjectShape::renderSelectionGeometry(const Mesh::MeshObject* mesh)
-{
-    int fcnt = 0;
-    const MeshCore::MeshPointArray& rPoints = mesh->getKernel().GetPoints();
-    const MeshCore::MeshFacetArray& rFacets = mesh->getKernel().GetFacets();
-    MeshCore::MeshFacetArray::_TConstIterator it_end = rFacets.end();
-    for (MeshCore::MeshFacetArray::_TConstIterator it = rFacets.begin(); it != it_end; ++it) {
-        const MeshCore::MeshPoint& v0 = rPoints[it->_aulPoints[0]];
-        const MeshCore::MeshPoint& v1 = rPoints[it->_aulPoints[1]];
-        const MeshCore::MeshPoint& v2 = rPoints[it->_aulPoints[2]];
-        glLoadName(fcnt);
-        glBegin(GL_TRIANGLES);
-        glVertex(v0);
-        glVertex(v1);
-        glVertex(v2);
-        glEnd();
-        fcnt++;
-    }
 }
 
 

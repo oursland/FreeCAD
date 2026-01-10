@@ -229,18 +229,11 @@ private:
     void drawPoints(const Mesh::MeshObject*, SbBool needNormals, SbBool ccw) const;
     unsigned int countTriangles(SoAction* action) const;
 
-    void startSelection(SoAction* action, const Mesh::MeshObject*);
-    void stopSelection(SoAction* action, const Mesh::MeshObject*);
-    void renderSelectionGeometry(const Mesh::MeshObject*);
-
     void generateGLArrays(SoState* state);
     void renderFacesGLArray(SoGLRenderAction* action);
     void renderCoordsGLArray(SoGLRenderAction* action);
 
 private:
-    GLuint* selectBuf {nullptr};
-    GLfloat modelview[16] {};
-    GLfloat projection[16] {};
     // Vertex array handling
     std::vector<int32_t> index_array;
     std::vector<float> vertex_array;

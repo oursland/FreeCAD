@@ -37,11 +37,9 @@
 #ifdef FC_OS_MACOSX
 # include <OpenGL/gl.h>
 # include <OpenGL/glext.h>
-# include <OpenGL/glu.h>
 #else
 # include <GL/gl.h>
 # include <GL/glext.h>
-# include <GL/glu.h>
 #endif
 #include <Inventor/actions/SoGLRenderAction.h>
 #include <Inventor/actions/SoSearchAction.h>
@@ -54,14 +52,23 @@
 #include <Inventor/elements/SoMaterialBindingElement.h>
 #include <Inventor/elements/SoNormalBindingElement.h>
 #include <Inventor/elements/SoProjectionMatrixElement.h>
+#include <Inventor/elements/SoViewportRegionElement.h>
 #include <Inventor/elements/SoViewingMatrixElement.h>
 #include <Inventor/errors/SoDebugError.h>
+#include <Inventor/nodes/SoCamera.h>
 #include <Inventor/nodes/SoCoordinate3.h>
+#include <Inventor/nodes/SoLightModel.h>
+#include <Inventor/nodes/SoMaterial.h>
+#include <Inventor/nodes/SoMaterialBinding.h>
+#include <Inventor/nodes/SoSeparator.h>
 
 #include <Inventor/C/glue/gl.h>
 
+#include <QImage>
+
 #include <Gui/GLBuffer.h>
 #include <Gui/SoFCInteractiveElement.h>
+#include <Gui/SoFCOffscreenRenderer.h>
 #include <Gui/Selection/SoFCSelectionAction.h>
 
 #include "SoFCIndexedFaceSet.h"
@@ -945,32 +952,160 @@ void SoFCIndexedFaceSet::generateGLArrays(SoGLRenderAction* action)
 
 void SoFCIndexedFaceSet::doAction(SoAction* action)
 {
+    auto applySelection = [this](SoAction* action, Gui::SoGLSelectAction* doaction, SoNode* node) {
+        SoCamera* camera = nullptr;
+        SoCoordinate3* coord = nullptr;
+
+        {
+            SoSearchAction sa;
+            sa.setInterest(SoSearchAction::FIRST);
+            sa.setSearchingAll(false);
+            sa.setType(SoCamera::getClassTypeId(), 1);
+            sa.apply(node);
+            SoPath* path = sa.getPath();
+            if (path) {
+                SoNode* found = path->getNodeFromTail(0);
+                if (found && found->getTypeId().isDerivedFrom(SoCamera::getClassTypeId())) {
+                    camera = static_cast<SoCamera*>(found);
+                }
+            }
+        }
+
+        {
+            SoSearchAction sa;
+            sa.setInterest(SoSearchAction::FIRST);
+            sa.setSearchingAll(false);
+            sa.setType(SoCoordinate3::getClassTypeId(), 1);
+            sa.apply(node);
+            SoPath* path = sa.getPath();
+            if (path) {
+                SoNode* found = path->getNodeFromTail(0);
+                if (found && found->getTypeId().isDerivedFrom(SoCoordinate3::getClassTypeId())) {
+                    coord = static_cast<SoCoordinate3*>(found);
+                }
+            }
+        }
+
+        if (!camera || !coord) {
+            return;
+        }
+
+        const uint32_t numFaces = static_cast<uint32_t>(this->coordIndex.getNum() / 4);
+        if (numFaces == 0 || numFaces >= 0x00ffffffU) {
+            return;
+        }
+
+        const SbViewportRegion& fullVp = SoViewportRegionElement::get(action->getState());
+        const SbViewportRegion& selVp = doaction->getViewportRegion();
+
+        const SbVec2s fullOrigin = fullVp.getViewportOriginPixels();
+        const SbVec2s selCenter = selVp.getViewportOriginPixels();
+        const SbVec2s selSize = selVp.getViewportSizePixels();
+
+        const int selW = selSize[0];
+        const int selH = selSize[1];
+        if (selW <= 0 || selH <= 0) {
+            return;
+        }
+
+        const int centerX = selCenter[0] - fullOrigin[0];
+        const int centerY = selCenter[1] - fullOrigin[1];
+
+        const int minX = centerX - (selW / 2);
+        const int minY = centerY - (selH / 2);
+        const int maxX = minX + selW - 1;
+        const int maxY = minY + selH - 1;
+
+        auto root = new SoSeparator;
+        root->ref();
+        root->addChild(camera);
+
+        auto lm = new SoLightModel();
+        lm->model = SoLightModel::BASE_COLOR;
+        root->addChild(lm);
+
+        auto mat = new SoMaterial();
+        mat->transparency = 0.0F;
+        mat->diffuseColor.setNum(numFaces);
+        SbColor* diffcol = mat->diffuseColor.startEditing();
+        for (uint32_t i = 0; i < numFaces; i++) {
+            const uint32_t id = i + 1;
+            const float r = static_cast<float>((id >> 16U) & 0xffU) / 255.0F;
+            const float g = static_cast<float>((id >> 8U) & 0xffU) / 255.0F;
+            const float b = static_cast<float>(id & 0xffU) / 255.0F;
+            diffcol[i].setValue(r, g, b);
+        }
+        mat->diffuseColor.finishEditing();
+
+        auto bind = new SoMaterialBinding();
+        bind->value = SoMaterialBinding::PER_FACE;
+
+        root->addChild(mat);
+        root->addChild(bind);
+        root->addChild(coord);
+        root->addChild(this);
+
+        Gui::SoQtOffscreenRenderer renderer(fullVp);
+        renderer.setBackgroundColor(SbColor4f(0.0F, 0.0F, 0.0F, 0.0F));
+
+        QImage img;
+        const SbBool rendered = renderer.render(root);
+        if (rendered) {
+            renderer.writeToImage(img);
+        }
+        root->unref();
+
+        if (!rendered || img.isNull()) {
+            return;
+        }
+
+        const int imgW = img.width();
+        const int imgH = img.height();
+        if (imgW <= 0 || imgH <= 0) {
+            return;
+        }
+
+        const auto clamp = [](int v, int lo, int hi) {
+            return std::max(lo, std::min(v, hi));
+        };
+
+        const int x0 = clamp(minX, 0, imgW - 1);
+        const int x1 = clamp(maxX, 0, imgW - 1);
+        const int y0 = clamp(minY, 0, imgH - 1);
+        const int y1 = clamp(maxY, 0, imgH - 1);
+
+        std::vector<unsigned long> picked;
+        picked.reserve(256);
+
+        for (int y = y0; y <= y1; y++) {
+            const int imgY = (imgH - 1) - y;
+            for (int x = x0; x <= x1; x++) {
+                const QRgb pixel = img.pixel(x, imgY);
+                const uint32_t packed = (static_cast<uint32_t>(qRed(pixel)) << 16U)
+                    | (static_cast<uint32_t>(qGreen(pixel)) << 8U)
+                    | static_cast<uint32_t>(qBlue(pixel));
+                if (packed == 0) {
+                    continue;
+                }
+                const uint32_t face = packed - 1;
+                if (face < numFaces) {
+                    picked.push_back(static_cast<unsigned long>(face));
+                }
+            }
+        }
+
+        std::sort(picked.begin(), picked.end());
+        picked.erase(std::unique(picked.begin(), picked.end()), picked.end());
+        doaction->indices.insert(doaction->indices.end(), picked.begin(), picked.end());
+        doaction->setHandled();
+    };
+
     if (action->getTypeId() == Gui::SoGLSelectAction::getClassTypeId()) {
         SoNode* node = action->getNodeAppliedTo();
-        if (!node) {  // on no node applied
+        if (!node) {
             return;
         }
-
-        // The node we have is the parent of this node and the coordinate node
-        // thus we search there for it.
-        SoSearchAction sa;
-        sa.setInterest(SoSearchAction::FIRST);
-        sa.setSearchingAll(false);
-        sa.setType(SoCoordinate3::getClassTypeId(), 1);
-        sa.apply(node);
-        SoPath* path = sa.getPath();
-        if (!path) {
-            return;
-        }
-
-        // make sure we got the node we wanted
-        SoNode* coords = path->getNodeFromTail(0);
-        if (!(coords && coords->getTypeId().isDerivedFrom(SoCoordinate3::getClassTypeId()))) {
-            return;
-        }
-        startSelection(action);
-        renderSelectionGeometry(static_cast<SoCoordinate3*>(coords)->point.getValues(0));
-        stopSelection(action);
+        applySelection(action, static_cast<Gui::SoGLSelectAction*>(action), node);
     }
     else if (action->getTypeId() == Gui::SoVisibleFaceAction::getClassTypeId()) {
         SoNode* node = action->getNodeAppliedTo();
@@ -1001,101 +1136,6 @@ void SoFCIndexedFaceSet::doAction(SoAction* action)
     }
 
     inherited::doAction(action);
-}
-
-void SoFCIndexedFaceSet::startSelection(SoAction* action)
-{
-    Gui::SoGLSelectAction* doaction = static_cast<Gui::SoGLSelectAction*>(action);
-    const SbViewportRegion& vp = doaction->getViewportRegion();
-    int x = vp.getViewportOriginPixels()[0];
-    int y = vp.getViewportOriginPixels()[1];
-    int w = vp.getViewportSizePixels()[0];
-    int h = vp.getViewportSizePixels()[1];
-
-    int bufSize = 5 * (this->coordIndex.getNum() / 4);  // make the buffer big enough
-    this->selectBuf = new GLuint[bufSize];
-
-    SbMatrix view = SoViewingMatrixElement::get(action->getState());  // clazy:exclude=rule-of-two-soft
-    SbMatrix proj = SoProjectionMatrixElement::get(action->getState());  // clazy:exclude=rule-of-two-soft
-
-    glSelectBuffer(bufSize, selectBuf);
-    glRenderMode(GL_SELECT);
-
-    glInitNames();
-    glPushName(-1);
-
-    GLint viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
-    glMatrixMode(GL_PROJECTION);
-
-    glPushMatrix();
-    glLoadIdentity();
-
-    if (w > 0 && h > 0) {
-        glTranslatef(
-            (viewport[2] - 2 * (x - viewport[0])) / w,
-            (viewport[3] - 2 * (y - viewport[1])) / h,
-            0
-        );
-        glScalef(viewport[2] / w, viewport[3] / h, 1.0);
-    }
-    glMultMatrixf(/*mp*/ (float*)proj);
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadMatrixf((float*)view);
-}
-
-void SoFCIndexedFaceSet::stopSelection(SoAction* action)
-{
-    // restoring the original projection matrix
-    glPopMatrix();
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
-    glFlush();
-
-    // returning to normal rendering mode
-    GLint hits = glRenderMode(GL_RENDER);
-
-    int bufSize = 5 * (this->coordIndex.getNum() / 4);
-    std::vector<std::pair<double, unsigned int>> hit;
-    GLint index = 0;
-    for (GLint ii = 0; ii < hits && index < bufSize; ii++) {
-        GLint ct = (GLint)selectBuf[index];
-        hit.emplace_back(selectBuf[index + 1] / 4294967295.0, selectBuf[index + 3]);
-        index = index + ct + 3;
-    }
-
-    delete[] selectBuf;
-    selectBuf = nullptr;
-    std::sort(hit.begin(), hit.end());
-
-    Gui::SoGLSelectAction* doaction = static_cast<Gui::SoGLSelectAction*>(action);
-    doaction->indices.reserve(hit.size());
-    for (GLint ii = 0; ii < hits; ii++) {
-        doaction->indices.push_back(hit[ii].second);
-    }
-}
-
-void SoFCIndexedFaceSet::renderSelectionGeometry(const SbVec3f* coords3d)
-{
-    int numfaces = this->coordIndex.getNum() / 4;
-    const int32_t* cindices = this->coordIndex.getValues(0);
-
-    int fcnt = 0;
-    int32_t v1 {}, v2 {}, v3 {};
-    for (int index = 0; index < numfaces; index++, cindices++) {
-        glLoadName(fcnt);
-        glBegin(GL_TRIANGLES);
-        v1 = *cindices++;
-        glVertex3fv((const GLfloat*)(coords3d + v1));
-        v2 = *cindices++;
-        glVertex3fv((const GLfloat*)(coords3d + v2));
-        v3 = *cindices++;
-        glVertex3fv((const GLfloat*)(coords3d + v3));
-        glEnd();
-        fcnt++;
-    }
 }
 
 void SoFCIndexedFaceSet::startVisibility(SoAction* action)
