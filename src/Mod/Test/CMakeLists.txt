@@ -19,6 +19,7 @@ SET(Test_SRCS
     TestPerf.py
     TestTreeSelection.py
     TestCoinNodeSnapshots.py
+    TestMeshRenderPerf.py
 )
 
 SET(TestData_SRCS
