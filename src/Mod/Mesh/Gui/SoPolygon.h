@@ -56,9 +56,6 @@ protected:
     void computeBBox(SoAction* action, SbBox3f& box, SbVec3f& center) override;
     void rayPick(SoRayPickAction* action) override;
     void generatePrimitives(SoAction* action) override;
-
-private:
-    void drawPolygon(const SbVec3f*, int32_t) const;
 };
 // NOLINTEND
 

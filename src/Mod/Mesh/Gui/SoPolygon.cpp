@@ -26,22 +26,17 @@
 
 #include <FCConfig.h>
 
-#ifdef FC_OS_WIN32
-# include <Windows.h>
-#endif
-#ifdef FC_OS_MACOSX
-# include <OpenGL/gl.h>
-#else
-# include <GL/gl.h>
-#endif
 #include <algorithm>
 
 #include <Inventor/actions/SoGLRenderAction.h>
 #include <Inventor/bundles/SoMaterialBundle.h>
-#include <Inventor/bundles/SoTextureCoordinateBundle.h>
 #include <Inventor/elements/SoCoordinateElement.h>
+#include <Inventor/elements/SoDrawStyleElement.h>
 #include <Inventor/elements/SoLazyElement.h>
+#include <Inventor/elements/SoLineWidthElement.h>
 #include <Inventor/misc/SoState.h>
+#include <Inventor/SoPrimitiveVertex.h>
+#include <Inventor/details/SoPointDetail.h>
 
 #include "SoPolygon.h"
 
@@ -76,41 +71,15 @@ void SoPolygon::GLRender(SoGLRenderAction* action)
         if (!coords) {
             return;
         }
-        const SbVec3f* points = coords->getArrayPtr3();
-        if (!points) {
-            return;
-        }
 
         SoMaterialBundle mb(action);
-        SoTextureCoordinateBundle tb(action, true, false);
         SoLazyElement::setLightModel(state, SoLazyElement::BASE_COLOR);
+        SoDrawStyleElement::set(state, this, SoDrawStyleElement::LINES);
+        SoLineWidthElement::set(state, this, 3.0f);
         mb.sendFirst();  // make sure we have the correct material
 
-        int32_t len = coords->getNum();
-        drawPolygon(points, len);
+        inherited::GLRender(action);
     }
-}
-
-/**
- * Renders the polygon.
- */
-void SoPolygon::drawPolygon(const SbVec3f* points, int32_t len) const
-{
-    glLineWidth(3.0F);
-    int32_t beg = startIndex.getValue();
-    int32_t cnt = numVertices.getValue();
-    int32_t end = beg + cnt;
-    if (end > len) {
-        return;  // wrong setup, too few points
-    }
-    // draw control mesh
-    glBegin(GL_LINES);
-    for (int32_t i = beg; i < end; ++i) {
-        int32_t j = (i - beg + 1) % cnt + beg;
-        glVertex3fv(points[i].getValue());
-        glVertex3fv(points[j].getValue());
-    }
-    glEnd();
 }
 
 /**
@@ -130,8 +99,44 @@ void SoPolygon::rayPick(SoRayPickAction* action)
     inherited::rayPick(action);
 }
 
-void SoPolygon::generatePrimitives(SoAction* /*action*/)
-{}
+void SoPolygon::generatePrimitives(SoAction* action)
+{
+    SoState* state = action->getState();
+    const SoCoordinateElement* coords = SoCoordinateElement::getInstance(state);
+    if (!coords) {
+        return;
+    }
+    const SbVec3f* points = coords->getArrayPtr3();
+    if (!points) {
+        return;
+    }
+
+    const int32_t len = coords->getNum();
+    const int32_t beg = startIndex.getValue();
+    const int32_t cnt = numVertices.getValue();
+    const int32_t end = beg + cnt;
+    if (cnt < 2 || end > len) {
+        return;
+    }
+
+    SoPrimitiveVertex vertex;
+    SoPointDetail detail;
+    vertex.setDetail(&detail);
+
+    beginShape(action, LINES);
+    for (int32_t i = beg; i < end; ++i) {
+        const int32_t j = (i - beg + 1) % cnt + beg;
+
+        detail.setCoordinateIndex(i);
+        vertex.setPoint(points[i]);
+        shapeVertex(&vertex);
+
+        detail.setCoordinateIndex(j);
+        vertex.setPoint(points[j]);
+        shapeVertex(&vertex);
+    }
+    endShape();
+}
 
 /**
  * Sets the bounding box of the mesh to \a box and its center to \a center.
