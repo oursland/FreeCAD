@@ -34,10 +34,6 @@
 #include <Mod/Part/PartGlobal.h>
 
 
-class SoGLCoordinateElement;
-class SoTextureCoordinateBundle;
-
-
 namespace PartGui
 {
 
@@ -133,25 +129,6 @@ private:
     };
     Binding findMaterialBinding(SoState* const state) const;
     Binding findNormalBinding(SoState* const state) const;
-    void renderShape(
-        SoGLRenderAction* action,
-        SbBool hasVBO,
-        const SoGLCoordinateElement* const vertexlist,
-        const int32_t* vertexindices,
-        int num_vertexindices,
-        const int32_t* partindices,
-        int num_partindices,
-        const SbVec3f* normals,
-        const int32_t* normindices,
-        SoMaterialBundle* const materials,
-        const int32_t* matindices,
-        SoTextureCoordinateBundle* const texcoords,
-        const int32_t* texindices,
-        const int nbind,
-        const int mbind,
-        SbBool texture
-    );
-
     using SelContext = Gui::SoFCSelectionContextEx;
     using SelContextPtr = Gui::SoFCSelectionContextExPtr;
 
@@ -177,9 +154,8 @@ private:
     uint32_t packedColor;
     Gui::SoFCSelectionCounter selCounter;
 
-    // Define some VBO pointer for the current mesh
-    class VBO;
-    std::unique_ptr<VBO> pimpl;
+    SoIndexedFaceSet* overlayFaceSet {nullptr};
+    std::vector<int32_t> overlayCoordIndex;
 
     // backreference to viewprovider that owns this node
     ViewProviderPartExt* viewProvider = nullptr;

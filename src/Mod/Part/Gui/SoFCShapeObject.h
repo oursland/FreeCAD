@@ -31,7 +31,9 @@
 #include <Inventor/fields/SoSFColor.h>
 #include <Inventor/fields/SoSFUInt32.h>
 #include <Inventor/nodes/SoCoordinate3.h>
+#include <Inventor/nodes/SoIndexedLineSet.h>
 #include <Inventor/nodes/SoNormal.h>
+#include <Inventor/nodes/SoPointSet.h>
 #include <Inventor/nodes/SoSeparator.h>
 #include <Inventor/nodes/SoShape.h>
 
@@ -73,14 +75,21 @@ public:
     SoSFColor lineColor;
 
 protected:
-    ~SoFCControlPoints() override = default;
-    ;
+    ~SoFCControlPoints() override;
     void GLRender(SoGLRenderAction* action) override;
     void computeBBox(SoAction* action, SbBox3f& box, SbVec3f& center) override;
     void generatePrimitives(SoAction* action) override;
 
 private:
-    void drawControlPoints(const SbVec3f*, int32_t) const;
+    void updateMeshCoordIndex(uint32_t nCtU, uint32_t nCtV);
+
+    uint32_t cachedNumPolesU {0};
+    uint32_t cachedNumPolesV {0};
+    std::vector<int32_t> meshCoordIndex;
+
+    SoIndexedLineSet* meshLineSet {nullptr};
+    SoPointSet* polesPointSet {nullptr};
+    SoPointSet* knotsPointSet {nullptr};
 };
 
 }  // namespace PartGui
