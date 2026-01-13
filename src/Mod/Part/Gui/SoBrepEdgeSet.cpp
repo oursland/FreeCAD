@@ -84,7 +84,11 @@ static void renderOverlayLines(
     auto state = action->getState();
     state->push();
 
-    SoDepthBufferElement::set(state, FALSE, FALSE, SoDepthBufferElement::ALWAYS, SbVec2f(0.0f, 1.0f));
+    SoDepthBufferElement::set(state,
+                              FALSE,
+                              FALSE,
+                              SoDepthBufferElement::ALWAYS,
+                              SbVec2f(0.0f, 1.0f));
 
     SoLazyElement::setEmissive(state, &color);
     uint32_t packedColor = color.getPackedValue(0.0);
@@ -367,10 +371,8 @@ void SoBrepEdgeSet::GLRender(SoGLRenderAction* action)
     if (ctx2 && !ctx2->selectionIndex.empty()) {
         renderSelection(action, ctx2, false);
     }
-    else if (
-        Gui::Selection().isClarifySelectionActive()
-        && !Gui::SoDelayedAnnotationsElement::isProcessingDelayedPaths && hasAnyHighlight
-    ) {
+    else if (Gui::Selection().isClarifySelectionActive()
+             && !Gui::SoDelayedAnnotationsElement::isProcessingDelayedPaths && hasAnyHighlight) {
         state->push();
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -401,23 +403,19 @@ void SoBrepEdgeSet::GLRender(SoGLRenderAction* action)
     // Optional overlay rendering for deterministic tests (and programmatic usage).
     const int hlNum = highlightCoordIndex.getNum();
     if (hlNum > 0) {
-        renderOverlayLines(
-            action,
-            overlayLineSet,
-            highlightCoordIndex.getValues(0),
-            hlNum,
-            highlightColor.getValue()
-        );
+        renderOverlayLines(action,
+                           overlayLineSet,
+                           highlightCoordIndex.getValues(0),
+                           hlNum,
+                           highlightColor.getValue());
     }
     const int selNum = selectionCoordIndex.getNum();
     if (selNum > 0) {
-        renderOverlayLines(
-            action,
-            overlayLineSet,
-            selectionCoordIndex.getValues(0),
-            selNum,
-            selectionColor.getValue()
-        );
+        renderOverlayLines(action,
+                           overlayLineSet,
+                           selectionCoordIndex.getValues(0),
+                           selNum,
+                           selectionColor.getValue());
     }
 }
 

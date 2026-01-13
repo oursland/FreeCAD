@@ -2668,7 +2668,6 @@ void View3DInventorViewer::renderScene()
             );
         }
 
-<<<<<<< HEAD
         fpsCounter->setText(QString::fromStdString(stream.str()));
         fpsCounter->adjustSize();
 

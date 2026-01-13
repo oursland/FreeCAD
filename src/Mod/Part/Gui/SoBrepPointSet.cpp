@@ -87,7 +87,11 @@ static void renderOverlayPoints(
     auto state = action->getState();
     state->push();
 
-    SoDepthBufferElement::set(state, FALSE, FALSE, SoDepthBufferElement::ALWAYS, SbVec2f(0.0f, 1.0f));
+    SoDepthBufferElement::set(state,
+                              FALSE,
+                              FALSE,
+                              SoDepthBufferElement::ALWAYS,
+                              SbVec2f(0.0f, 1.0f));
 
     SoLazyElement::setEmissive(state, &color);
     uint32_t packedColor = color.getPackedValue(0.0);
@@ -98,7 +102,9 @@ static void renderOverlayPoints(
         SoPointSizeElement::set(state, pointSet, 4.0f);
     }
 
-    pointSet->coordIndex.setValues(0, static_cast<int>(pointIndices.size()), pointIndices.data());
+    pointSet->coordIndex.setValues(0,
+                                   static_cast<int>(pointIndices.size()),
+                                   pointIndices.data());
     pointSet->GLRender(action);
 
     state->pop();
@@ -249,23 +255,19 @@ void SoBrepPointSet::GLRender(SoGLRenderAction* action)
     // Optional overlay rendering for deterministic tests (and programmatic usage).
     const int hlNum = highlightCoordIndex.getNum();
     if (hlNum > 0) {
-        renderOverlayPoints(
-            action,
-            overlayPointSet,
-            highlightCoordIndex.getValues(0),
-            hlNum,
-            highlightColor.getValue()
-        );
+        renderOverlayPoints(action,
+                            overlayPointSet,
+                            highlightCoordIndex.getValues(0),
+                            hlNum,
+                            highlightColor.getValue());
     }
     const int selNum = selectionCoordIndex.getNum();
     if (selNum > 0) {
-        renderOverlayPoints(
-            action,
-            overlayPointSet,
-            selectionCoordIndex.getValues(0),
-            selNum,
-            selectionColor.getValue()
-        );
+        renderOverlayPoints(action,
+                            overlayPointSet,
+                            selectionCoordIndex.getValues(0),
+                            selNum,
+                            selectionColor.getValue());
     }
 }
 
