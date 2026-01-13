@@ -24,14 +24,6 @@
 
 #include <FCConfig.h>
 
-#ifdef FC_OS_WIN32
-# include <windows.h>
-#endif
-#ifdef FC_OS_MACOSX
-# include <OpenGL/gl.h>
-#else
-# include <GL/gl.h>
-#endif
 #include <algorithm>
 #include <limits>
 #include <Inventor/actions/SoGetBoundingBoxAction.h>
@@ -230,10 +222,14 @@ void SoBrepPointSet::GLRender(SoGLRenderAction* action)
         renderSelection(action, ctx2, false);
     }
     else if (Gui::SoDelayedAnnotationsElement::isProcessingDelayedPaths) {
-        glPushAttrib(GL_DEPTH_BUFFER_BIT);
-        glDepthFunc(GL_ALWAYS);
+        state->push();
+        SoDepthBufferElement::set(state,
+                                  FALSE,
+                                  FALSE,
+                                  SoDepthBufferElement::ALWAYS,
+                                  SbVec2f(0.0f, 1.0f));
         inherited::GLRender(action);
-        glPopAttrib();
+        state->pop();
     }
     else {
         inherited::GLRender(action);
@@ -333,24 +329,24 @@ void SoBrepPointSet::renderHighlight(SoGLRenderAction* action, SelContextPtr ctx
     mb.sendFirst();  // make sure we have the correct material
 
     int id = ctx->highlightIndex;
-    const SbVec3f* coords3d = coords->getArrayPtr3();
-    if (coords3d) {
-        if (id == std::numeric_limits<int>::max()) {
-            glBegin(GL_POINTS);
-            for (int idx = startIndex.getValue(); idx < coords->getNum(); ++idx) {
-                glVertex3fv((const GLfloat*)(coords3d + idx));
-            }
-            glEnd();
-        }
-        else if (id < this->startIndex.getValue() || id >= coords->getNum()) {
-            SoDebugError::postWarning("SoBrepPointSet::renderHighlight", "highlightIndex out of range");
-        }
-        else {
-            glBegin(GL_POINTS);
-            glVertex3fv((const GLfloat*)(coords3d + id));
-            glEnd();
-        }
+    if (id == std::numeric_limits<int>::max()) {
+        inherited::GLRender(action);
+        state->pop();
+        return;
     }
+    if (!overlayPointSet) {
+        state->pop();
+        return;
+    }
+    if (id < this->startIndex.getValue() || id >= coords->getNum()) {
+        SoDebugError::postWarning("SoBrepPointSet::renderHighlight", "highlightIndex out of range");
+        state->pop();
+        return;
+    }
+
+    const int32_t pointIndices[2] = {static_cast<int32_t>(id), -1};
+    overlayPointSet->coordIndex.setValues(0, 2, pointIndices);
+    overlayPointSet->GLRender(action);
     state->pop();
 }
 
@@ -377,30 +373,36 @@ void SoBrepPointSet::renderSelection(SoGLRenderAction* action, SelContextPtr ctx
     SoMaterialBundle mb(action);
     mb.sendFirst();  // make sure we have the correct material
 
-    bool warn = false;
     int startIndex = this->startIndex.getValue();
-    const SbVec3f* coords3d = coords->getArrayPtr3();
-    if (coords3d) {
-        glBegin(GL_POINTS);
-        if (ctx->isSelectAll()) {
-            for (int idx = startIndex; idx < coords->getNum(); ++idx) {
-                glVertex3fv((const GLfloat*)(coords3d + idx));
-            }
-        }
-        else {
-            for (auto idx : ctx->selectionIndex) {
-                if (idx >= startIndex && idx < coords->getNum()) {
-                    glVertex3fv((const GLfloat*)(coords3d + idx));
-                }
-                else {
-                    warn = true;
-                }
-            }
-        }
-        glEnd();
+    if (ctx->isSelectAll()) {
+        inherited::GLRender(action);
     }
-    if (warn) {
-        SoDebugError::postWarning("SoBrepPointSet::renderSelection", "selectionIndex out of range");
+    else if (!overlayPointSet) {
+        // nothing
+    }
+    else {
+        std::vector<int32_t> pointIndices;
+        pointIndices.reserve(ctx->selectionIndex.size() + 1);
+        bool warn = false;
+
+        for (auto idx : ctx->selectionIndex) {
+            if (idx >= startIndex && idx < coords->getNum()) {
+                pointIndices.push_back(static_cast<int32_t>(idx));
+            }
+            else {
+                warn = true;
+            }
+        }
+        pointIndices.push_back(-1);
+
+        overlayPointSet->coordIndex.setValues(0,
+                                              static_cast<int>(pointIndices.size()),
+                                              pointIndices.data());
+        overlayPointSet->GLRender(action);
+
+        if (warn) {
+            SoDebugError::postWarning("SoBrepPointSet::renderSelection", "selectionIndex out of range");
+        }
     }
     if (push) {
         state->pop();

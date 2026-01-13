@@ -24,14 +24,6 @@
 
 #include <FCConfig.h>
 
-#ifdef FC_OS_WIN32
-# include <windows.h>
-#endif
-#ifdef FC_OS_MACOSX
-# include <OpenGL/gl.h>
-#else
-# include <GL/gl.h>
-#endif
 #include <algorithm>
 #include <limits>
 #include <Inventor/SoPickedPoint.h>
@@ -41,7 +33,6 @@
 #include <Inventor/bundles/SoMaterialBundle.h>
 #include <Inventor/details/SoLineDetail.h>
 #include <Inventor/elements/SoCoordinateElement.h>
-#include <Inventor/elements/SoGLCoordinateElement.h>
 #include <Inventor/elements/SoDepthBufferElement.h>
 #include <Inventor/elements/SoLazyElement.h>
 #include <Inventor/elements/SoLineWidthElement.h>
@@ -371,18 +362,19 @@ void SoBrepEdgeSet::GLRender(SoGLRenderAction* action)
     if (ctx2 && !ctx2->selectionIndex.empty()) {
         renderSelection(action, ctx2, false);
     }
-    else if (Gui::Selection().isClarifySelectionActive()
-             && !Gui::SoDelayedAnnotationsElement::isProcessingDelayedPaths && hasAnyHighlight) {
-        state->push();
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glDepthMask(false);
-        glDisable(GL_DEPTH_TEST);
+	    else if (Gui::Selection().isClarifySelectionActive()
+	             && !Gui::SoDelayedAnnotationsElement::isProcessingDelayedPaths && hasAnyHighlight) {
+	        state->push();
+	        SoDepthBufferElement::set(state,
+	                                  FALSE,
+	                                  FALSE,
+	                                  SoDepthBufferElement::ALWAYS,
+	                                  SbVec2f(0.0f, 1.0f));
 
-        inherited::GLRender(action);
+	        inherited::GLRender(action);
 
-        state->pop();
-    }
+	        state->pop();
+	    }
     else {
         inherited::GLRender(action);
     }
@@ -464,29 +456,17 @@ void SoBrepEdgeSet::getBoundingBox(SoGetBoundingBoxAction* action)
 }
 
 void SoBrepEdgeSet::renderShape(
-    const SoGLCoordinateElement* const coords,
+    SoGLRenderAction* action,
     const int32_t* cindices,
     int numindices
 )
 {
-
-    const SbVec3f* coords3d = coords->getArrayPtr3();
-
-    int32_t i;
-    int previ;
-    const int32_t* end = cindices + numindices;
-    while (cindices < end) {
-        glBegin(GL_LINE_STRIP);
-        previ = *cindices++;
-        i = (cindices < end) ? *cindices++ : -1;
-        while (i >= 0) {
-            glVertex3fv((const GLfloat*)(coords3d + previ));
-            glVertex3fv((const GLfloat*)(coords3d + i));
-            previ = i;
-            i = cindices < end ? *cindices++ : -1;
-        }
-        glEnd();
+    if (!action || !overlayLineSet || !cindices || numindices <= 0) {
+        return;
     }
+
+    overlayLineSet->coordIndex.setValues(0, numindices, cindices);
+    overlayLineSet->GLRender(action);
 }
 
 void SoBrepEdgeSet::renderHighlight(SoGLRenderAction* action, SelContextPtr ctx)
@@ -531,7 +511,7 @@ void SoBrepEdgeSet::renderHighlight(SoGLRenderAction* action, SelContextPtr ctx)
     int num = (int)ctx->hl.size();
     if (num > 0) {
         if (ctx->hl[0] < 0) {
-            renderShape(static_cast<const SoGLCoordinateElement*>(coords), cindices, numcindices);
+            renderShape(action, cindices, numcindices);
         }
         else {
             const int32_t* id = &(ctx->hl[0]);
@@ -542,7 +522,7 @@ void SoBrepEdgeSet::renderHighlight(SoGLRenderAction* action, SelContextPtr ctx)
                 );
             }
             else {
-                renderShape(static_cast<const SoGLCoordinateElement*>(coords), id, num);
+                renderShape(action, id, num);
             }
         }
     }
@@ -589,7 +569,7 @@ void SoBrepEdgeSet::renderSelection(SoGLRenderAction* action, SelContextPtr ctx,
     int num = (int)ctx->sl.size();
     if (num > 0) {
         if (ctx->sl[0] < 0) {
-            renderShape(static_cast<const SoGLCoordinateElement*>(coords), cindices, numcindices);
+            renderShape(action, cindices, numcindices);
         }
         else {
             cindices = &(ctx->sl[0]);
@@ -601,7 +581,7 @@ void SoBrepEdgeSet::renderSelection(SoGLRenderAction* action, SelContextPtr ctx,
                 );
             }
             else {
-                renderShape(static_cast<const SoGLCoordinateElement*>(coords), cindices, numcindices);
+                renderShape(action, cindices, numcindices);
             }
         }
     }

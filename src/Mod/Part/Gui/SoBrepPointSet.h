@@ -34,8 +34,6 @@
 
 
 class SoCoordinateElement;
-class SoGLCoordinateElement;
-class SoTextureCoordinateBundle;
 class SoIndexedPointSet;
 
 namespace PartGui
