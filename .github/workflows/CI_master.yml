@@ -55,6 +55,7 @@ jobs:
     uses: ./.github/workflows/sub_buildPixi.yml
     with:
       artifactBasename: Pixi-${{ github.run_id }}
+      testCoinNodeSnapshots: true
 
   Ubuntu:
     needs: [Prepare]
