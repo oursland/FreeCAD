@@ -58,7 +58,7 @@
 #include "SoRotationDragger.h"
 #include "Utilities.h"
 
-#include <SoTextLabel.h>
+#include <Gui/SoTextLabel.h>
 
 
 /*

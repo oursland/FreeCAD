@@ -56,7 +56,7 @@
 #include "MainWindow.h"
 #include "SoFCDB.h"
 
-#include <SoTextLabel.h>
+#include <Gui/SoTextLabel.h>
 
 using namespace Gui;
 
