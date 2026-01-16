@@ -14,15 +14,13 @@ from utils import (
 )
 
 
-def download_dictionary(url: str, dest: str) -> bool:
+def download_dictionary(url, dest):
     logging.info(f"Downloading dictionary from {url} to {dest}")
     try:
         urllib.request.urlretrieve(url, dest)
-        return True
     except Exception as e:
-        logging.warning(f"Error downloading dictionary: {e}")
-        return False
-
+        logging.error(f"Error downloading dictionary: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
 def generate_markdown_report(misspellings: int, log_file: str) -> str:
@@ -88,51 +86,46 @@ def main():
     )
     args = parser.parse_args()
     init_environment(args)
-    dictionary_file = os.path.join(args.log_dir, 'codespell_dictionary.txt')
-    use_dictionary = os.path.exists(dictionary_file)
-    if not use_dictionary:
-        dictionary_url = 'https://raw.githubusercontent.com/codespell-project/codespell/master/codespell_lib/data/dictionary.txt'
-        logging.info('Dictionary not found; downloading...')
-        use_dictionary = download_dictionary(dictionary_url, dictionary_file)
 
-    run_command([sys.executable, '-m', 'pip', 'install', '-q', 'codespell'], check=True)
+    dictionary_file = "dictionary.txt"
+    if not os.path.exists(dictionary_file):
+        dictionary_url = "https://raw.githubusercontent.com/codespell-project/codespell/master/codespell_lib/data/dictionary.txt"
+        logging.info("Dictionary not found; downloading...")
+        download_dictionary(dictionary_url, dictionary_file)
+
+    run_command(["pip", "install", "-q", "codespell"], check=True)
+
     cmd = [
-        sys.executable,
-        '-m',
-        'codespell',
-        '--quiet-level',
-        '3',
-        '--summary',
-        '--count',
-        '--ignore-words',
+        "codespell",
+        "--quiet-level",
+        "3",
+        "--summary",
+        "--count",
+        "--ignore-words",
         args.ignore_words,
-        '--skip',
+        "--skip",
         args.skip,
-    ]
-    if use_dictionary and os.path.exists(dictionary_file):
-        cmd += ['-D', dictionary_file]
-    cmd += args.files
+        "-D",
+        dictionary_file,
+    ] + args.files
     stdout, stderr, _ = run_command(cmd)
     output = stdout + "\n" + stderr + "\n"
 
     log_file = os.path.join(args.log_dir, "codespell.log")
     write_file(log_file, output)
     emit_problem_matchers(log_file, "codespell.json", "codespell")
-    misspellings: int | None
+
     try:
         misspellings = int(stdout.strip())
     except ValueError:
-        logging.error(f"Could not parse misspellings count from output:
-{stdout}")
-        misspellings = None
+        logging.info(f"Could not parse misspellings count from output:\n{stdout}")
+        misspellings = 0
 
     logging.info(f"Found {misspellings} misspellings")
 
     report = generate_markdown_report(misspellings, log_file)
     append_file(args.report_file, report + "\n")
 
-    if misspellings is None:
-        sys.exit(1)
     sys.exit(0 if misspellings == 0 else 1)
 
 

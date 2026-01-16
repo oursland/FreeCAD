@@ -8,32 +8,17 @@ from typing import Tuple
 
 
 def run_command(cmd, check=False) -> Tuple[str, str, int]:
-    """Run a subprocess and return (stdout, stderr, exit_code).
-
-    If check=True, exit with a readable error message on failure.
+    """
+    Run a command using subprocess.run and return stdout, stderr, and exit code.
     """
     try:
         result = subprocess.run(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=False,
-            text=True,
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=check, text=True
         )
-        stdout, stderr, rc = result.stdout, result.stderr, result.returncode
-    except FileNotFoundError as exc:
-        stdout, stderr, rc = "", str(exc), 127
+        return result.stdout, result.stderr, result.returncode
+    except subprocess.CalledProcessError as e:
+        return e.stdout, e.stderr, e.returncode
 
-    if check and rc != 0:
-        cmd_display = cmd if isinstance(cmd, str) else " ".join(str(x) for x in cmd)
-        logging.error("Command failed (exit=%s): %s", rc, cmd_display)
-        if stdout.strip():
-            logging.error(stdout.strip())
-        if stderr.strip():
-            logging.error(stderr.strip())
-        sys.exit(rc)
-
-    return stdout, stderr, rc
 
 def setup_logger(verbose: bool):
     """
