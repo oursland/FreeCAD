@@ -80,6 +80,14 @@ SetupYamlCpp()
 SetupZipIos()
 find_package(ICU REQUIRED COMPONENTS uc i18n)
 if(NOT FREECAD_LIBPACK_USE OR FREECAD_LIBPACK_CHECKFILE_CLBUNDLER OR FREECAD_LIBPACK_CHECKFILE_VERSION)
+    find_package(OpenGL REQUIRED)
+
+    if(TARGET OpenGL::GL AND NOT TARGET OpenGL::OpenGL)
+        add_library(OpenGL::OpenGL INTERFACE IMPORTED)
+        set_target_properties(OpenGL::OpenGL PROPERTIES
+            INTERFACE_LINK_LIBRARIES OpenGL::GL
+        )
+    endif()
     SetupPython()
     SetupPCL()
     SetupPybind11()
