@@ -64,6 +64,7 @@ yaml-cpp = "*"
 zlib = "*"
 zstd = "*"
 expat = "*"
+clang-tools = "*"
 
 ## Linux Dependencies (x86-64)
 [target.linux-64.dependencies]
@@ -104,6 +105,7 @@ libglu = "*"
 xorg-libxt = "*"
 xorg-libxi = "*"
 mesa-libglu-devel-conda-x86_64 = "*"
+mesa-libglu-conda-x86_64 = "*"
 
 ## Linux Dependencies (aarch64)
 [target.linux-aarch64.dependencies]
