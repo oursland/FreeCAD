@@ -56,9 +56,14 @@ if (NOT FREECAD_USE_EXTERNAL_COIN_PIVY)
     # The cmake target pivy uses to generate the bindings is called "coin"
     # While the target coin3d itself uses is called "Coin"
     get_target_property(Pivy_BINARY_DIR coin BINARY_DIR)
+    if (MSVC)
+        set(COIN_LIB _coin.dll)
+    else()
+        set(COIN_LIB _coin.so)
+    endif()
     add_custom_target(CopyCoinShim ALL
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${Pivy_BINARY_DIR}/_coin.so
+            ${Pivy_BINARY_DIR}/${COIN_LIB}
             ${PROJECT_BINARY_DIR}/Mod/pivy/
 
         DEPENDS CopyPivyFiles
