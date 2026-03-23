@@ -117,6 +117,7 @@ else(MSVC)
         libfastsignals
         ${Boost_LIBRARIES}
         ${OPENGL_gl_LIBRARY}
+        OpenGL::GL
         ${3DCONNEXION_LINKFLAGS}
     )
 endif(MSVC)
