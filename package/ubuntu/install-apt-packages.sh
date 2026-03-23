@@ -67,6 +67,9 @@ packages=(
   qt6-tools-dev-tools
   swig
   xvfb
+  libgl-dev
+  libopengl-dev
+  libglew-dev
 )
 
 # Install all packages
