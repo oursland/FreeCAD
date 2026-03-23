@@ -36,7 +36,7 @@ if (NOT FREECAD_USE_EXTERNAL_COIN_PIVY)
     set(USE_EXTERNAL_EXPAT ON)
     set(FREETYPE_RUNTIME_LINKING OFF)
     set(PIVY_USE_QT6 ON)
-    add_subdirectory(coin EXCLUDE_FROM_ALL)
+    add_subdirectory(coin)
     add_subdirectory(pivy)
 
     # TODO: Currently these commands run everytime because the target coin does the
