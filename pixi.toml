@@ -64,7 +64,6 @@ yaml-cpp = "*"
 zlib = "*"
 zstd = "*"
 expat = "*"
-clang-tools = "*"
 
 ## Linux Dependencies (x86-64)
 [target.linux-64.dependencies]

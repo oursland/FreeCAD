@@ -38,6 +38,7 @@ endif()
 
 
 option(FREECAD_USE_CCACHE "Auto detect and use ccache during compilation" ON)
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
 if(FREECAD_USE_CCACHE)
     find_program(CCACHE_PROGRAM ccache)  #This check should occur before project()
