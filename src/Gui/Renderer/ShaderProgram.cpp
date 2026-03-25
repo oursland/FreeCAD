@@ -31,7 +31,8 @@
 #endif
 
 #ifdef FC_OS_MACOSX
-# include <OpenGL/gl3.h>
+# include <OpenGL/gl.h>
+# include <OpenGL/glext.h>
 #else
 # include <GL/gl.h>
 # include <GL/glext.h>
@@ -102,6 +103,25 @@ bool ShaderProgram::build(const char* vertexSrc, const char* fragmentSrc)
     glDeleteShader(fs);
 
     return program != 0;
+}
+
+void ShaderProgram::bindAttribAndRelink(const std::vector<std::pair<uint32_t, const char*>>& attribs)
+{
+    if (!program) {
+        return;
+    }
+    for (const auto& a : attribs) {
+        glBindAttribLocation(program, a.first, a.second);
+    }
+    glLinkProgram(program);
+
+    GLint success = 0;
+    glGetProgramiv(program, GL_LINK_STATUS, &success);
+    if (!success) {
+        char log[512];
+        glGetProgramInfoLog(program, sizeof(log), nullptr, log);
+        Base::Console().error("ShaderProgram: re-link error: %s\n", log);
+    }
 }
 
 void ShaderProgram::use() const

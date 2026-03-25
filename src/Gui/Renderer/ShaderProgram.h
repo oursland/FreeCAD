@@ -23,6 +23,8 @@
 #pragma once
 
 #include <cstdint>
+#include <utility>
+#include <vector>
 
 namespace Gui
 {
@@ -40,6 +42,10 @@ public:
 
     /// Compile and link from source strings.  Returns true on success.
     bool build(const char* vertexSrc, const char* fragmentSrc);
+
+    /// Bind attribute locations before linking.  Call before build(), or
+    /// call build() first and then re-link with bindAttribAndRelink().
+    void bindAttribAndRelink(const std::vector<std::pair<uint32_t, const char*>>& attribs);
 
     /// Activate this program for subsequent draw calls.
     void use() const;

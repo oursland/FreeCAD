@@ -31,7 +31,8 @@
 #endif
 
 #ifdef FC_OS_MACOSX
-# include <OpenGL/gl3.h>
+# include <OpenGL/gl.h>
+# include <OpenGL/glext.h>
 #else
 # include <GL/gl.h>
 # include <GL/glext.h>
@@ -52,38 +53,42 @@ using namespace Gui;
 // Shaders
 // -----------------------------------------------------------------------
 
+// GLSL 1.20 shaders for compatibility with macOS's OpenGL 2.1 compatibility profile.
+// (macOS only exposes GL 2.1 / GLSL 1.20 in CompatibilityProfile; Core Profile
+// would give 4.1 but would break Coin3D's fixed-function rendering.)
+
 static const char* vertexShaderSrc = R"(
-#version 330 core
-layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aNormal;
+#version 120
+attribute vec3 aPos;
+attribute vec3 aNormal;
 
 uniform mat4 uView;
 uniform mat4 uProj;
 uniform mat4 uModel;
 
-out vec3 vNormal;
-out vec3 vFragPos;
+varying vec3 vNormal;
+varying vec3 vFragPos;
 
 void main()
 {
     vec4 worldPos = uModel * vec4(aPos, 1.0);
     vFragPos = worldPos.xyz;
-    vNormal = mat3(transpose(inverse(uModel))) * aNormal;
+    // Normal matrix: transpose(inverse(modelMatrix))
+    // GLSL 1.20 has no inverse(), so we approximate for uniform scaling
+    vNormal = mat3(uModel) * aNormal;
     gl_Position = uProj * uView * worldPos;
 }
 )";
 
 static const char* fragmentShaderSrc = R"(
-#version 330 core
-in vec3 vNormal;
-in vec3 vFragPos;
+#version 120
+varying vec3 vNormal;
+varying vec3 vFragPos;
 
 uniform vec4 uColor;          // rgb + alpha
 uniform vec3 uLightDir;       // directional light in world space
 uniform vec4 uOverrideColor;  // selection/highlight override
 uniform int  uUseOverride;    // 1 = use override color
-
-out vec4 FragColor;
 
 void main()
 {
@@ -95,27 +100,7 @@ void main()
     float ambient = 0.3;
     vec3 result = baseColor * (ambient + diff * 0.7);
 
-    FragColor = vec4(result, alpha);
-}
-)";
-
-// Flat shader for lines and points (no lighting)
-static const char* flatFragmentShaderSrc = R"(
-#version 330 core
-in vec3 vNormal;
-in vec3 vFragPos;
-
-uniform vec4 uColor;
-uniform vec4 uOverrideColor;
-uniform int  uUseOverride;
-
-out vec4 FragColor;
-
-void main()
-{
-    vec3 baseColor = (uUseOverride != 0) ? uOverrideColor.rgb : uColor.rgb;
-    float alpha = (uUseOverride != 0) ? uOverrideColor.a : uColor.a;
-    FragColor = vec4(baseColor, alpha);
+    gl_FragColor = vec4(result, alpha);
 }
 )";
 
@@ -144,9 +129,6 @@ GLSceneRenderer::~GLSceneRenderer()
 {
     // Clean up GL buffers
     for (auto& entry : queue.entries()) {
-        if (entry.vao) {
-            glDeleteVertexArrays(1, &entry.vao);
-        }
         if (entry.vbo) {
             glDeleteBuffers(1, &entry.vbo);
         }
@@ -166,6 +148,9 @@ bool GLSceneRenderer::initialize()
         Base::Console().error("GLSceneRenderer: failed to build mesh shader\n");
         return false;
     }
+
+    // Bind attribute locations (GLSL 1.20 doesn't support layout qualifiers)
+    meshShader.bindAttribAndRelink({{0, "aPos"}, {1, "aNormal"}});
 
     // Cache uniform locations
     meshShader.use();
@@ -254,7 +239,17 @@ void GLSceneRenderer::renderEntry(const DrawEntry& entry)
     );
     meshShader.setUniform1i(uUseOverride, 0);
 
-    glBindVertexArray(entry.vao);
+    // Bind VBO and set vertex attribute pointers (no VAO in GL 2.1)
+    int stride = 6 * sizeof(float);  // 3 pos + 3 normal interleaved
+    glBindBuffer(GL_ARRAY_BUFFER, entry.vbo);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(float)));
+
+    if (entry.ebo) {
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, entry.ebo);
+    }
 
     switch (entry.type) {
         case DrawType::Triangles:
@@ -265,14 +260,15 @@ void GLSceneRenderer::renderEntry(const DrawEntry& entry)
             glDrawElements(GL_LINES, entry.numElements, GL_UNSIGNED_INT, nullptr);
             break;
         case DrawType::Points:
-#ifndef FC_OS_MACOSX
             glPointSize(entry.pointSize);
-#endif
             glDrawArrays(GL_POINTS, 0, entry.numElements);
             break;
     }
 
-    glBindVertexArray(0);
+    glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 // -----------------------------------------------------------------------
@@ -290,9 +286,7 @@ DrawEntry GLSceneRenderer::createGLBuffers(
 {
     DrawEntry entry;
     entry.type = type;
-
-    glGenVertexArrays(1, &entry.vao);
-    glBindVertexArray(entry.vao);
+    entry.vao = 0;  // Not using VAOs (GL 2.1 compatibility)
 
     // Interleave position + normal into a single VBO
     int stride = 6;  // 3 pos + 3 normal
@@ -315,27 +309,30 @@ DrawEntry GLSceneRenderer::createGLBuffers(
 
     glGenBuffers(1, &entry.vbo);
     glBindBuffer(GL_ARRAY_BUFFER, entry.vbo);
-    glBufferData(GL_ARRAY_BUFFER, interleaved.size() * sizeof(float), interleaved.data(), GL_STATIC_DRAW);
-
-    // Position attribute (location 0)
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    // Normal attribute (location 1)
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
+    glBufferData(
+        GL_ARRAY_BUFFER,
+        static_cast<GLsizeiptr>(interleaved.size() * sizeof(float)),
+        interleaved.data(),
+        GL_STATIC_DRAW
+    );
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     if (indices && numIndices > 0) {
         glGenBuffers(1, &entry.ebo);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, entry.ebo);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, numIndices * sizeof(int32_t), indices, GL_STATIC_DRAW);
+        glBufferData(
+            GL_ELEMENT_ARRAY_BUFFER,
+            static_cast<GLsizeiptr>(numIndices * sizeof(int32_t)),
+            indices,
+            GL_STATIC_DRAW
+        );
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         entry.numElements = numIndices;
     }
     else {
         entry.numElements = numVerts;
     }
 
-    glBindVertexArray(0);
     return entry;
 }
 
@@ -429,9 +426,6 @@ void GLSceneRenderer::setVisible(MeshId id, bool visible)
 void GLSceneRenderer::remove(MeshId id)
 {
     if (auto* entry = queue.find(id)) {
-        if (entry->vao) {
-            glDeleteVertexArrays(1, &entry->vao);
-        }
         if (entry->vbo) {
             glDeleteBuffers(1, &entry->vbo);
         }
