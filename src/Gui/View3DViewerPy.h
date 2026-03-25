@@ -83,6 +83,9 @@ public:
 
     Py::Object getNavigationStyle(const Py::Tuple&);
 
+    Py::Object setUseSceneRenderer(const Py::Tuple& args);
+    Py::Object getUseSceneRenderer(const Py::Tuple&);
+
 private:
     using method_varargs_handler = PyObject* (*)(PyObject * _self, PyObject* _args);
     static method_varargs_handler pycxx_handler;

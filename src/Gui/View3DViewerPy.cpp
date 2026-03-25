@@ -187,6 +187,20 @@ void View3DInventorViewerPy::init_type()
         "getNavigationStyle() -> NavigationStyle\n"
         "Returns the current viewer navigation style class.\n"
     );
+
+    add_varargs_method(
+        "setUseSceneRenderer",
+        &View3DInventorViewerPy::setUseSceneRenderer,
+        "setUseSceneRenderer(enable) -> None\n"
+        "Enable or disable the fast scene renderer (bypasses Coin3D rendering).\n"
+    );
+
+    add_varargs_method(
+        "getUseSceneRenderer",
+        &View3DInventorViewerPy::getUseSceneRenderer,
+        "getUseSceneRenderer() -> bool\n"
+        "Returns whether the fast scene renderer is active.\n"
+    );
 }
 
 View3DInventorViewerPy::View3DInventorViewerPy(View3DInventorViewer* vi)
@@ -754,4 +768,22 @@ Py::Object View3DInventorViewerPy::getNavigationStyle(const Py::Tuple& args)
         return Py::asObject(navigationStyle->getPyObject());
     }
     return Py::None();
+}
+
+Py::Object View3DInventorViewerPy::setUseSceneRenderer(const Py::Tuple& args)
+{
+    PyObject* enable = Py_True;
+    if (!PyArg_ParseTuple(args.ptr(), "|O!", &PyBool_Type, &enable)) {
+        throw Py::Exception();
+    }
+    _viewer->setUseSceneRenderer(PyObject_IsTrue(enable));
+    return Py::None();
+}
+
+Py::Object View3DInventorViewerPy::getUseSceneRenderer(const Py::Tuple& args)
+{
+    if (!PyArg_ParseTuple(args.ptr(), "")) {
+        throw Py::Exception();
+    }
+    return Py::Boolean(_viewer->getUseSceneRenderer());
 }
