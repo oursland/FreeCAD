@@ -25,7 +25,7 @@
 #include "Gui/ViewProvider.h"
 #include "Gui/ViewProviderGeometryObject.h"
 
-#include <Inventor/actions/SoSearchAction.h>
+#include <Inventor/actions/SoCallbackAction.h>
 #include <Inventor/nodes/SoCoordinate3.h>
 #include <Inventor/nodes/SoGroup.h>
 #include <Inventor/nodes/SoIndexedFaceSet.h>
@@ -36,28 +36,193 @@
 #include <Inventor/nodes/SoSeparator.h>
 #include <Inventor/nodes/SoSwitch.h>
 #include <Inventor/nodes/SoTransform.h>
+#include <Inventor/elements/SoCoordinateElement.h>
+#include <Inventor/elements/SoModelMatrixElement.h>
+#include <Inventor/elements/SoLazyElement.h>
+#include <Inventor/elements/SoNormalElement.h>
 #include <Inventor/SbMatrix.h>
 
 #include <Base/Console.h>
+
+#include <cmath>
 
 using namespace Gui;
 
 SceneSync::SceneSync() = default;
 SceneSync::~SceneSync() = default;
 
-// Find the first node of a given type under a root
-static SoNode* findNodeOfType(SoNode* root, SoType type)
+// -----------------------------------------------------------------------
+// SoCallbackAction-based scene graph walk
+// -----------------------------------------------------------------------
+
+/// Data collected for each visible SoIndexedFaceSet found during traversal.
+struct FaceSetData
 {
-    SoSearchAction sa;
-    sa.setType(type);
-    sa.setInterest(SoSearchAction::FIRST);
-    sa.apply(root);
-    SoPath* path = sa.getPath();
-    if (path) {
-        return path->getTail();
+    // Key: the SoIndexedFaceSet pointer + model matrix form a unique identity
+    // for this particular instance (same node, different link = different instance)
+    SoIndexedFaceSet* node = nullptr;
+
+    // Geometry from the traversal state
+    std::vector<float> vertices;  // interleaved xyz
+    std::vector<float> normals;   // interleaved xyz (may be computed)
+    std::vector<int32_t> triIndices;
+    int numVerts = 0;
+
+    // Transform & material from traversal state
+    SbMatrix modelMatrix;
+    SbColor diffuseColor {0.8f, 0.8f, 0.8f};
+    float transparency = 0.0f;
+
+    /// Unique key: node pointer + matrix hash to distinguish linked instances
+    uint64_t instanceKey() const
+    {
+        auto ptr = reinterpret_cast<uintptr_t>(node);
+        // Mix in a few matrix elements to distinguish same-node different-transform
+        uint32_t mh = 0;
+        const float* m = modelMatrix[0];
+        for (int i = 0; i < 16; i++) {
+            uint32_t bits;
+            std::memcpy(&bits, &m[i], sizeof(bits));
+            mh ^= bits + 0x9e3779b9 + (mh << 6) + (mh >> 2);
+        }
+        return (static_cast<uint64_t>(ptr) << 32) | mh;
     }
-    return nullptr;
+};
+
+/// Callback context passed through SoCallbackAction
+struct SyncCallbackData
+{
+    std::vector<FaceSetData> facesets;
+};
+
+/// Called for each SoIndexedFaceSet encountered during visible traversal
+static SoCallbackAction::Response faceSetCB(void* userData, SoCallbackAction* action, const SoNode* node)
+{
+    auto* data = static_cast<SyncCallbackData*>(userData);
+    auto* faceset = const_cast<SoIndexedFaceSet*>(static_cast<const SoIndexedFaceSet*>(node));
+
+    if (faceset->coordIndex.getNum() == 0) {
+        return SoCallbackAction::CONTINUE;
+    }
+
+    SoState* state = action->getState();
+
+    // Get coordinates from traversal state
+    const SoCoordinateElement* coordElem = SoCoordinateElement::getInstance(state);
+    if (!coordElem) {
+        return SoCallbackAction::CONTINUE;
+    }
+    int numVerts = coordElem->getNum();
+    if (numVerts <= 0) {
+        return SoCallbackAction::CONTINUE;
+    }
+
+    // Get indices and triangulate
+    const int32_t* cindices = faceset->coordIndex.getValues(0);
+    int numCIndices = faceset->coordIndex.getNum();
+
+    std::vector<int32_t> triIndices;
+    triIndices.reserve(numCIndices);
+    int polyStart = 0;
+    bool valid = true;
+    for (int i = 0; i < numCIndices; i++) {
+        if (cindices[i] < 0) {
+            int polyLen = i - polyStart;
+            for (int j = 1; j + 1 < polyLen; j++) {
+                int i0 = cindices[polyStart];
+                int i1 = cindices[polyStart + j];
+                int i2 = cindices[polyStart + j + 1];
+                if (i0 >= numVerts || i1 >= numVerts || i2 >= numVerts || i0 < 0 || i1 < 0 || i2 < 0) {
+                    valid = false;
+                    break;
+                }
+                triIndices.push_back(i0);
+                triIndices.push_back(i1);
+                triIndices.push_back(i2);
+            }
+            polyStart = i + 1;
+            if (!valid) {
+                break;
+            }
+        }
+    }
+    if (!valid || triIndices.empty()) {
+        return SoCallbackAction::CONTINUE;
+    }
+
+    FaceSetData fd;
+    fd.node = faceset;
+    fd.numVerts = numVerts;
+
+    // Copy vertex positions
+    fd.vertices.resize(numVerts * 3);
+    for (int i = 0; i < numVerts; i++) {
+        SbVec3f v = coordElem->get3(i);
+        fd.vertices[i * 3 + 0] = v[0];
+        fd.vertices[i * 3 + 1] = v[1];
+        fd.vertices[i * 3 + 2] = v[2];
+    }
+
+    // Get normals from state, or compute them
+    const SoNormalElement* normElem = SoNormalElement::getInstance(state);
+    if (normElem && normElem->getNum() >= numVerts) {
+        fd.normals.resize(numVerts * 3);
+        for (int i = 0; i < numVerts; i++) {
+            SbVec3f n = normElem->get(i);
+            fd.normals[i * 3 + 0] = n[0];
+            fd.normals[i * 3 + 1] = n[1];
+            fd.normals[i * 3 + 2] = n[2];
+        }
+    }
+    else {
+        // Compute per-vertex normals by averaging face normals
+        fd.normals.resize(numVerts * 3, 0.0f);
+        for (size_t ti = 0; ti + 2 < triIndices.size(); ti += 3) {
+            int i0 = triIndices[ti], i1 = triIndices[ti + 1], i2 = triIndices[ti + 2];
+            float* v0 = &fd.vertices[i0 * 3];
+            float* v1 = &fd.vertices[i1 * 3];
+            float* v2 = &fd.vertices[i2 * 3];
+            float e1x = v1[0] - v0[0], e1y = v1[1] - v0[1], e1z = v1[2] - v0[2];
+            float e2x = v2[0] - v0[0], e2y = v2[1] - v0[1], e2z = v2[2] - v0[2];
+            float nx = e1y * e2z - e1z * e2y;
+            float ny = e1z * e2x - e1x * e2z;
+            float nz = e1x * e2y - e1y * e2x;
+            for (int vi : {i0, i1, i2}) {
+                fd.normals[vi * 3 + 0] += nx;
+                fd.normals[vi * 3 + 1] += ny;
+                fd.normals[vi * 3 + 2] += nz;
+            }
+        }
+        for (int i = 0; i < numVerts; i++) {
+            float x = fd.normals[i * 3 + 0], y = fd.normals[i * 3 + 1], z = fd.normals[i * 3 + 2];
+            float len = std::sqrt(x * x + y * y + z * z);
+            if (len > 1e-8f) {
+                fd.normals[i * 3 + 0] /= len;
+                fd.normals[i * 3 + 1] /= len;
+                fd.normals[i * 3 + 2] /= len;
+            }
+        }
+    }
+
+    fd.triIndices = std::move(triIndices);
+
+    // Get model matrix from traversal state
+    fd.modelMatrix = SoModelMatrixElement::get(state);
+
+    // Get material from traversal state
+    const SoLazyElement* lazyElem = SoLazyElement::getInstance(state);
+    if (lazyElem) {
+        fd.diffuseColor = lazyElem->getDiffuse(state, 0);
+        fd.transparency = lazyElem->getTransparency(state, 0);
+    }
+
+    data->facesets.push_back(std::move(fd));
+    return SoCallbackAction::CONTINUE;
 }
+
+// -----------------------------------------------------------------------
+// SceneSync implementation
+// -----------------------------------------------------------------------
 
 void SceneSync::sync(View3DInventorViewer* viewer, SceneRenderer* renderer)
 {
@@ -65,231 +230,65 @@ void SceneSync::sync(View3DInventorViewer* viewer, SceneRenderer* renderer)
         return;
     }
 
-    // Collect all visible geometry ViewProviders
-    auto vpList = viewer->getViewProvidersOfType(ViewProviderGeometryObject::getClassTypeId());
-
-    std::map<ViewProvider*, bool> seen;
-
-    for (auto* vp : vpList) {
-        seen[vp] = true;
-
-        if (!vp->isVisible()) {
-            auto it = entries.find(vp);
-            if (it != entries.end()) {
-                auto& entry = it->second;
-                if (entry.faceMeshId != SceneRenderer::InvalidMesh) {
-                    renderer->setVisible(entry.faceMeshId, false);
-                }
-                if (entry.lineMeshId != SceneRenderer::InvalidMesh) {
-                    renderer->setVisible(entry.lineMeshId, false);
-                }
-                if (entry.pointMeshId != SceneRenderer::InvalidMesh) {
-                    renderer->setVisible(entry.pointMeshId, false);
-                }
-            }
-            continue;
-        }
-
-        uint32_t nodeId = vp->getRoot()->getNodeId();
-        auto it = entries.find(vp);
-        if (it != entries.end() && it->second.lastNodeId == nodeId) {
-            if (it->second.faceMeshId != SceneRenderer::InvalidMesh) {
-                renderer->setVisible(it->second.faceMeshId, true);
-            }
-            if (it->second.lineMeshId != SceneRenderer::InvalidMesh) {
-                renderer->setVisible(it->second.lineMeshId, true);
-            }
-            if (it->second.pointMeshId != SceneRenderer::InvalidMesh) {
-                renderer->setVisible(it->second.pointMeshId, true);
-            }
-            continue;
-        }
-
-        syncViewProvider(vp, renderer);
-        entries[vp].lastNodeId = nodeId;
+    SoNode* sceneRoot = viewer->getSceneGraph();
+    if (!sceneRoot) {
+        return;
     }
 
-    // Remove entries for VPs that no longer exist
-    for (auto it = entries.begin(); it != entries.end();) {
-        if (seen.find(it->first) == seen.end()) {
-            auto& entry = it->second;
-            if (entry.faceMeshId != SceneRenderer::InvalidMesh) {
-                renderer->remove(entry.faceMeshId);
+    // Walk the visible scene graph every frame to detect changes.
+    SyncCallbackData cbData;
+    SoCallbackAction cba;
+    cba.addPreCallback(SoIndexedFaceSet::getClassTypeId(), faceSetCB, &cbData);
+    cba.apply(sceneRoot);
+
+    // Build set of instance keys found this frame
+    std::set<uint64_t> currentKeys;
+    for (auto& fd : cbData.facesets) {
+        currentKeys.insert(fd.instanceKey());
+    }
+
+    // Remove entries that are no longer visible
+    for (auto it = meshEntries.begin(); it != meshEntries.end();) {
+        if (currentKeys.count(it->first) == 0) {
+            if (it->second.faceMeshId != SceneRenderer::InvalidMesh) {
+                renderer->remove(it->second.faceMeshId);
             }
-            if (entry.lineMeshId != SceneRenderer::InvalidMesh) {
-                renderer->remove(entry.lineMeshId);
-            }
-            if (entry.pointMeshId != SceneRenderer::InvalidMesh) {
-                renderer->remove(entry.pointMeshId);
-            }
-            it = entries.erase(it);
+            it = meshEntries.erase(it);
         }
         else {
             ++it;
         }
     }
+
+    // Add new entries and update existing ones
+    for (auto& fd : cbData.facesets) {
+        uint64_t key = fd.instanceKey();
+        auto it = meshEntries.find(key);
+
+        if (it != meshEntries.end()) {
+            // Already submitted — update transform and material in case they changed
+            renderer->updateTransform(it->second.faceMeshId, fd.modelMatrix);
+            renderer->updateMaterial(it->second.faceMeshId, fd.diffuseColor, fd.transparency);
+            continue;
+        }
+
+        // New instance — submit geometry
+        SyncEntry entry;
+        entry.faceMeshId = renderer->submitMesh(
+            fd.vertices.data(),
+            fd.numVerts,
+            fd.triIndices.data(),
+            static_cast<int>(fd.triIndices.size()),
+            fd.normals.data(),
+            fd.modelMatrix,
+            fd.diffuseColor,
+            fd.transparency
+        );
+        meshEntries[key] = entry;
+    }
 }
 
 void SceneSync::invalidateAll()
 {
-    for (auto& kv : entries) {
-        kv.second.lastNodeId = 0;
-    }
-}
-
-void SceneSync::syncViewProvider(ViewProvider* vp, SceneRenderer* renderer)
-{
-    // Remove old entries
-    auto& entry = entries[vp];
-    if (entry.faceMeshId != SceneRenderer::InvalidMesh) {
-        renderer->remove(entry.faceMeshId);
-        entry.faceMeshId = SceneRenderer::InvalidMesh;
-    }
-    if (entry.lineMeshId != SceneRenderer::InvalidMesh) {
-        renderer->remove(entry.lineMeshId);
-        entry.lineMeshId = SceneRenderer::InvalidMesh;
-    }
-    if (entry.pointMeshId != SceneRenderer::InvalidMesh) {
-        renderer->remove(entry.pointMeshId);
-        entry.pointMeshId = SceneRenderer::InvalidMesh;
-    }
-
-    SoNode* root = vp->getRoot();
-    if (!root) {
-        return;
-    }
-
-    // Find coordinate node
-    auto* coords = dynamic_cast<SoCoordinate3*>(findNodeOfType(root, SoCoordinate3::getClassTypeId()));
-    if (!coords || coords->point.getNum() == 0) {
-        return;
-    }
-
-    const SbVec3f* vertexData = coords->point.getValues(0);
-    int numVerts = coords->point.getNum();
-
-    // Get transform
-    SbMatrix modelMatrix;
-    auto* transform = dynamic_cast<SoTransform*>(findNodeOfType(root, SoTransform::getClassTypeId()));
-    if (transform) {
-        SbVec3f t = transform->translation.getValue();
-        SbRotation r = transform->rotation.getValue();
-        SbVec3f s = transform->scaleFactor.getValue();
-        SbRotation so = transform->scaleOrientation.getValue();
-        SbVec3f c = transform->center.getValue();
-        modelMatrix.setTransform(t, r, s, so, c);
-    }
-    else {
-        modelMatrix.makeIdentity();
-    }
-
-    // Get material color
-    SbColor diffuseColor(0.8f, 0.8f, 0.8f);
-    float transparency = 0.0f;
-    auto* material = dynamic_cast<SoMaterial*>(findNodeOfType(root, SoMaterial::getClassTypeId()));
-    if (material) {
-        if (material->diffuseColor.getNum() > 0) {
-            diffuseColor = material->diffuseColor[0];
-        }
-        if (material->transparency.getNum() > 0) {
-            transparency = material->transparency[0];
-        }
-    }
-
-    // Submit face geometry (SoIndexedFaceSet or subclass like SoBrepFaceSet)
-    auto* faceset = dynamic_cast<SoIndexedFaceSet*>(
-        findNodeOfType(root, SoIndexedFaceSet::getClassTypeId())
-    );
-    if (faceset && faceset->coordIndex.getNum() > 0) {
-        const int32_t* cindices = faceset->coordIndex.getValues(0);
-        int numCIndices = faceset->coordIndex.getNum();
-
-        std::vector<int32_t> triIndices;
-        triIndices.reserve(numCIndices);
-        for (int i = 0; i + 2 < numCIndices;) {
-            if (cindices[i] >= 0 && cindices[i + 1] >= 0 && cindices[i + 2] >= 0) {
-                triIndices.push_back(cindices[i]);
-                triIndices.push_back(cindices[i + 1]);
-                triIndices.push_back(cindices[i + 2]);
-            }
-            while (i < numCIndices && cindices[i] >= 0) {
-                i++;
-            }
-            i++;
-        }
-
-        auto* norm = dynamic_cast<SoNormal*>(findNodeOfType(root, SoNormal::getClassTypeId()));
-        const float* normalData = nullptr;
-        if (norm && norm->vector.getNum() == numVerts) {
-            normalData = reinterpret_cast<const float*>(norm->vector.getValues(0));
-        }
-
-        if (!triIndices.empty()) {
-            entry.faceMeshId = renderer->submitMesh(
-                reinterpret_cast<const float*>(vertexData),
-                numVerts,
-                triIndices.data(),
-                static_cast<int>(triIndices.size()),
-                normalData,
-                modelMatrix,
-                diffuseColor,
-                transparency
-            );
-        }
-    }
-
-    // Submit edge geometry (SoIndexedLineSet or subclass like SoBrepEdgeSet)
-    auto* lineset = dynamic_cast<SoIndexedLineSet*>(
-        findNodeOfType(root, SoIndexedLineSet::getClassTypeId())
-    );
-    if (lineset && lineset->coordIndex.getNum() > 0) {
-        const int32_t* cindices = lineset->coordIndex.getValues(0);
-        int numCIndices = lineset->coordIndex.getNum();
-
-        std::vector<int32_t> lineIndices;
-        lineIndices.reserve(numCIndices);
-        for (int i = 0; i + 1 < numCIndices;) {
-            if (cindices[i] >= 0 && cindices[i + 1] >= 0) {
-                lineIndices.push_back(cindices[i]);
-                lineIndices.push_back(cindices[i + 1]);
-            }
-            if (i + 2 < numCIndices && cindices[i + 2] >= 0) {
-                i++;
-            }
-            else {
-                i += 2;
-                while (i < numCIndices && cindices[i] < 0) {
-                    i++;
-                }
-            }
-        }
-
-        if (!lineIndices.empty()) {
-            entry.lineMeshId = renderer->submitLines(
-                reinterpret_cast<const float*>(vertexData),
-                numVerts,
-                lineIndices.data(),
-                static_cast<int>(lineIndices.size()),
-                modelMatrix,
-                SbColor(0.0f, 0.0f, 0.0f),
-                2.0f
-            );
-        }
-    }
-
-    // Submit point geometry (SoPointSet or subclass like SoBrepPointSet)
-    auto* pointset = dynamic_cast<SoPointSet*>(findNodeOfType(root, SoPointSet::getClassTypeId()));
-    if (pointset) {
-        int numPoints = pointset->numPoints.getValue();
-        if (numPoints > 0 && numPoints <= numVerts) {
-            int startIdx = numVerts - numPoints;
-            entry.pointMeshId = renderer->submitPoints(
-                reinterpret_cast<const float*>(vertexData + startIdx),
-                numPoints,
-                modelMatrix,
-                SbColor(0.0f, 0.0f, 0.0f),
-                3.0f
-            );
-        }
-    }
+    meshEntries.clear();
 }

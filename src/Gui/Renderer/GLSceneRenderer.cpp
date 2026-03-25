@@ -110,13 +110,9 @@ void main()
 
 static void sbMatrixToFloat16(const SbMatrix& m, std::array<float, 16>& out)
 {
-    // SbMatrix stores row-major, OpenGL expects column-major
-    const float* src = m[0];
-    for (int col = 0; col < 4; col++) {
-        for (int row = 0; row < 4; row++) {
-            out[col * 4 + row] = src[row * 4 + col];
-        }
-    }
+    // SbMatrix is already in OpenGL column-major layout (Coin3D passes it
+    // directly to glLoadMatrixf). Just copy the 16 floats.
+    std::memcpy(out.data(), m[0], 16 * sizeof(float));
 }
 
 // -----------------------------------------------------------------------
@@ -181,8 +177,8 @@ void GLSceneRenderer::beginFrame(const SbMatrix& view, const SbMatrix& proj, con
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
+    // Disable face culling for now — Coin's view matrix may flip winding
+    glDisable(GL_CULL_FACE);
 
     meshShader.use();
     meshShader.setUniformMatrix4fv(uViewMatrix, viewMatrix.data());
@@ -198,10 +194,27 @@ void GLSceneRenderer::endFrame()
         return;
     }
 
+    static bool loggedOnce = false;
+    if (!loggedOnce && !queue.entries().empty()) {
+        Base::Console().log(
+            "GLSceneRenderer: rendering %d entries\n",
+            static_cast<int>(queue.entries().size())
+        );
+        const auto& first = queue.entries()[0];
+        Base::Console().log(
+            "  first entry: vbo=%u ebo=%u elements=%d type=%d\n",
+            first.vbo,
+            first.ebo,
+            first.numElements,
+            static_cast<int>(first.type)
+        );
+        loggedOnce = true;
+    }
+
     // Pass 1: Opaque geometry
     glDisable(GL_BLEND);
     for (const auto& entry : queue.entries()) {
-        if (!entry.visible) {
+        if (!entry.visible || !entry.vbo) {
             continue;
         }
         if (entry.transparency > 0.001f) {
@@ -215,7 +228,7 @@ void GLSceneRenderer::endFrame()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDepthMask(GL_FALSE);
     for (const auto& entry : queue.entries()) {
-        if (!entry.visible) {
+        if (!entry.visible || !entry.vbo) {
             continue;
         }
         if (entry.transparency <= 0.001f) {
@@ -225,6 +238,11 @@ void GLSceneRenderer::endFrame()
     }
     glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);
+
+    // Restore GL state for Coin3D
+    glUseProgram(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 void GLSceneRenderer::renderEntry(const DrawEntry& entry)

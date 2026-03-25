@@ -25,23 +25,20 @@
 #include "SceneRenderer.h"
 
 #include <map>
-#include <vector>
-
-class SoSeparator;
-class SoGroup;
+#include <set>
+#include <cstdint>
 
 namespace Gui
 {
 
-class ViewProvider;
 class View3DInventorViewer;
 
 /// Synchronizes render data from the Coin3D scene graph to a SceneRenderer.
 ///
-/// Walks the viewer's ViewProvider map, extracts vertex/normal/index data
-/// from SoBrepFaceSet nodes, transforms from SoTransform nodes, and
-/// materials from SoMaterial nodes.  Submits them to the SceneRenderer
-/// and tracks which ViewProviders have been submitted to detect changes.
+/// Uses SoCallbackAction to traverse the visible scene graph (respecting
+/// SoSwitch nodes for Links, display modes, and hidden objects). Extracts
+/// geometry, transforms, and materials from the traversal state and submits
+/// them to the renderer.
 class SceneSync
 {
 public:
@@ -50,25 +47,20 @@ public:
 
     /// Synchronize the scene graph to the renderer.
     /// Call this before beginFrame() each frame.  Only re-submits
-    /// geometry that has changed since the last sync.
+    /// geometry on first call or after invalidateAll().
     void sync(View3DInventorViewer* viewer, SceneRenderer* renderer);
 
     /// Force a full re-sync on the next call to sync().
     void invalidateAll();
 
 private:
-    /// Per-ViewProvider tracking data
+    /// Per-faceset tracking data
     struct SyncEntry
     {
         SceneRenderer::MeshId faceMeshId = SceneRenderer::InvalidMesh;
-        SceneRenderer::MeshId lineMeshId = SceneRenderer::InvalidMesh;
-        SceneRenderer::MeshId pointMeshId = SceneRenderer::InvalidMesh;
-        uint32_t lastNodeId = 0;  // Coin3D node ID for change detection
     };
 
-    void syncViewProvider(ViewProvider* vp, SceneRenderer* renderer);
-
-    std::map<ViewProvider*, SyncEntry> entries;
+    std::map<uint64_t, SyncEntry> meshEntries;  // keyed by instance key (node ptr + matrix hash)
 };
 
 }  // namespace Gui

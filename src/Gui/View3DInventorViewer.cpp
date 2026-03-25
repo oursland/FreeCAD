@@ -2564,14 +2564,56 @@ void View3DInventorViewer::renderScene()
             if (glRenderer && !glRenderer->isInitialized()) {
                 glRenderer->initialize();
             }
+            static bool loggedEntry = false;
+            if (!loggedEntry) {
+                Base::Console().message("SceneRenderer: entering render path\n");
+                loggedEntry = true;
+            }
             sceneSync->sync(this, sceneRenderer.get());
 
             // Get camera matrices from Coin3D
+            // getMatrix() returns the combined view-projection matrix, but
+            // our renderer needs them separate. getMatrices() splits them:
+            // affine = world-to-camera, proj = camera-to-clip.
             SoCamera* camera = this->getSoRenderManager()->getCamera();
             if (camera) {
-                SbMatrix viewMatrix, projMatrix;
-                camera->getViewVolume().getMatrices(viewMatrix, projMatrix);
-                sceneRenderer->beginFrame(viewMatrix, projMatrix, vp);
+                float aspectRatio = (size[1] > 0)
+                    ? static_cast<float>(size[0]) / static_cast<float>(size[1])
+                    : 1.0f;
+                SbViewVolume vv = camera->getViewVolume(aspectRatio);
+                SbMatrix affine, proj;
+                vv.getMatrices(affine, proj);
+
+                static bool loggedMatrices = false;
+                if (!loggedMatrices) {
+                    Base::Console().message(
+                        "SceneRenderer: camera type=%s\n",
+                        camera->getTypeId().getName().getString()
+                    );
+                    Base::Console().message("SceneRenderer: aspectRatio=%.3f\n", aspectRatio);
+                    Base::Console().message(
+                        "SceneRenderer: affine diagonal: %.6f %.6f %.6f %.6f\n",
+                        affine[0][0],
+                        affine[1][1],
+                        affine[2][2],
+                        affine[3][3]
+                    );
+                    Base::Console().message(
+                        "SceneRenderer: proj diagonal: %.6f %.6f %.6f %.6f\n",
+                        proj[0][0],
+                        proj[1][1],
+                        proj[2][2],
+                        proj[3][3]
+                    );
+                    Base::Console().message(
+                        "SceneRenderer: proj[2][3]=%.6f proj[3][2]=%.6f\n",
+                        proj[2][3],
+                        proj[3][2]
+                    );
+                    loggedMatrices = true;
+                }
+
+                sceneRenderer->beginFrame(affine, proj, vp);
                 sceneRenderer->endFrame();
             }
         }
