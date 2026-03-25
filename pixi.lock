@@ -380,6 +380,9 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/tk-8.6.13-noxft_h366c992_103.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/tornado-6.5.3-py311h49ec1c0_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/tqdm-4.67.1-pyhd8ed1ab_1.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/tracy-profiler-0.13.1-h38be061_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/tracy-profiler-client-0.13.1-hb700be7_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/tracy-profiler-client-python-0.13.1-py311hdf67eae_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/truststore-0.10.4-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing-extensions-4.15.0-h396c80c_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing_extensions-4.15.0-pyhcf101f3_0.conda
@@ -806,6 +809,9 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/tk-8.6.13-noxft_h0dc03b3_103.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/tornado-6.5.3-py311hb9158a3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/tqdm-4.67.1-pyhd8ed1ab_1.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/tracy-profiler-0.13.1-hfecb2dc_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/tracy-profiler-client-0.13.1-hfefdfc9_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/tracy-profiler-client-python-0.13.1-py311hfca10b7_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/truststore-0.10.4-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing-extensions-4.15.0-h396c80c_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing_extensions-4.15.0-pyhcf101f3_0.conda
@@ -1169,6 +1175,9 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-64/tk-8.6.13-h7142dee_3.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/tornado-6.5.4-py311ha2bb86f_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/tqdm-4.67.1-pyhd8ed1ab_1.conda
+      - conda: https://conda.anaconda.org/conda-forge/osx-64/tracy-profiler-0.13.1-h6eed73b_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/osx-64/tracy-profiler-client-0.13.1-h70902e5_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/osx-64/tracy-profiler-client-python-0.13.1-py311h75d39bf_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/truststore-0.10.4-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing-extensions-4.15.0-h396c80c_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing_extensions-4.15.0-pyhcf101f3_0.conda
@@ -1505,6 +1514,9 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/tk-8.6.13-h010d191_3.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/tornado-6.5.4-py311h9408147_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/tqdm-4.67.1-pyhd8ed1ab_1.conda
+      - conda: https://conda.anaconda.org/conda-forge/osx-arm64/tracy-profiler-0.13.1-ha1ab1f8_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/osx-arm64/tracy-profiler-client-0.13.1-h0b65c43_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/osx-arm64/tracy-profiler-client-python-0.13.1-py311ha57ad18_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/truststore-0.10.4-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing-extensions-4.15.0-h396c80c_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing_extensions-4.15.0-pyhcf101f3_0.conda
@@ -1795,6 +1807,9 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/win-64/tk-8.6.13-h6ed50ae_3.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/tornado-6.5.4-py311h3485c13_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/tqdm-4.67.1-pyhd8ed1ab_1.conda
+      - conda: https://conda.anaconda.org/conda-forge/win-64/tracy-profiler-0.13.1-h1ea47a8_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/win-64/tracy-profiler-client-0.13.1-h49e36cd_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/win-64/tracy-profiler-client-python-0.13.1-py311h3fd045d_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/truststore-0.10.4-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing-extensions-4.15.0-h396c80c_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing_extensions-4.15.0-pyhcf101f3_0.conda
@@ -20863,6 +20878,202 @@ packages:
   - pkg:pypi/tqdm?source=hash-mapping
   size: 89498
   timestamp: 1735661472632
+- conda: https://conda.anaconda.org/conda-forge/linux-64/tracy-profiler-0.13.1-h38be061_0.conda
+  sha256: 17dcb9f84f665402d67c98832359df716cd103bca0a3c50c5a9da29891ebd1ec
+  md5: 239ca19adde68c70423d689e1efb1970
+  depends:
+  - python_abi 3.11.* *_cp311
+  - tracy-profiler-client 0.13.1 hb700be7_0
+  - tracy-profiler-client-python 0.13.1 py311hdf67eae_0
+  license: BSD-3-Clause
+  license_family: BSD
+  purls: []
+  size: 11517
+  timestamp: 1767785323793
+- conda: https://conda.anaconda.org/conda-forge/linux-aarch64/tracy-profiler-0.13.1-hfecb2dc_0.conda
+  sha256: 187394dba6e46bf4bf4c4babfe16fec245458cd24ac7e38c87a299513b3cd793
+  md5: 0d9204c3be1de74ae9083f404253f3d7
+  depends:
+  - python_abi 3.11.* *_cp311
+  - tracy-profiler-client 0.13.1 hfefdfc9_0
+  - tracy-profiler-client-python 0.13.1 py311hfca10b7_0
+  license: BSD-3-Clause
+  license_family: BSD
+  purls: []
+  size: 11689
+  timestamp: 1767784949671
+- conda: https://conda.anaconda.org/conda-forge/osx-64/tracy-profiler-0.13.1-h6eed73b_0.conda
+  sha256: 2ff3444e1571357871892ded6e6183c6093dd8c2b3810b87fca82dee60462224
+  md5: baa42cc450c33ab994a908e84ea22264
+  depends:
+  - python_abi 3.11.* *_cp311
+  - tracy-profiler-client 0.13.1 h70902e5_0
+  - tracy-profiler-client-python 0.13.1 py311h75d39bf_0
+  license: BSD-3-Clause
+  license_family: BSD
+  purls: []
+  size: 11579
+  timestamp: 1767785407984
+- conda: https://conda.anaconda.org/conda-forge/osx-arm64/tracy-profiler-0.13.1-ha1ab1f8_0.conda
+  sha256: 4db8c524424f3ad65716aa0ace7e0b00d1a1e4d7c9b4cbba1036f9d0a8678f7f
+  md5: 73a404a8cd543169f4a0bdb462a6105c
+  depends:
+  - python_abi 3.11.* *_cp311
+  - tracy-profiler-client 0.13.1 h0b65c43_0
+  - tracy-profiler-client-python 0.13.1 py311ha57ad18_0
+  license: BSD-3-Clause
+  license_family: BSD
+  purls: []
+  size: 11706
+  timestamp: 1767863524977
+- conda: https://conda.anaconda.org/conda-forge/win-64/tracy-profiler-0.13.1-h1ea47a8_0.conda
+  sha256: e380d2758050419686c064ba72391909ccbd35dfba6d58573ad8dc0c850f056b
+  md5: acd8c44deb309203bae8e81dc096aea7
+  depends:
+  - python_abi 3.11.* *_cp311
+  - tracy-profiler-client 0.13.1 h49e36cd_0
+  - tracy-profiler-client-python 0.13.1 py311h3fd045d_0
+  license: BSD-3-Clause
+  license_family: BSD
+  purls: []
+  size: 11984
+  timestamp: 1767785983133
+- conda: https://conda.anaconda.org/conda-forge/linux-64/tracy-profiler-client-0.13.1-hb700be7_0.conda
+  sha256: 161f777dcf60dc29e9aa63ab40eab488e3c49dca61413878e3c84214a6de6995
+  md5: bf91612f2b3b33754ffe7a9a07f54a85
+  depends:
+  - __glibc >=2.17,<3.0.a0
+  - libgcc >=14
+  - libstdcxx >=14
+  license: BSD-3-Clause
+  license_family: BSD
+  purls: []
+  size: 288581
+  timestamp: 1767784299487
+- conda: https://conda.anaconda.org/conda-forge/linux-aarch64/tracy-profiler-client-0.13.1-hfefdfc9_0.conda
+  sha256: dbef22ed8574d3af07e1044330ab86b253e7208f91010d3eefb62d61609c200a
+  md5: 5f6b38965923ab19259cd1111e814414
+  depends:
+  - libgcc >=14
+  - libstdcxx >=14
+  license: BSD-3-Clause
+  license_family: BSD
+  purls: []
+  size: 292184
+  timestamp: 1767784350728
+- conda: https://conda.anaconda.org/conda-forge/osx-64/tracy-profiler-client-0.13.1-h70902e5_0.conda
+  sha256: c46324e97cc8ad8212d7408754c74346bd34f00db55e235be8ab4a855f782fd5
+  md5: 24dd121bc24bfba30163dee2e68eafd3
+  depends:
+  - __osx >=10.13
+  - libcxx >=19
+  license: BSD-3-Clause
+  license_family: BSD
+  purls: []
+  size: 223346
+  timestamp: 1767784529346
+- conda: https://conda.anaconda.org/conda-forge/osx-arm64/tracy-profiler-client-0.13.1-h0b65c43_0.conda
+  sha256: 0f769f91da9e727c36a40fca993bc18ee77027656e8332487f39f9566c5e07d6
+  md5: 18a9c557c214d6645f229a9c43a3577d
+  depends:
+  - __osx >=11.0
+  - libcxx >=19
+  license: BSD-3-Clause
+  license_family: BSD
+  purls: []
+  size: 210520
+  timestamp: 1767862421987
+- conda: https://conda.anaconda.org/conda-forge/win-64/tracy-profiler-client-0.13.1-h49e36cd_0.conda
+  sha256: f583a4174567f31c060ee90de8a2038ad8f9201be9ced036acf7293d1509ec58
+  md5: fa9c72e9ea1c908852e6cee517f5b873
+  depends:
+  - ucrt >=10.0.20348.0
+  - vc >=14.3,<15
+  - vc14_runtime >=14.44.35208
+  license: BSD-3-Clause
+  license_family: BSD
+  purls: []
+  size: 168458
+  timestamp: 1767784725820
+- conda: https://conda.anaconda.org/conda-forge/linux-64/tracy-profiler-client-python-0.13.1-py311hdf67eae_0.conda
+  sha256: 8dae644f13b4dce9e9b8f731464263ec11329deb22818bbc057b5ae2df69ae95
+  md5: 7c57b16506e049fa10c6ee0f45aa8af1
+  depends:
+  - __glibc >=2.17,<3.0.a0
+  - libgcc >=14
+  - libstdcxx >=14
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
+  - tracy-profiler-client 0.13.1 hb700be7_0
+  license: BSD-3-Clause
+  license_family: BSD
+  purls:
+  - pkg:pypi/tracy-client?source=hash-mapping
+  size: 412556
+  timestamp: 1767785088730
+- conda: https://conda.anaconda.org/conda-forge/linux-aarch64/tracy-profiler-client-python-0.13.1-py311hfca10b7_0.conda
+  sha256: 501f61124ff17893e02593a6a29f42bb4a68c6f320c7b37450da41a163bf9f66
+  md5: ad971bd3937cf43c681abed147a11c16
+  depends:
+  - libgcc >=14
+  - libstdcxx >=14
+  - python >=3.11,<3.12.0a0
+  - python >=3.11,<3.12.0a0 *_cpython
+  - python_abi 3.11.* *_cp311
+  - tracy-profiler-client 0.13.1 hfefdfc9_0
+  license: BSD-3-Clause
+  license_family: BSD
+  purls:
+  - pkg:pypi/tracy-client?source=hash-mapping
+  size: 409909
+  timestamp: 1767784780715
+- conda: https://conda.anaconda.org/conda-forge/osx-64/tracy-profiler-client-python-0.13.1-py311h75d39bf_0.conda
+  sha256: 00bbbeafdde00facc85f0f9e432b3abf2c58fea3116b58081c1468361e1c4cba
+  md5: 972c8021497c07ff3f5ab6ff62b2b440
+  depends:
+  - __osx >=10.13
+  - libcxx >=19
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
+  - tracy-profiler-client 0.13.1 h70902e5_0
+  license: BSD-3-Clause
+  license_family: BSD
+  purls:
+  - pkg:pypi/tracy-client?source=hash-mapping
+  size: 336409
+  timestamp: 1767785155730
+- conda: https://conda.anaconda.org/conda-forge/osx-arm64/tracy-profiler-client-python-0.13.1-py311ha57ad18_0.conda
+  sha256: 7bdb74254f3d69c0fda5e33491ecb7cf74056e2df4d4a548cdab62df250f15bf
+  md5: cd3e55376d21124ef5fe5fa846ab72c9
+  depends:
+  - __osx >=11.0
+  - libcxx >=19
+  - python >=3.11,<3.12.0a0
+  - python >=3.11,<3.12.0a0 *_cpython
+  - python_abi 3.11.* *_cp311
+  - tracy-profiler-client 0.13.1 h0b65c43_0
+  license: BSD-3-Clause
+  license_family: BSD
+  purls:
+  - pkg:pypi/tracy-client?source=hash-mapping
+  size: 319215
+  timestamp: 1767863225497
+- conda: https://conda.anaconda.org/conda-forge/win-64/tracy-profiler-client-python-0.13.1-py311h3fd045d_0.conda
+  sha256: bd7d44a12a22166d5c9073e5e4f3d3d989d844047353345dbf02e7f62edd341d
+  md5: 38f1678cfa414acfbaae238c16a36aa6
+  depends:
+  - python >=3.11,<3.12.0a0
+  - python_abi 3.11.* *_cp311
+  - tracy-profiler-client 0.13.1 h49e36cd_0
+  - ucrt >=10.0.20348.0
+  - vc >=14.3,<15
+  - vc14_runtime >=14.44.35208
+  license: BSD-3-Clause
+  license_family: BSD
+  purls:
+  - pkg:pypi/tracy-client?source=hash-mapping
+  size: 276870
+  timestamp: 1767785589648
 - conda: https://conda.anaconda.org/conda-forge/noarch/truststore-0.10.4-pyhcf101f3_0.conda
   sha256: eece5be81588c39a855a0b70da84e0febb878a6d91dd27d6d21370ce9e5c5a46
   md5: c2db35b004913ec69bcac64fb0783de0

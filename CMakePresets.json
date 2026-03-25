@@ -25,6 +25,10 @@
           "CMAKE_POLICY_VERSION_MINIMUM": {
             "type": "STRING",
             "value": "3.5"
+          },
+          "BUILD_TRACY_FRAME_PROFILER": {
+            "type": "BOOL",
+            "value": "ON"
           }
         }
       },
