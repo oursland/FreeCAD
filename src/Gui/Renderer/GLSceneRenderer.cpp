@@ -255,7 +255,30 @@ void GLSceneRenderer::renderEntry(const DrawEntry& entry)
         entry.color[2],
         1.0f - entry.transparency
     );
-    meshShader.setUniform1i(uUseOverride, 0);
+    // Apply selection/preselection override color
+    if (entry.highlightElement >= 0) {
+        meshShader.setUniform4f(
+            uOverrideColor,
+            entry.highlightColor[0],
+            entry.highlightColor[1],
+            entry.highlightColor[2],
+            1.0f
+        );
+        meshShader.setUniform1i(uUseOverride, 1);
+    }
+    else if (!entry.selectedElements.empty()) {
+        meshShader.setUniform4f(
+            uOverrideColor,
+            entry.selectionColor[0],
+            entry.selectionColor[1],
+            entry.selectionColor[2],
+            1.0f
+        );
+        meshShader.setUniform1i(uUseOverride, 1);
+    }
+    else {
+        meshShader.setUniform1i(uUseOverride, 0);
+    }
 
     // Bind VBO and set vertex attribute pointers (no VAO in GL 2.1)
     int stride = 6 * sizeof(float);  // 3 pos + 3 normal interleaved

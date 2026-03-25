@@ -25,6 +25,9 @@
 #include "Gui/ViewProvider.h"
 #include "Gui/ViewProviderGeometryObject.h"
 
+#include "Gui/Selection/Selection.h"
+#include "Gui/Selection/SoFCSelection.h"
+
 #include <Inventor/actions/SoCallbackAction.h>
 #include <Inventor/nodes/SoCoordinate3.h>
 #include <Inventor/nodes/SoGroup.h>
@@ -72,6 +75,9 @@ struct FaceSetData
     SbMatrix modelMatrix;
     SbColor diffuseColor {0.8f, 0.8f, 0.8f};
     float transparency = 0.0f;
+
+    // Object identity from SoFCSelection ancestor (for selection matching)
+    std::string objectName;
 
     /// Unique key: node pointer + matrix hash to distinguish linked instances
     uint64_t instanceKey() const
@@ -209,6 +215,20 @@ static SoCallbackAction::Response faceSetCB(void* userData, SoCallbackAction* ac
     // Get model matrix from traversal state
     fd.modelMatrix = SoModelMatrixElement::get(state);
 
+    // Walk up the current path to find the nearest SoFCSelection ancestor,
+    // which carries the object name for selection matching.
+    const SoPath* curPath = action->getCurPath();
+    if (curPath) {
+        for (int pi = curPath->getLength() - 1; pi >= 0; pi--) {
+            SoNode* pathNode = curPath->getNodeFromTail(pi);
+            if (pathNode->isOfType(Gui::SoFCSelection::getClassTypeId())) {
+                auto* sel = static_cast<Gui::SoFCSelection*>(pathNode);
+                fd.objectName = sel->objectName.getValue().getString();
+                break;
+            }
+        }
+    }
+
     // Get material from traversal state
     const SoLazyElement* lazyElem = SoLazyElement::getInstance(state);
     if (lazyElem) {
@@ -285,6 +305,67 @@ void SceneSync::sync(View3DInventorViewer* viewer, SceneRenderer* renderer)
             fd.transparency
         );
         meshEntries[key] = entry;
+    }
+
+    // Apply preselection and selection highlighting.
+    // Query the Selection singleton for the current state and apply
+    // override colors to matching mesh entries.
+    const auto& presel = Gui::Selection().getPreselection();
+    std::string preselObj = presel.pObjectName ? presel.pObjectName : "";
+
+    // Get selected objects for the active document
+    auto selObjs = Gui::Selection().getSelection();
+    std::set<std::string> selectedNames;
+    for (const auto& sel : selObjs) {
+        if (sel.FeatName) {
+            selectedNames.insert(sel.FeatName);
+        }
+    }
+
+    // Default highlight colors (FreeCAD defaults)
+    SbColor preselColor(0.88f, 0.88f, 0.08f);  // yellow-gold for preselection
+    SbColor selColor(0.11f, 0.68f, 0.11f);     // green for selection
+
+    // Build a map from object name to faceset keys for quick lookup
+    std::map<std::string, std::vector<uint64_t>> nameToKeys;
+    for (auto& fd : cbData.facesets) {
+        if (!fd.objectName.empty()) {
+            nameToKeys[fd.objectName].push_back(fd.instanceKey());
+        }
+    }
+
+    // Clear all highlights first, then apply current state
+    for (auto& [key, entry] : meshEntries) {
+        if (entry.faceMeshId != SceneRenderer::InvalidMesh) {
+            renderer->clearHighlight(entry.faceMeshId);
+            renderer->clearSelection(entry.faceMeshId);
+        }
+    }
+
+    // Apply selection highlighting
+    for (const auto& name : selectedNames) {
+        auto nit = nameToKeys.find(name);
+        if (nit != nameToKeys.end()) {
+            for (uint64_t key : nit->second) {
+                auto eit = meshEntries.find(key);
+                if (eit != meshEntries.end() && eit->second.faceMeshId != SceneRenderer::InvalidMesh) {
+                    renderer->setSelection(eit->second.faceMeshId, {0}, selColor);
+                }
+            }
+        }
+    }
+
+    // Apply preselection highlighting (overrides selection visually)
+    if (!preselObj.empty()) {
+        auto nit = nameToKeys.find(preselObj);
+        if (nit != nameToKeys.end()) {
+            for (uint64_t key : nit->second) {
+                auto eit = meshEntries.find(key);
+                if (eit != meshEntries.end() && eit->second.faceMeshId != SceneRenderer::InvalidMesh) {
+                    renderer->setHighlight(eit->second.faceMeshId, 0, preselColor);
+                }
+            }
+        }
     }
 }
 
