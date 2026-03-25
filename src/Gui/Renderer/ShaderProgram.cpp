@@ -62,7 +62,7 @@ uint32_t ShaderProgram::compileShader(uint32_t type, const char* src)
     if (!success) {
         char log[512];
         glGetShaderInfoLog(shader, sizeof(log), nullptr, log);
-        Base::Console().Error("ShaderProgram: compile error: %s\n", log);
+        Base::Console().error("ShaderProgram: compile error: %s\n", log);
         glDeleteShader(shader);
         return 0;
     }
@@ -92,7 +92,7 @@ bool ShaderProgram::build(const char* vertexSrc, const char* fragmentSrc)
     if (!success) {
         char log[512];
         glGetProgramInfoLog(program, sizeof(log), nullptr, log);
-        Base::Console().Error("ShaderProgram: link error: %s\n", log);
+        Base::Console().error("ShaderProgram: link error: %s\n", log);
         glDeleteProgram(program);
         program = 0;
     }

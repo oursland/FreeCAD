@@ -1489,6 +1489,15 @@ SET(FreeCADGui_SRCS
     ${Workbench_SRCS}
     ${Selection_SRCS}
     ${FreeCADGui_SRCS}
+    Renderer/SceneRenderer.h
+    Renderer/ShaderProgram.h
+    Renderer/ShaderProgram.cpp
+    Renderer/RenderQueue.h
+    Renderer/RenderQueue.cpp
+    Renderer/GLSceneRenderer.h
+    Renderer/GLSceneRenderer.cpp
+    Renderer/SceneSync.h
+    Renderer/SceneSync.cpp
 )
 
 if(MSVC)

@@ -163,7 +163,7 @@ bool GLSceneRenderer::initialize()
     }
 
     if (!meshShader.build(vertexShaderSrc, fragmentShaderSrc)) {
-        Base::Console().Error("GLSceneRenderer: failed to build mesh shader\n");
+        Base::Console().error("GLSceneRenderer: failed to build mesh shader\n");
         return false;
     }
 
@@ -178,7 +178,7 @@ bool GLSceneRenderer::initialize()
     uUseOverride = meshShader.uniformLocation("uUseOverride");
 
     initialized = true;
-    Base::Console().Log("GLSceneRenderer: initialized successfully\n");
+    Base::Console().log("GLSceneRenderer: initialized successfully\n");
     return true;
 }
 

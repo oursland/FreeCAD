@@ -138,7 +138,10 @@
 #include "Navigation/NavigationAnimator.h"
 #include "Navigation/NavigationAnimation.h"
 #include "Utilities.h"
+#include "Renderer/GLSceneRenderer.h"
+#include "Renderer/SceneSync.h"
 
+#include <Inventor/nodes/SoCamera.h>
 #include <Inventor/nodes/SoRotation.h>
 #include <Inventor/nodes/SoTransformSeparator.h>
 #include <Inventor/So3DAnnotation.h>
@@ -906,6 +909,19 @@ bool View3DInventorViewer::containsViewProvider(const ViewProvider* vp) const
     sa.setSearchingAll(false);
     sa.apply(getSoRenderManager()->getSceneGraph());
     return sa.getPath() != nullptr;
+}
+
+void View3DInventorViewer::setUseSceneRenderer(bool enable)
+{
+    useSceneRenderer = enable;
+    if (enable && !sceneRenderer) {
+        sceneRenderer = std::make_unique<GLSceneRenderer>();
+        sceneSync = std::make_unique<SceneSync>();
+    }
+    if (enable && sceneSync) {
+        sceneSync->invalidateAll();
+    }
+    this->getSoRenderManager()->scheduleRedraw();
 }
 
 /// adds an ViewProvider to the view, e.g. from a feature
@@ -2542,7 +2558,26 @@ void View3DInventorViewer::renderScene()
 
     try {
         // Render normal scenegraph.
-        inherited::actualRedraw();
+        if (useSceneRenderer && sceneRenderer) {
+            // Fast path: render queue bypasses Coin3D traversal
+            auto* glRenderer = dynamic_cast<GLSceneRenderer*>(sceneRenderer.get());
+            if (glRenderer && !glRenderer->isInitialized()) {
+                glRenderer->initialize();
+            }
+            sceneSync->sync(this, sceneRenderer.get());
+
+            // Get camera matrices from Coin3D
+            SoCamera* camera = this->getSoRenderManager()->getCamera();
+            if (camera) {
+                SbMatrix viewMatrix, projMatrix;
+                camera->getViewVolume().getMatrices(viewMatrix, projMatrix);
+                sceneRenderer->beginFrame(viewMatrix, projMatrix, vp);
+                sceneRenderer->endFrame();
+            }
+        }
+        else {
+            inherited::actualRedraw();
+        }
 
         So3DAnnotation::render = true;
         glClear(GL_DEPTH_BUFFER_BIT);

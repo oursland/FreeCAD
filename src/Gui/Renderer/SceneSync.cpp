@@ -25,18 +25,18 @@
 #include "Gui/ViewProvider.h"
 #include "Gui/ViewProviderGeometryObject.h"
 
+#include <Inventor/actions/SoSearchAction.h>
 #include <Inventor/nodes/SoCoordinate3.h>
-#include <Inventor/nodes/SoNormal.h>
+#include <Inventor/nodes/SoGroup.h>
+#include <Inventor/nodes/SoIndexedFaceSet.h>
+#include <Inventor/nodes/SoIndexedLineSet.h>
 #include <Inventor/nodes/SoMaterial.h>
+#include <Inventor/nodes/SoNormal.h>
+#include <Inventor/nodes/SoPointSet.h>
+#include <Inventor/nodes/SoSeparator.h>
 #include <Inventor/nodes/SoSwitch.h>
 #include <Inventor/nodes/SoTransform.h>
-#include <Inventor/nodes/SoSeparator.h>
 #include <Inventor/SbMatrix.h>
-
-#include <Mod/Part/Gui/SoBrepFaceSet.h>
-#include <Mod/Part/Gui/SoBrepEdgeSet.h>
-#include <Mod/Part/Gui/SoBrepPointSet.h>
-#include <Mod/Part/Gui/ViewProviderExt.h>
 
 #include <Base/Console.h>
 
@@ -45,24 +45,35 @@ using namespace Gui;
 SceneSync::SceneSync() = default;
 SceneSync::~SceneSync() = default;
 
+// Find the first node of a given type under a root
+static SoNode* findNodeOfType(SoNode* root, SoType type)
+{
+    SoSearchAction sa;
+    sa.setType(type);
+    sa.setInterest(SoSearchAction::FIRST);
+    sa.apply(root);
+    SoPath* path = sa.getPath();
+    if (path) {
+        return path->getTail();
+    }
+    return nullptr;
+}
+
 void SceneSync::sync(View3DInventorViewer* viewer, SceneRenderer* renderer)
 {
     if (!viewer || !renderer) {
         return;
     }
 
-    // Collect all currently active ViewProviders
-    auto vpList = viewer->getViewProvidersOfType(PartGui::ViewProviderPartExt::getClassTypeId());
+    // Collect all visible geometry ViewProviders
+    auto vpList = viewer->getViewProvidersOfType(ViewProviderGeometryObject::getClassTypeId());
 
-    // Track which VPs we've seen this frame
     std::map<ViewProvider*, bool> seen;
 
     for (auto* vp : vpList) {
         seen[vp] = true;
 
-        // Check if VP is visible
         if (!vp->isVisible()) {
-            // If we have entries for it, hide them
             auto it = entries.find(vp);
             if (it != entries.end()) {
                 auto& entry = it->second;
@@ -79,11 +90,9 @@ void SceneSync::sync(View3DInventorViewer* viewer, SceneRenderer* renderer)
             continue;
         }
 
-        // Check if this VP needs (re-)syncing
         uint32_t nodeId = vp->getRoot()->getNodeId();
         auto it = entries.find(vp);
         if (it != entries.end() && it->second.lastNodeId == nodeId) {
-            // No change — ensure visible
             if (it->second.faceMeshId != SceneRenderer::InvalidMesh) {
                 renderer->setVisible(it->second.faceMeshId, true);
             }
@@ -96,7 +105,6 @@ void SceneSync::sync(View3DInventorViewer* viewer, SceneRenderer* renderer)
             continue;
         }
 
-        // Sync this VP
         syncViewProvider(vp, renderer);
         entries[vp].lastNodeId = nodeId;
     }
@@ -125,18 +133,13 @@ void SceneSync::sync(View3DInventorViewer* viewer, SceneRenderer* renderer)
 void SceneSync::invalidateAll()
 {
     for (auto& kv : entries) {
-        kv.second.lastNodeId = 0;  // Force re-sync
+        kv.second.lastNodeId = 0;
     }
 }
 
 void SceneSync::syncViewProvider(ViewProvider* vp, SceneRenderer* renderer)
 {
-    auto* partVP = dynamic_cast<PartGui::ViewProviderPartExt*>(vp);
-    if (!partVP) {
-        return;
-    }
-
-    // Remove old entries if they exist
+    // Remove old entries
     auto& entry = entries[vp];
     if (entry.faceMeshId != SceneRenderer::InvalidMesh) {
         renderer->remove(entry.faceMeshId);
@@ -151,8 +154,13 @@ void SceneSync::syncViewProvider(ViewProvider* vp, SceneRenderer* renderer)
         entry.pointMeshId = SceneRenderer::InvalidMesh;
     }
 
-    // Get coordinate data
-    SoCoordinate3* coords = partVP->coords;
+    SoNode* root = vp->getRoot();
+    if (!root) {
+        return;
+    }
+
+    // Find coordinate node
+    auto* coords = dynamic_cast<SoCoordinate3*>(findNodeOfType(root, SoCoordinate3::getClassTypeId()));
     if (!coords || coords->point.getNum() == 0) {
         return;
     }
@@ -162,7 +170,7 @@ void SceneSync::syncViewProvider(ViewProvider* vp, SceneRenderer* renderer)
 
     // Get transform
     SbMatrix modelMatrix;
-    SoTransform* transform = dynamic_cast<SoTransform*>(partVP->getTransformNode());
+    auto* transform = dynamic_cast<SoTransform*>(findNodeOfType(root, SoTransform::getClassTypeId()));
     if (transform) {
         SbVec3f t = transform->translation.getValue();
         SbRotation r = transform->rotation.getValue();
@@ -178,21 +186,21 @@ void SceneSync::syncViewProvider(ViewProvider* vp, SceneRenderer* renderer)
     // Get material color
     SbColor diffuseColor(0.8f, 0.8f, 0.8f);
     float transparency = 0.0f;
-    auto* geoVP = dynamic_cast<ViewProviderGeometryObject*>(vp);
-    if (geoVP && geoVP->pcShapeMaterial) {
-        if (geoVP->pcShapeMaterial->diffuseColor.getNum() > 0) {
-            diffuseColor = geoVP->pcShapeMaterial->diffuseColor[0];
+    auto* material = dynamic_cast<SoMaterial*>(findNodeOfType(root, SoMaterial::getClassTypeId()));
+    if (material) {
+        if (material->diffuseColor.getNum() > 0) {
+            diffuseColor = material->diffuseColor[0];
         }
-        if (geoVP->pcShapeMaterial->transparency.getNum() > 0) {
-            transparency = geoVP->pcShapeMaterial->transparency[0];
+        if (material->transparency.getNum() > 0) {
+            transparency = material->transparency[0];
         }
     }
 
-    // Submit face geometry
-    SoBrepFaceSet* faceset = partVP->faceset;
+    // Submit face geometry (SoIndexedFaceSet or subclass like SoBrepFaceSet)
+    auto* faceset = dynamic_cast<SoIndexedFaceSet*>(
+        findNodeOfType(root, SoIndexedFaceSet::getClassTypeId())
+    );
     if (faceset && faceset->coordIndex.getNum() > 0) {
-        // Convert Coin3D indexed face set indices (with -1 delimiters) to
-        // flat triangle indices
         const int32_t* cindices = faceset->coordIndex.getValues(0);
         int numCIndices = faceset->coordIndex.getNum();
 
@@ -204,15 +212,13 @@ void SceneSync::syncViewProvider(ViewProvider* vp, SceneRenderer* renderer)
                 triIndices.push_back(cindices[i + 1]);
                 triIndices.push_back(cindices[i + 2]);
             }
-            // Skip to next face (past the -1 delimiter)
             while (i < numCIndices && cindices[i] >= 0) {
                 i++;
             }
-            i++;  // skip the -1
+            i++;
         }
 
-        // Get normals
-        SoNormal* norm = partVP->norm;
+        auto* norm = dynamic_cast<SoNormal*>(findNodeOfType(root, SoNormal::getClassTypeId()));
         const float* normalData = nullptr;
         if (norm && norm->vector.getNum() == numVerts) {
             normalData = reinterpret_cast<const float*>(norm->vector.getValues(0));
@@ -232,8 +238,10 @@ void SceneSync::syncViewProvider(ViewProvider* vp, SceneRenderer* renderer)
         }
     }
 
-    // Submit edge geometry
-    SoBrepEdgeSet* lineset = partVP->lineset;
+    // Submit edge geometry (SoIndexedLineSet or subclass like SoBrepEdgeSet)
+    auto* lineset = dynamic_cast<SoIndexedLineSet*>(
+        findNodeOfType(root, SoIndexedLineSet::getClassTypeId())
+    );
     if (lineset && lineset->coordIndex.getNum() > 0) {
         const int32_t* cindices = lineset->coordIndex.getValues(0);
         int numCIndices = lineset->coordIndex.getNum();
@@ -245,9 +253,8 @@ void SceneSync::syncViewProvider(ViewProvider* vp, SceneRenderer* renderer)
                 lineIndices.push_back(cindices[i]);
                 lineIndices.push_back(cindices[i + 1]);
             }
-            // Skip to next segment
             if (i + 2 < numCIndices && cindices[i + 2] >= 0) {
-                i++;  // next vertex in polyline
+                i++;
             }
             else {
                 i += 2;
@@ -264,18 +271,18 @@ void SceneSync::syncViewProvider(ViewProvider* vp, SceneRenderer* renderer)
                 lineIndices.data(),
                 static_cast<int>(lineIndices.size()),
                 modelMatrix,
-                SbColor(0.0f, 0.0f, 0.0f),  // edges are black
+                SbColor(0.0f, 0.0f, 0.0f),
                 2.0f
             );
         }
     }
 
-    // Submit point geometry
-    SoBrepPointSet* nodeset = partVP->nodeset;
-    if (nodeset) {
-        int startIdx = nodeset->startIndex.getValue();
-        int numPoints = numVerts - startIdx;
-        if (numPoints > 0) {
+    // Submit point geometry (SoPointSet or subclass like SoBrepPointSet)
+    auto* pointset = dynamic_cast<SoPointSet*>(findNodeOfType(root, SoPointSet::getClassTypeId()));
+    if (pointset) {
+        int numPoints = pointset->numPoints.getValue();
+        if (numPoints > 0 && numPoints <= numVerts) {
+            int startIdx = numVerts - numPoints;
             entry.pointMeshId = renderer->submitPoints(
                 reinterpret_cast<const float*>(vertexData + startIdx),
                 numPoints,

@@ -90,6 +90,8 @@ class BoundBox2d;
 namespace Gui
 {
 class NavigationAnimation;
+class SceneRenderer;
+class SceneSync;
 class ViewProvider;
 class SoFCBackgroundGradient;
 class NavigationStyle;
@@ -240,6 +242,13 @@ public:
     ViewProvider* getViewProviderByPathFromTail(SoPath*) const;
     /// get all view providers of given type
     std::vector<ViewProvider*> getViewProvidersOfType(const Base::Type& typeId) const;
+
+    /// Enable/disable the fast scene renderer (bypasses Coin3D rendering).
+    void setUseSceneRenderer(bool enable);
+    bool getUseSceneRenderer() const
+    {
+        return useSceneRenderer;
+    }
     /// set the ViewProvider in special edit mode
     void setEditingViewProvider(Gui::ViewProvider* vp, int ModNum);
     /// return whether a view provider is edited
@@ -611,6 +620,11 @@ private:
     Base::Color m_zColor;
 
     bool editing;
+
+    // Fast renderer (bypasses Coin3D's SoGLRenderAction)
+    std::unique_ptr<SceneRenderer> sceneRenderer;
+    std::unique_ptr<SceneSync> sceneSync;
+    bool useSceneRenderer = false;
     QCursor editCursor, zoomCursor, panCursor, spinCursor;
     bool redirected;
     bool allowredir;
