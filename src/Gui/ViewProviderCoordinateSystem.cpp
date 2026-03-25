@@ -55,7 +55,7 @@ ViewProviderCoordinateSystem::ViewProviderCoordinateSystem()
     sPixmap = "Std_CoordinateSystem";
     Visibility.setValue(false);
 
-    pcGroupChildren = new SoGroup();
+    pcGroupChildren = new SoSeparator();
     pcGroupChildren->ref();
 
     auto lm = new SoLightModel();

@@ -24,6 +24,7 @@
 #pragma once
 
 #include <functional>
+#include <Inventor/nodes/SoSeparator.h>
 #include <Base/Bitmask.h>
 #include <App/PropertyGeo.h>
 
@@ -111,7 +112,7 @@ private:
     void applyDatumObjects(const DatumObjectFunc& func);
 
 private:
-    SoGroup* pcGroupChildren;
+    SoSeparator* pcGroupChildren;
 
     std::map<Gui::ViewProvider*, bool> tempVisMap;
 };
