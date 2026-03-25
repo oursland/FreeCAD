@@ -607,8 +607,9 @@ void View3DInventorViewer::init()
     pcEditingRoot->addChild(pcEditingTransform);
     pcViewProviderRoot->addChild(pcEditingRoot);
 
-    // Create group for the physical object
-    objectGroup = new SoGroup();
+    // Create group for the physical object.
+    // Using SoSeparator to enable per-child bounding box culling during ray picking.
+    objectGroup = new SoSeparator();
     objectGroup->ref();
     objectGroup->setName("ObjectGroup");
     pcViewProviderRoot->addChild(objectGroup);

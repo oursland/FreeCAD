@@ -572,8 +572,9 @@ private:
 
     // Scene graph root
     SoSeparator* pcViewProviderRoot;
-    // Child group in the scene graph that contains view providers related to the physical object
-    SoGroup* objectGroup;
+    // Child group in the scene graph that contains view providers related to the physical object.
+    // Using SoSeparator (not SoGroup) to enable per-child bounding box culling during picking.
+    SoSeparator* objectGroup;
 
     std::unique_ptr<View3DInventorSelection> inventorSelection;
 
