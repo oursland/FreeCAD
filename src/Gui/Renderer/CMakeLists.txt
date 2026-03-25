@@ -6,6 +6,8 @@ set(Renderer_SRCS
     RenderQueue.cpp
     GLSceneRenderer.h
     GLSceneRenderer.cpp
+    SceneSync.h
+    SceneSync.cpp
 )
 
 # These files are compiled as part of the FreeCADGui library,
