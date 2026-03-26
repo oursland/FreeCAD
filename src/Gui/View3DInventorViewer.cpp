@@ -53,6 +53,7 @@
 #include <Inventor/elements/SoViewportRegionElement.h>
 #include <Inventor/errors/SoDebugError.h>
 #include <Inventor/events/SoEvent.h>
+#include <Inventor/sensors/SoNodeSensor.h>
 #include <Inventor/events/SoKeyboardEvent.h>
 #include <Inventor/events/SoMotion3Event.h>
 #include <Inventor/manips/SoClipPlaneManip.h>
@@ -702,6 +703,9 @@ void View3DInventorViewer::init()
 
 View3DInventorViewer::~View3DInventorViewer()
 {
+    delete sceneSyncSensor;
+    sceneSyncSensor = nullptr;
+
     // to prevent following OpenGL error message: "Texture is not valid in the current context.
     // Texture has not been destroyed"
     aboutToDestroyGLContext();
@@ -885,9 +889,18 @@ void View3DInventorViewer::onSelectionChanged(const SelectionChanges& reason)
         selectionAction.apply(pcViewProviderRoot);
     }
 
-    // TODO: selection highlighting will be handled by querying
-    // SoFCSelectionRoot context directly, without re-traversing.
-    // For now, selection changes don't trigger a renderer re-sync.
+    // Mark dirty for visibility/structural changes that affect what's rendered.
+    // Selection and preselection are handled by updateHighlighting() every frame.
+    if (sceneSync) {
+        switch (Reason.Type) {
+            case SelectionChanges::ShowSelection:
+            case SelectionChanges::HideSelection:
+                sceneSync->markDirty();
+                break;
+            default:
+                break;
+        }
+    }
 }
 /// @endcond
 
@@ -915,6 +928,15 @@ bool View3DInventorViewer::containsViewProvider(const ViewProvider* vp) const
     return sa.getPath() != nullptr;
 }
 
+void View3DInventorViewer::sceneSyncSensorCB(void* data, SoSensor* /*sensor*/)
+{
+    auto* self = static_cast<View3DInventorViewer*>(data);
+    if (self->sceneSync && self->useSceneRenderer) {
+        self->sceneSync->markDirty();
+        self->getSoRenderManager()->scheduleRedraw();
+    }
+}
+
 void View3DInventorViewer::setUseSceneRenderer(bool enable)
 {
     useSceneRenderer = enable;
@@ -925,6 +947,19 @@ void View3DInventorViewer::setUseSceneRenderer(bool enable)
     if (enable && sceneSync && sceneRenderer) {
         sceneSync->invalidateAll(sceneRenderer.get());
     }
+
+    // Attach/detach a node sensor on objectGroup to detect visibility changes.
+    // The sensor fires when any child node changes (VP show/hide, add/remove).
+    if (enable && !sceneSyncSensor) {
+        sceneSyncSensor = new SoNodeSensor(sceneSyncSensorCB, this);
+        sceneSyncSensor->attach(objectGroup);
+        // Use default priority (deferred) — fires after processing is done
+    }
+    else if (!enable && sceneSyncSensor) {
+        delete sceneSyncSensor;
+        sceneSyncSensor = nullptr;
+    }
+
     this->getSoRenderManager()->scheduleRedraw();
 }
 
@@ -957,6 +992,10 @@ void View3DInventorViewer::addViewProvider(ViewProvider* pcProvider)
 
     pcProvider->setOverrideMode(this->getOverrideMode());
     _ViewProviderSet.insert(pcProvider);
+
+    if (sceneSync) {
+        sceneSync->markDirty();
+    }
 }
 
 void View3DInventorViewer::removeViewProvider(ViewProvider* pcProvider)
@@ -989,6 +1028,10 @@ void View3DInventorViewer::removeViewProvider(ViewProvider* pcProvider)
     }
 
     _ViewProviderSet.erase(pcProvider);
+
+    if (sceneSync) {
+        sceneSync->markDirty();
+    }
 }
 
 void View3DInventorViewer::setEditingTransform(const Base::Matrix4D& mat)

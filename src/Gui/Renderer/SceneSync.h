@@ -84,6 +84,7 @@ private:
     /// Reverse lookup: shape node → list of mesh IDs (multiple for Assembly Links)
     std::map<SoNode*, std::vector<SceneRenderer::MeshId>> nodeToMeshIds;
     bool needsFullSync = true;
+    uint32_t lastObjectGroupNodeId = 0;
 };
 
 }  // namespace Gui

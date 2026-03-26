@@ -23,9 +23,13 @@
 #include "SceneSync.h"
 #include "SoRenderDataCollector.h"
 #include "Gui/Application.h"
+#include "Gui/Document.h"
 #include "Gui/Selection/Selection.h"
 #include "Gui/View3DInventorViewer.h"
 #include "Gui/ViewProviderDocumentObject.h"
+
+#include <App/Document.h>
+#include <App/DocumentObject.h>
 
 #include <Inventor/SoRenderManager.h>
 #include <Inventor/actions/SoCallbackAction.h>
@@ -143,8 +147,6 @@ void SceneSync::sync(View3DInventorViewer* viewer, SceneRenderer* renderer)
         return;
     }
 
-    // Only run the collection pass when the scene has changed.
-    // Camera-only changes reuse existing mesh entries.
     if (!needsFullSync) {
         return;
     }
@@ -163,6 +165,9 @@ void SceneSync::sync(View3DInventorViewer* viewer, SceneRenderer* renderer)
 
 void SceneSync::processItems(const std::vector<RenderItem>& items, SceneRenderer* renderer)
 {
+    // Rebuild reverse lookup on each full sync
+    nodeToMeshIds.clear();
+
     // Build set of instance keys found this frame.
     // For now, only process face geometry (Triangles). Edges and points
     // add significant overhead and are not needed for the basic view.
@@ -377,6 +382,24 @@ void SceneSync::updateHighlighting(View3DInventorViewer* viewer, SceneRenderer* 
         return;
     }
 
+    // Rebuild reverse lookup if needed (e.g., after entries changed)
+    if (nodeToMeshIds.empty() && !meshEntries.empty()) {
+        for (const auto& [key, entry] : meshEntries) {
+            if (entry.shapeNode && entry.meshId != SceneRenderer::InvalidMesh) {
+                nodeToMeshIds[entry.shapeNode].push_back(entry.meshId);
+            }
+        }
+        static bool logged = false;
+        if (!logged) {
+            Base::Console().message(
+                "SceneSync: nodeToMeshIds has %d nodes, %d mesh entries\n",
+                static_cast<int>(nodeToMeshIds.size()),
+                static_cast<int>(meshEntries.size())
+            );
+            logged = true;
+        }
+    }
+
     // Default highlight colors
     SbColor preselColor(0.88f, 0.88f, 0.08f);  // yellow-gold
     SbColor selColor(0.11f, 0.68f, 0.11f);     // green
@@ -398,22 +421,63 @@ void SceneSync::updateHighlighting(View3DInventorViewer* viewer, SceneRenderer* 
     // Query Selection singleton for preselection
     const auto& presel = Gui::Selection().getPreselection();
     if (presel.pObjectName && presel.pObjectName[0]) {
-        // The preselection was resolved by Coin's pick action.
-        // We need to find which shape node was picked. Use the
-        // SoHandleEventAction's picked point list from the last event.
-        // For now, highlight all mesh entries that share the preselected
-        // object's shape nodes. This is approximate but fast.
-        // TODO: use the actual picked SoPath for precise matching
+        // Resolve the preselected object. For Assemblies, pObjectName is
+        // "Assembly" and pSubName is "PartName.Body.Face3". We need to
+        // resolve the sub-object path to find the actual feature's VP.
+        auto* guiDoc = viewer->getDocument();
+        if (guiDoc && guiDoc->getDocument()) {
+            auto* doc = guiDoc->getDocument();
+            auto* obj = doc->getObject(presel.pObjectName);
+            if (obj && presel.pSubName && presel.pSubName[0]) {
+                // Resolve sub-object to get the actual feature
+                auto* subObj = obj->getSubObject(presel.pSubName);
+                if (subObj) {
+                    obj = subObj;
+                }
+            }
+            if (obj) {
+                auto* vp = dynamic_cast<ViewProviderDocumentObject*>(
+                    Gui::Application::Instance->getViewProvider(obj)
+                );
+                if (vp) {
+                    SoSearchAction sa;
+                    sa.setType(SoIndexedFaceSet::getClassTypeId());
+                    sa.setInterest(SoSearchAction::ALL);
+                    sa.apply(vp->getRoot());
+                    SoPathList& paths = sa.getPaths();
+                    for (int i = 0; i < paths.getLength(); i++) {
+                        SoNode* shapeNode = paths[i]->getTail();
+                        auto nit = nodeToMeshIds.find(shapeNode);
+                        if (nit != nodeToMeshIds.end()) {
+                            for (auto meshId : nit->second) {
+                                renderer->setHighlight(meshId, 0, preselColor);
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // Get selection — highlight all meshes for selected objects
     auto selObjs = Gui::Selection().getSelectionEx();
+    static int selLog = 0;
     for (const auto& selEx : selObjs) {
         // Get the ViewProvider's shape nodes
         auto* vp = dynamic_cast<ViewProviderDocumentObject*>(
             Gui::Application::Instance->getViewProvider(selEx.getObject())
         );
+        if (selLog < 3) {
+            Base::Console().message(
+                "SceneSync: sel obj=%s vp=%p\n",
+                selEx.getObject() ? selEx.getObject()->getNameInDocument() : "?",
+                static_cast<void*>(vp)
+            );
+        }
         if (!vp) {
+            if (selLog < 3) {
+                selLog++;
+            }
             continue;
         }
         // Search the VP's scene graph for SoIndexedFaceSet nodes
@@ -423,14 +487,21 @@ void SceneSync::updateHighlighting(View3DInventorViewer* viewer, SceneRenderer* 
         sa.setInterest(SoSearchAction::ALL);
         sa.apply(vp->getRoot());
         SoPathList& paths = sa.getPaths();
+        int matched = 0;
         for (int i = 0; i < paths.getLength(); i++) {
             SoNode* shapeNode = paths[i]->getTail();
             auto nit = nodeToMeshIds.find(shapeNode);
             if (nit != nodeToMeshIds.end()) {
                 for (auto meshId : nit->second) {
                     renderer->setSelection(meshId, {0}, selColor);
+                    matched++;
                 }
             }
+        }
+        if (selLog < 3) {
+            Base::Console()
+                .message("  found %d facesets, matched %d meshes\n", paths.getLength(), matched);
+            selLog++;
         }
     }
 }
