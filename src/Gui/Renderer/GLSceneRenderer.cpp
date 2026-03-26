@@ -221,27 +221,67 @@ void GLSceneRenderer::endFrame()
         loggedOnce = true;
     }
 
-    // Pass 1: Opaque geometry
+    // Pass 1: Opaque faces with polygon offset (push faces back for edge visibility)
     glDisable(GL_BLEND);
+    glEnable(GL_POLYGON_OFFSET_FILL);
+    glPolygonOffset(1.0f, 1.0f);
     for (const auto& entry : queue.entries()) {
         if (!entry.visible || !entry.vbo) {
             continue;
         }
         if (entry.transparency > 0.001f) {
-            continue;  // skip transparent
+            continue;
+        }
+        if (entry.type != DrawType::Triangles) {
+            continue;
+        }
+        renderEntry(entry);
+    }
+    glDisable(GL_POLYGON_OFFSET_FILL);
+
+    // Pass 2: Opaque edges and points (render on top of faces)
+    for (const auto& entry : queue.entries()) {
+        if (!entry.visible || !entry.vbo) {
+            continue;
+        }
+        if (entry.transparency > 0.001f) {
+            continue;
+        }
+        if (entry.type == DrawType::Triangles) {
+            continue;
         }
         renderEntry(entry);
     }
 
-    // Pass 2: Transparent geometry (back-to-front via sort key)
+    // Pass 3: Transparent faces
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDepthMask(GL_FALSE);
+    glEnable(GL_POLYGON_OFFSET_FILL);
+    glPolygonOffset(1.0f, 1.0f);
     for (const auto& entry : queue.entries()) {
         if (!entry.visible || !entry.vbo) {
             continue;
         }
         if (entry.transparency <= 0.001f) {
+            continue;
+        }
+        if (entry.type != DrawType::Triangles) {
+            continue;
+        }
+        renderEntry(entry);
+    }
+    glDisable(GL_POLYGON_OFFSET_FILL);
+
+    // Pass 4: Transparent edges and points
+    for (const auto& entry : queue.entries()) {
+        if (!entry.visible || !entry.vbo) {
+            continue;
+        }
+        if (entry.transparency <= 0.001f) {
+            continue;
+        }
+        if (entry.type == DrawType::Triangles) {
             continue;
         }
         renderEntry(entry);

@@ -35,6 +35,8 @@
 #include <Inventor/actions/SoCallbackAction.h>
 #include <Inventor/actions/SoSearchAction.h>
 #include <Inventor/nodes/SoIndexedFaceSet.h>
+#include <Inventor/nodes/SoIndexedLineSet.h>
+#include <Inventor/nodes/SoPointSet.h>
 #include <Inventor/nodes/SoSeparator.h>
 #include <Inventor/elements/SoCoordinateElement.h>
 #include <Inventor/elements/SoModelMatrixElement.h>
@@ -42,6 +44,7 @@
 #include <Inventor/elements/SoLazyElement.h>
 
 #include <Base/Console.h>
+#include <Base/Profiler.h>
 
 #include <cmath>
 #include <limits>
@@ -132,12 +135,87 @@ static SoCallbackAction::Response faceSetCB(void* userData, SoCallbackAction* ac
     return SoCallbackAction::CONTINUE;
 }
 
+static SoCallbackAction::Response lineSetCB(void* userData, SoCallbackAction* action, const SoNode* node)
+{
+    auto* data = static_cast<CallbackData*>(userData);
+    auto* lineset = static_cast<const SoIndexedLineSet*>(node);
+
+    if (lineset->coordIndex.getNum() == 0) {
+        return SoCallbackAction::CONTINUE;
+    }
+
+    SoState* state = action->getState();
+    const SoCoordinateElement* coordElem = SoCoordinateElement::getInstance(state);
+    if (!coordElem || coordElem->getNum() <= 0) {
+        return SoCallbackAction::CONTINUE;
+    }
+
+    RenderItem item;
+    item.shapeNode = const_cast<SoNode*>(node);
+    item.type = RenderItem::Lines;
+    item.vertices = reinterpret_cast<const float*>(&coordElem->get3(0));
+    item.numVertices = coordElem->getNum();
+    item.coordIndices = lineset->coordIndex.getValues(0);
+    item.numCoordIndices = lineset->coordIndex.getNum();
+    item.modelMatrix = SoModelMatrixElement::get(state);
+
+    const SoLazyElement* lazyElem = SoLazyElement::getInstance(state);
+    if (lazyElem) {
+        item.diffuseColor = lazyElem->getDiffuse(state, 0);
+        item.transparency = lazyElem->getTransparency(state, 0);
+    }
+    item.lineWidth = 1.0f;
+
+    data->items.push_back(std::move(item));
+    return SoCallbackAction::CONTINUE;
+}
+
+static SoCallbackAction::Response pointSetCB(void* userData, SoCallbackAction* action, const SoNode* node)
+{
+    auto* data = static_cast<CallbackData*>(userData);
+    auto* pointset = static_cast<const SoPointSet*>(node);
+
+    SoState* state = action->getState();
+    const SoCoordinateElement* coordElem = SoCoordinateElement::getInstance(state);
+    if (!coordElem || coordElem->getNum() <= 0) {
+        return SoCallbackAction::CONTINUE;
+    }
+
+    int numPoints = pointset->numPoints.getValue();
+    if (numPoints <= 0) {
+        numPoints = coordElem->getNum() - pointset->startIndex.getValue();
+    }
+    if (numPoints <= 0) {
+        return SoCallbackAction::CONTINUE;
+    }
+
+    int startIdx = pointset->startIndex.getValue();
+
+    RenderItem item;
+    item.shapeNode = const_cast<SoNode*>(node);
+    item.type = RenderItem::Points;
+    item.vertices = reinterpret_cast<const float*>(&coordElem->get3(startIdx));
+    item.numVertices = numPoints;
+    item.modelMatrix = SoModelMatrixElement::get(state);
+
+    const SoLazyElement* lazyElem = SoLazyElement::getInstance(state);
+    if (lazyElem) {
+        item.diffuseColor = lazyElem->getDiffuse(state, 0);
+        item.transparency = lazyElem->getTransparency(state, 0);
+    }
+    item.pointSize = 3.0f;
+
+    data->items.push_back(std::move(item));
+    return SoCallbackAction::CONTINUE;
+}
+
 // -----------------------------------------------------------------------
 // SceneSync
 // -----------------------------------------------------------------------
 
 void SceneSync::sync(View3DInventorViewer* viewer, SceneRenderer* renderer)
 {
+    ZoneScopedN("SceneSync::sync");
     if (!viewer || !renderer) {
         return;
     }
@@ -154,9 +232,14 @@ void SceneSync::sync(View3DInventorViewer* viewer, SceneRenderer* renderer)
     // Use SoCallbackAction for geometry collection — it doesn't touch GL
     // state and respects SoSwitch nodes for visibility.
     CallbackData cbData;
-    SoCallbackAction cba;
-    cba.addPreCallback(SoIndexedFaceSet::getClassTypeId(), faceSetCB, &cbData);
-    cba.apply(sceneRoot);
+    {
+        ZoneScopedN("SoCallbackAction::apply");
+        SoCallbackAction cba;
+        cba.addPreCallback(SoIndexedFaceSet::getClassTypeId(), faceSetCB, &cbData);
+        cba.addPreCallback(SoIndexedLineSet::getClassTypeId(), lineSetCB, &cbData);
+        cba.addPreCallback(SoPointSet::getClassTypeId(), pointSetCB, &cbData);
+        cba.apply(sceneRoot);
+    }
 
     // Process collected items
     processItems(cbData.items, renderer);
@@ -168,15 +251,10 @@ void SceneSync::processItems(const std::vector<RenderItem>& items, SceneRenderer
     // Rebuild reverse lookup on each full sync
     nodeToMeshIds.clear();
 
-    // Build set of instance keys found this frame.
-    // For now, only process face geometry (Triangles). Edges and points
-    // add significant overhead and are not needed for the basic view.
-    // TODO: support edges/points when display mode is "Flat Lines"
+    // Build set of instance keys found this frame
     std::set<uint64_t> currentKeys;
     for (const auto& item : items) {
-        if (item.type == RenderItem::Triangles) {
-            currentKeys.insert(item.instanceKey());
-        }
+        currentKeys.insert(item.instanceKey());
     }
 
     // Remove entries that are no longer visible
@@ -192,11 +270,8 @@ void SceneSync::processItems(const std::vector<RenderItem>& items, SceneRenderer
         }
     }
 
-    // Add new entries and update existing ones (faces only for now)
+    // Add new entries and update existing ones
     for (const auto& item : items) {
-        if (item.type != RenderItem::Triangles) {
-            continue;
-        }
         uint64_t key = item.instanceKey();
         auto it = meshEntries.find(key);
 
@@ -378,6 +453,7 @@ void SceneSync::invalidateAll(SceneRenderer* renderer)
 
 void SceneSync::updateHighlighting(View3DInventorViewer* viewer, SceneRenderer* renderer)
 {
+    ZoneScopedN("SceneSync::updateHighlighting");
     if (!viewer || !renderer || meshEntries.empty()) {
         return;
     }
