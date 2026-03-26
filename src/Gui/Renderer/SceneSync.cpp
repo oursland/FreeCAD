@@ -36,6 +36,7 @@
 #include <Inventor/actions/SoSearchAction.h>
 #include <Inventor/nodes/SoIndexedFaceSet.h>
 #include <Inventor/nodes/SoIndexedLineSet.h>
+#include <Inventor/nodes/SoLineSet.h>
 #include <Inventor/nodes/SoPointSet.h>
 #include <Inventor/nodes/SoSeparator.h>
 #include <Inventor/elements/SoCoordinateElement.h>
@@ -209,6 +210,68 @@ static SoCallbackAction::Response pointSetCB(void* userData, SoCallbackAction* a
     return SoCallbackAction::CONTINUE;
 }
 
+static SoCallbackAction::Response lineSetNonIndexedCB(
+    void* userData,
+    SoCallbackAction* action,
+    const SoNode* node
+)
+{
+    auto* data = static_cast<CallbackData*>(userData);
+    auto* lineset = static_cast<const SoLineSet*>(node);
+
+    SoState* state = action->getState();
+    const SoCoordinateElement* coordElem = SoCoordinateElement::getInstance(state);
+    if (!coordElem || coordElem->getNum() <= 0) {
+        return SoCallbackAction::CONTINUE;
+    }
+
+    int numVerts = coordElem->getNum();
+
+    // SoLineSet draws vertices sequentially in polylines defined by numVertices.
+    // Convert to indexed line segments for our renderer.
+    const int32_t* numVerticesField = lineset->numVertices.getValues(0);
+    int numPolylines = lineset->numVertices.getNum();
+
+    std::vector<int32_t> lineIndices;
+    int vertIdx = 0;
+    for (int p = 0; p < numPolylines; p++) {
+        int count = (numVerticesField[p] == -1) ? (numVerts - vertIdx) : numVerticesField[p];
+        for (int i = 0; i + 1 < count; i++) {
+            if (vertIdx + i + 1 < numVerts) {
+                lineIndices.push_back(vertIdx + i);
+                lineIndices.push_back(vertIdx + i + 1);
+            }
+        }
+        vertIdx += count;
+    }
+
+    if (lineIndices.empty()) {
+        return SoCallbackAction::CONTINUE;
+    }
+
+    RenderItem item;
+    item.shapeNode = const_cast<SoNode*>(node);
+    item.type = RenderItem::Lines;
+    item.vertices = reinterpret_cast<const float*>(&coordElem->get3(0));
+    item.numVertices = numVerts;
+    item.modelMatrix = SoModelMatrixElement::get(state);
+
+    const SoLazyElement* lazyElem = SoLazyElement::getInstance(state);
+    if (lazyElem) {
+        item.diffuseColor = lazyElem->getDiffuse(state, 0);
+        item.transparency = lazyElem->getTransparency(state, 0);
+    }
+    item.lineWidth = 2.0f;
+
+    // Store generated indices in the item (non-indexed shapes own their indices)
+    item.ownedIndices = std::move(lineIndices);
+    item.coordIndices = item.ownedIndices.data();
+    item.numCoordIndices = static_cast<int>(item.ownedIndices.size());
+
+    data->items.push_back(std::move(item));
+    return SoCallbackAction::CONTINUE;
+}
+
 // -----------------------------------------------------------------------
 // SceneSync
 // -----------------------------------------------------------------------
@@ -225,9 +288,9 @@ void SceneSync::sync(View3DInventorViewer* viewer, SceneRenderer* renderer)
         return;
     }
 
-    if (!needsFullSync) {
-        return;
-    }
+    // Always re-run collection to detect visibility changes (eye-icon toggles).
+    // The SoCallbackAction is ~10ms and processItems diffs efficiently.
+    // TODO: use targeted invalidation instead of per-frame collection.
 
     // Use SoCallbackAction for geometry collection — it doesn't touch GL
     // state and respects SoSwitch nodes for visibility.
@@ -237,6 +300,7 @@ void SceneSync::sync(View3DInventorViewer* viewer, SceneRenderer* renderer)
         SoCallbackAction cba;
         cba.addPreCallback(SoIndexedFaceSet::getClassTypeId(), faceSetCB, &cbData);
         cba.addPreCallback(SoIndexedLineSet::getClassTypeId(), lineSetCB, &cbData);
+        cba.addPreCallback(SoLineSet::getClassTypeId(), lineSetNonIndexedCB, &cbData);
         cba.addPreCallback(SoPointSet::getClassTypeId(), pointSetCB, &cbData);
         cba.apply(sceneRoot);
     }

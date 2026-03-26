@@ -2691,8 +2691,18 @@ void View3DInventorViewer::renderScene()
     glDepthRange(0.0, 0.1);
 #endif
 
-    // Render overlay front scenegraph.
-    if (!useSceneRenderer) {
+    // Render overlay front scenegraph (joint markers, datum labels, etc.)
+    // Use a SEPARATE SoGLRenderAction to avoid disturbing the main scene
+    // graph state (which would invalidate our BVH and break visibility toggling).
+    if (useSceneRenderer && this->foregroundroot->getNumChildren() > 0) {
+        ZoneScopedN("Foreground");
+        auto* renderManager = this->getSoRenderManager();
+        SbViewportRegion fgVP = renderManager->getViewportRegion();
+        SoGLRenderAction fgAction(fgVP);
+        fgAction.setTransparencyType(SoGLRenderAction::SORTED_OBJECT_BLEND);
+        fgAction.apply(this->foregroundroot);
+    }
+    else if (!useSceneRenderer) {
         ZoneScopedN("Foreground");
         glra->apply(this->foregroundroot);
     }

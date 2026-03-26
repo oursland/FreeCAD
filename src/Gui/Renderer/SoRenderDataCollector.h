@@ -53,6 +53,7 @@ struct RenderItem
     int numNormals = 0;
     const int32_t* coordIndices = nullptr;
     int numCoordIndices = 0;
+    std::vector<int32_t> ownedIndices;  ///< For non-indexed shapes that generate indices
 
     /// Resolved material (AFTER selection/highlight overrides applied by SoFCSelectionRoot)
     SbColor diffuseColor {0.8f, 0.8f, 0.8f};
