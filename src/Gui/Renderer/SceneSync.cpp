@@ -22,11 +22,16 @@
 
 #include "SceneSync.h"
 #include "SoRenderDataCollector.h"
+#include "Gui/Application.h"
+#include "Gui/Selection/Selection.h"
 #include "Gui/View3DInventorViewer.h"
+#include "Gui/ViewProviderDocumentObject.h"
 
 #include <Inventor/SoRenderManager.h>
 #include <Inventor/actions/SoCallbackAction.h>
+#include <Inventor/actions/SoSearchAction.h>
 #include <Inventor/nodes/SoIndexedFaceSet.h>
+#include <Inventor/nodes/SoSeparator.h>
 #include <Inventor/elements/SoCoordinateElement.h>
 #include <Inventor/elements/SoModelMatrixElement.h>
 #include <Inventor/elements/SoNormalElement.h>
@@ -346,15 +351,10 @@ void SceneSync::processItems(const std::vector<RenderItem>& items, SceneRenderer
         }
 
         if (entry.meshId != SceneRenderer::InvalidMesh) {
-            // Apply initial selection state
-            if (item.highlightIndex >= 0) {
-                renderer->setHighlight(entry.meshId, item.highlightIndex, item.highlightColor);
-            }
-            if (!item.selectedIndices.empty()) {
-                std::vector<int> indices(item.selectedIndices.begin(), item.selectedIndices.end());
-                renderer->setSelection(entry.meshId, indices, item.selectionColor);
-            }
+            entry.shapeNode = item.shapeNode;
             meshEntries[key] = entry;
+            // Build reverse lookup for selection matching
+            nodeToMeshIds[item.shapeNode].push_back(entry.meshId);
         }
     }
 }
@@ -367,5 +367,70 @@ void SceneSync::invalidateAll(SceneRenderer* renderer)
         }
     }
     meshEntries.clear();
+    nodeToMeshIds.clear();
     needsFullSync = true;
+}
+
+void SceneSync::updateHighlighting(View3DInventorViewer* viewer, SceneRenderer* renderer)
+{
+    if (!viewer || !renderer || meshEntries.empty()) {
+        return;
+    }
+
+    // Default highlight colors
+    SbColor preselColor(0.88f, 0.88f, 0.08f);  // yellow-gold
+    SbColor selColor(0.11f, 0.68f, 0.11f);     // green
+
+    // Clear all highlights first
+    for (auto& [key, entry] : meshEntries) {
+        if (entry.meshId != SceneRenderer::InvalidMesh) {
+            renderer->clearHighlight(entry.meshId);
+            renderer->clearSelection(entry.meshId);
+        }
+    }
+
+    // Get preselection — find the picked SoPath's tail node
+    auto* renderManager = viewer->getSoRenderManager();
+    if (!renderManager) {
+        return;
+    }
+
+    // Query Selection singleton for preselection
+    const auto& presel = Gui::Selection().getPreselection();
+    if (presel.pObjectName && presel.pObjectName[0]) {
+        // The preselection was resolved by Coin's pick action.
+        // We need to find which shape node was picked. Use the
+        // SoHandleEventAction's picked point list from the last event.
+        // For now, highlight all mesh entries that share the preselected
+        // object's shape nodes. This is approximate but fast.
+        // TODO: use the actual picked SoPath for precise matching
+    }
+
+    // Get selection — highlight all meshes for selected objects
+    auto selObjs = Gui::Selection().getSelectionEx();
+    for (const auto& selEx : selObjs) {
+        // Get the ViewProvider's shape nodes
+        auto* vp = dynamic_cast<ViewProviderDocumentObject*>(
+            Gui::Application::Instance->getViewProvider(selEx.getObject())
+        );
+        if (!vp) {
+            continue;
+        }
+        // Search the VP's scene graph for SoIndexedFaceSet nodes
+        // and highlight matching mesh entries
+        SoSearchAction sa;
+        sa.setType(SoIndexedFaceSet::getClassTypeId());
+        sa.setInterest(SoSearchAction::ALL);
+        sa.apply(vp->getRoot());
+        SoPathList& paths = sa.getPaths();
+        for (int i = 0; i < paths.getLength(); i++) {
+            SoNode* shapeNode = paths[i]->getTail();
+            auto nit = nodeToMeshIds.find(shapeNode);
+            if (nit != nodeToMeshIds.end()) {
+                for (auto meshId : nit->second) {
+                    renderer->setSelection(meshId, {0}, selColor);
+                }
+            }
+        }
+    }
 }

@@ -177,6 +177,8 @@ void GLSceneRenderer::beginFrame(const SbMatrix& view, const SbMatrix& proj, con
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
+    glDepthMask(GL_TRUE);
+    glClear(GL_DEPTH_BUFFER_BIT);
     // Disable face culling for now — Coin's view matrix may flip winding
     glDisable(GL_CULL_FACE);
 

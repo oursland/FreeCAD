@@ -2568,9 +2568,10 @@ void View3DInventorViewer::renderScene()
             if (glRenderer && !glRenderer->isInitialized()) {
                 glRenderer->initialize();
             }
-            // Collector-based sync: runs SoGLRenderAction with captureOnly=true.
-            // Shape nodes emit RenderItems instead of GL draw calls.
+            // Sync geometry (only runs when scene changes)
             sceneSync->sync(this, sceneRenderer.get());
+            // Update selection/preselection highlighting (runs every frame, cheap)
+            sceneSync->updateHighlighting(this, sceneRenderer.get());
 
             // Draw with our renderer using camera matrices from Coin3D
             SoCamera* camera = this->getSoRenderManager()->getCamera();

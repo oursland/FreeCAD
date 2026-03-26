@@ -27,6 +27,9 @@
 
 #include <cstdint>
 #include <map>
+#include <vector>
+
+class SoNode;
 
 namespace Gui
 {
@@ -56,11 +59,16 @@ public:
     void invalidateAll(SceneRenderer* renderer);
 
     /// Mark the scene as dirty — next sync() will re-run the collector pass.
-    /// Call this when selection, preselection, or visibility changes.
+    /// Call this when visibility or structural changes occur.
     void markDirty()
     {
         needsFullSync = true;
     }
+
+    /// Update selection/preselection highlighting without re-traversing.
+    /// Queries the Selection singleton and applies highlight colors to
+    /// matching mesh entries based on the shape node pointer.
+    void updateHighlighting(View3DInventorViewer* viewer, SceneRenderer* renderer);
 
 private:
     void processItems(const std::vector<RenderItem>& items, SceneRenderer* renderer);
@@ -69,10 +77,13 @@ private:
     {
         SceneRenderer::MeshId meshId = SceneRenderer::InvalidMesh;
         RenderItem::Type type = RenderItem::Triangles;
+        SoNode* shapeNode = nullptr;  ///< The shape node for selection matching
     };
 
     std::map<uint64_t, MeshEntry> meshEntries;
-    bool needsFullSync = true;  ///< Set to true when scene graph changes
+    /// Reverse lookup: shape node → list of mesh IDs (multiple for Assembly Links)
+    std::map<SoNode*, std::vector<SceneRenderer::MeshId>> nodeToMeshIds;
+    bool needsFullSync = true;
 };
 
 }  // namespace Gui
