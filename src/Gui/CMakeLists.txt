@@ -1498,6 +1498,8 @@ SET(FreeCADGui_SRCS
     Renderer/GLSceneRenderer.cpp
     Renderer/SceneSync.h
     Renderer/SceneSync.cpp
+    Renderer/SoRenderDataCollector.h
+    Renderer/SoRenderDataCollector.cpp
 )
 
 if(MSVC)

@@ -56,6 +56,8 @@
 #include "ViewProviderExt.h"
 
 #include <Gui/Inventor/So3DAnnotation.h>
+#include <Gui/Renderer/SoRenderDataCollector.h>
+#include <Inventor/elements/SoModelMatrixElement.h>
 
 
 using namespace PartGui;
@@ -167,6 +169,33 @@ void SoBrepEdgeSet::GLRender(SoGLRenderAction* action)
         );
 
         const SbVec3f* coords3d = coords->getArrayPtr3();
+
+        // Emit render data to collector if active (SceneRenderer capture mode)
+        auto* collector = Gui::SoRenderDataCollector::getActive();
+        if (collector) {
+            Gui::RenderItem item;
+            item.shapeNode = this;
+            item.vertices = reinterpret_cast<const float*>(coords3d);
+            item.numVertices = coords->getNum();
+            item.coordIndices = cindices;
+            item.numCoordIndices = numcindices;
+            item.modelMatrix = SoModelMatrixElement::get(state);
+            item.diffuseColor = SoLazyElement::getDiffuse(state, 0);
+            item.transparency = SoLazyElement::getTransparency(state, 0);
+            item.emissiveColor = SoLazyElement::getEmissive(state);
+            item.type = Gui::RenderItem::Lines;
+            item.lineWidth = SoLineWidthElement::get(state);
+            if (ctx) {
+                item.highlightIndex = ctx->highlightIndex;
+                item.highlightColor = ctx->highlightColor;
+                item.selectedIndices = ctx->selectionIndex;
+                item.selectionColor = ctx->selectionColor;
+            }
+            collector->addItem(std::move(item));
+            if (collector->captureOnly) {
+                return;
+            }
+        }
 
         // Apply the default material settings (Standard Lighting/Material)
         // This ensures default lines look correct (e.g. Black)

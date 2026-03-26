@@ -79,6 +79,9 @@
 #include "ViewProviderExt.h"
 #include "SoBrepEdgeSet.h"
 
+#include <Gui/Renderer/SoRenderDataCollector.h>
+#include <Inventor/elements/SoModelMatrixElement.h>
+
 
 using namespace PartGui;
 
@@ -720,6 +723,58 @@ void SoBrepFaceSet::GLRender(SoGLRenderAction* action)
     // It is important to send material before shouldGLRender(), otherwise
     // material override with transparncy won't work.
     mb.sendFirst();
+
+    // Emit render data to collector BEFORE shouldGLRender() check.
+    // shouldGLRender() returns false for transparent objects (they're deferred),
+    // but the collector needs ALL visible geometry including transparent shapes.
+    auto* collector = Gui::SoRenderDataCollector::getActive();
+    if (collector) {
+        const SoCoordinateElement* cCoords;
+        const SbVec3f* cNormals;
+        const int32_t* cCindices;
+        const int32_t* cNindices;
+        const int32_t* cTindices;
+        const int32_t* cMindices;
+        int cNumindices;
+        SbBool cNormalCacheUsed;
+
+        this->getVertexData(
+            state,
+            cCoords,
+            cNormals,
+            cCindices,
+            cNindices,
+            cTindices,
+            cMindices,
+            cNumindices,
+            true,
+            cNormalCacheUsed
+        );
+
+        Gui::RenderItem item;
+        item.shapeNode = this;
+        item.vertices = reinterpret_cast<const float*>(cCoords->getArrayPtr3());
+        item.numVertices = cCoords->getNum();
+        item.normals = reinterpret_cast<const float*>(cNormals);
+        item.numNormals = cCoords->getNum();
+        item.coordIndices = cCindices;
+        item.numCoordIndices = cNumindices;
+        item.modelMatrix = SoModelMatrixElement::get(state);
+        item.diffuseColor = SoLazyElement::getDiffuse(state, 0);
+        item.transparency = SoLazyElement::getTransparency(state, 0);
+        item.emissiveColor = SoLazyElement::getEmissive(state);
+        item.type = Gui::RenderItem::Triangles;
+        if (ctx) {
+            item.highlightIndex = ctx->highlightIndex;
+            item.highlightColor = ctx->highlightColor;
+            item.selectedIndices = ctx->selectionIndex;
+            item.selectionColor = ctx->selectionColor;
+        }
+        collector->addItem(std::move(item));
+        if (collector->captureOnly) {
+            return;
+        }
+    }
 
     // When setting transparency shouldGLRender() handles the rendering and returns false.
     // Therefore generatePrimitives() needs to be re-implemented to handle the materials

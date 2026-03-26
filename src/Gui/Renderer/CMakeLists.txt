@@ -8,6 +8,8 @@ set(Renderer_SRCS
     GLSceneRenderer.cpp
     SceneSync.h
     SceneSync.cpp
+    SoRenderDataCollector.h
+    SoRenderDataCollector.cpp
 )
 
 # These files are compiled as part of the FreeCADGui library,

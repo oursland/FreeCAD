@@ -21,33 +21,22 @@
  ***************************************************************************/
 
 #include "SceneSync.h"
+#include "SoRenderDataCollector.h"
 #include "Gui/View3DInventorViewer.h"
-#include "Gui/ViewProvider.h"
-#include "Gui/ViewProviderGeometryObject.h"
 
-#include "Gui/Selection/Selection.h"
-#include "Gui/Selection/SoFCSelection.h"
-
+#include <Inventor/SoRenderManager.h>
 #include <Inventor/actions/SoCallbackAction.h>
-#include <Inventor/nodes/SoCoordinate3.h>
-#include <Inventor/nodes/SoGroup.h>
 #include <Inventor/nodes/SoIndexedFaceSet.h>
-#include <Inventor/nodes/SoIndexedLineSet.h>
-#include <Inventor/nodes/SoMaterial.h>
-#include <Inventor/nodes/SoNormal.h>
-#include <Inventor/nodes/SoPointSet.h>
-#include <Inventor/nodes/SoSeparator.h>
-#include <Inventor/nodes/SoSwitch.h>
-#include <Inventor/nodes/SoTransform.h>
 #include <Inventor/elements/SoCoordinateElement.h>
 #include <Inventor/elements/SoModelMatrixElement.h>
-#include <Inventor/elements/SoLazyElement.h>
 #include <Inventor/elements/SoNormalElement.h>
-#include <Inventor/SbMatrix.h>
+#include <Inventor/elements/SoLazyElement.h>
 
 #include <Base/Console.h>
 
 #include <cmath>
+#include <limits>
+#include <set>
 
 using namespace Gui;
 
@@ -55,193 +44,87 @@ SceneSync::SceneSync() = default;
 SceneSync::~SceneSync() = default;
 
 // -----------------------------------------------------------------------
-// SoCallbackAction-based scene graph walk
+// SoCallbackAction callback — collects geometry during traversal
 // -----------------------------------------------------------------------
 
-/// Data collected for each visible SoIndexedFaceSet found during traversal.
-struct FaceSetData
+struct CallbackData
 {
-    // Key: the SoIndexedFaceSet pointer + model matrix form a unique identity
-    // for this particular instance (same node, different link = different instance)
-    SoIndexedFaceSet* node = nullptr;
-
-    // Geometry from the traversal state
-    std::vector<float> vertices;  // interleaved xyz
-    std::vector<float> normals;   // interleaved xyz (may be computed)
-    std::vector<int32_t> triIndices;
-    int numVerts = 0;
-
-    // Transform & material from traversal state
-    SbMatrix modelMatrix;
-    SbColor diffuseColor {0.8f, 0.8f, 0.8f};
-    float transparency = 0.0f;
-
-    // Object identity from SoFCSelection ancestor (for selection matching)
-    std::string objectName;
-
-    /// Unique key: node pointer + matrix hash to distinguish linked instances
-    uint64_t instanceKey() const
-    {
-        auto ptr = reinterpret_cast<uintptr_t>(node);
-        // Mix in a few matrix elements to distinguish same-node different-transform
-        uint32_t mh = 0;
-        const float* m = modelMatrix[0];
-        for (int i = 0; i < 16; i++) {
-            uint32_t bits;
-            std::memcpy(&bits, &m[i], sizeof(bits));
-            mh ^= bits + 0x9e3779b9 + (mh << 6) + (mh >> 2);
-        }
-        return (static_cast<uint64_t>(ptr) << 32) | mh;
-    }
+    std::vector<RenderItem> items;
 };
 
-/// Callback context passed through SoCallbackAction
-struct SyncCallbackData
-{
-    std::vector<FaceSetData> facesets;
-};
-
-/// Called for each SoIndexedFaceSet encountered during visible traversal
 static SoCallbackAction::Response faceSetCB(void* userData, SoCallbackAction* action, const SoNode* node)
 {
-    auto* data = static_cast<SyncCallbackData*>(userData);
-    auto* faceset = const_cast<SoIndexedFaceSet*>(static_cast<const SoIndexedFaceSet*>(node));
+    auto* data = static_cast<CallbackData*>(userData);
+    auto* faceset = static_cast<const SoIndexedFaceSet*>(node);
 
     if (faceset->coordIndex.getNum() == 0) {
         return SoCallbackAction::CONTINUE;
     }
 
     SoState* state = action->getState();
-
-    // Get coordinates from traversal state
     const SoCoordinateElement* coordElem = SoCoordinateElement::getInstance(state);
-    if (!coordElem) {
-        return SoCallbackAction::CONTINUE;
-    }
-    int numVerts = coordElem->getNum();
-    if (numVerts <= 0) {
+    if (!coordElem || coordElem->getNum() <= 0) {
         return SoCallbackAction::CONTINUE;
     }
 
-    // Get indices and triangulate
+    int numVerts = coordElem->getNum();
     const int32_t* cindices = faceset->coordIndex.getValues(0);
     int numCIndices = faceset->coordIndex.getNum();
 
-    std::vector<int32_t> triIndices;
-    triIndices.reserve(numCIndices);
-    int polyStart = 0;
+    // Quick validation: check first few indices
     bool valid = true;
-    for (int i = 0; i < numCIndices; i++) {
-        if (cindices[i] < 0) {
-            int polyLen = i - polyStart;
-            for (int j = 1; j + 1 < polyLen; j++) {
-                int i0 = cindices[polyStart];
-                int i1 = cindices[polyStart + j];
-                int i2 = cindices[polyStart + j + 1];
-                if (i0 >= numVerts || i1 >= numVerts || i2 >= numVerts || i0 < 0 || i1 < 0 || i2 < 0) {
-                    valid = false;
-                    break;
-                }
-                triIndices.push_back(i0);
-                triIndices.push_back(i1);
-                triIndices.push_back(i2);
-            }
-            polyStart = i + 1;
-            if (!valid) {
-                break;
-            }
+    for (int i = 0; i < std::min(numCIndices, 10); i++) {
+        if (cindices[i] >= numVerts) {
+            valid = false;
+            break;
         }
     }
-    if (!valid || triIndices.empty()) {
+    if (!valid) {
         return SoCallbackAction::CONTINUE;
     }
 
-    FaceSetData fd;
-    fd.node = faceset;
-    fd.numVerts = numVerts;
+    RenderItem item;
+    item.shapeNode = const_cast<SoNode*>(node);
+    item.type = RenderItem::Triangles;
 
-    // Copy vertex positions
-    fd.vertices.resize(numVerts * 3);
-    for (int i = 0; i < numVerts; i++) {
-        SbVec3f v = coordElem->get3(i);
-        fd.vertices[i * 3 + 0] = v[0];
-        fd.vertices[i * 3 + 1] = v[1];
-        fd.vertices[i * 3 + 2] = v[2];
-    }
+    // Geometry from traversal state
+    item.vertices = reinterpret_cast<const float*>(&coordElem->get3(0));
+    item.numVertices = numVerts;
+    item.coordIndices = cindices;
+    item.numCoordIndices = numCIndices;
 
-    // Get normals from state, or compute them
     const SoNormalElement* normElem = SoNormalElement::getInstance(state);
     if (normElem && normElem->getNum() >= numVerts) {
-        fd.normals.resize(numVerts * 3);
-        for (int i = 0; i < numVerts; i++) {
-            SbVec3f n = normElem->get(i);
-            fd.normals[i * 3 + 0] = n[0];
-            fd.normals[i * 3 + 1] = n[1];
-            fd.normals[i * 3 + 2] = n[2];
-        }
-    }
-    else {
-        // Compute per-vertex normals by averaging face normals
-        fd.normals.resize(numVerts * 3, 0.0f);
-        for (size_t ti = 0; ti + 2 < triIndices.size(); ti += 3) {
-            int i0 = triIndices[ti], i1 = triIndices[ti + 1], i2 = triIndices[ti + 2];
-            float* v0 = &fd.vertices[i0 * 3];
-            float* v1 = &fd.vertices[i1 * 3];
-            float* v2 = &fd.vertices[i2 * 3];
-            float e1x = v1[0] - v0[0], e1y = v1[1] - v0[1], e1z = v1[2] - v0[2];
-            float e2x = v2[0] - v0[0], e2y = v2[1] - v0[1], e2z = v2[2] - v0[2];
-            float nx = e1y * e2z - e1z * e2y;
-            float ny = e1z * e2x - e1x * e2z;
-            float nz = e1x * e2y - e1y * e2x;
-            for (int vi : {i0, i1, i2}) {
-                fd.normals[vi * 3 + 0] += nx;
-                fd.normals[vi * 3 + 1] += ny;
-                fd.normals[vi * 3 + 2] += nz;
-            }
-        }
-        for (int i = 0; i < numVerts; i++) {
-            float x = fd.normals[i * 3 + 0], y = fd.normals[i * 3 + 1], z = fd.normals[i * 3 + 2];
-            float len = std::sqrt(x * x + y * y + z * z);
-            if (len > 1e-8f) {
-                fd.normals[i * 3 + 0] /= len;
-                fd.normals[i * 3 + 1] /= len;
-                fd.normals[i * 3 + 2] /= len;
-            }
-        }
+        item.normals = reinterpret_cast<const float*>(&normElem->get(0));
+        item.numNormals = normElem->getNum();
     }
 
-    fd.triIndices = std::move(triIndices);
+    item.modelMatrix = SoModelMatrixElement::get(state);
 
-    // Get model matrix from traversal state
-    fd.modelMatrix = SoModelMatrixElement::get(state);
-
-    // Walk up the current path to find the nearest SoFCSelection ancestor,
-    // which carries the object name for selection matching.
-    const SoPath* curPath = action->getCurPath();
-    if (curPath) {
-        for (int pi = curPath->getLength() - 1; pi >= 0; pi--) {
-            SoNode* pathNode = curPath->getNodeFromTail(pi);
-            if (pathNode->isOfType(Gui::SoFCSelection::getClassTypeId())) {
-                auto* sel = static_cast<Gui::SoFCSelection*>(pathNode);
-                fd.objectName = sel->objectName.getValue().getString();
-                break;
-            }
-        }
-    }
-
-    // Get material from traversal state
+    // Material from traversal state
     const SoLazyElement* lazyElem = SoLazyElement::getInstance(state);
     if (lazyElem) {
-        fd.diffuseColor = lazyElem->getDiffuse(state, 0);
-        fd.transparency = lazyElem->getTransparency(state, 0);
+        item.diffuseColor = lazyElem->getDiffuse(state, 0);
+        item.transparency = lazyElem->getTransparency(state, 0);
+        item.emissiveColor = lazyElem->getEmissive(state);
     }
 
-    data->facesets.push_back(std::move(fd));
+    static int transpLog = 0;
+    if (transpLog < 5 && item.transparency > 0.001f) {
+        Base::Console().message(
+            "SceneSync: transparent item: transp=%.4f verts=%d\n",
+            item.transparency,
+            numVerts
+        );
+        transpLog++;
+    }
+
+    data->items.push_back(std::move(item));
     return SoCallbackAction::CONTINUE;
 }
 
 // -----------------------------------------------------------------------
-// SceneSync implementation
+// SceneSync
 // -----------------------------------------------------------------------
 
 void SceneSync::sync(View3DInventorViewer* viewer, SceneRenderer* renderer)
@@ -255,23 +138,42 @@ void SceneSync::sync(View3DInventorViewer* viewer, SceneRenderer* renderer)
         return;
     }
 
-    // Walk the visible scene graph every frame to detect changes.
-    SyncCallbackData cbData;
+    // Only run the collection pass when the scene has changed.
+    // Camera-only changes reuse existing mesh entries.
+    if (!needsFullSync) {
+        return;
+    }
+
+    // Use SoCallbackAction for geometry collection — it doesn't touch GL
+    // state and respects SoSwitch nodes for visibility.
+    CallbackData cbData;
     SoCallbackAction cba;
     cba.addPreCallback(SoIndexedFaceSet::getClassTypeId(), faceSetCB, &cbData);
     cba.apply(sceneRoot);
 
-    // Build set of instance keys found this frame
+    // Process collected items
+    processItems(cbData.items, renderer);
+    needsFullSync = false;
+}
+
+void SceneSync::processItems(const std::vector<RenderItem>& items, SceneRenderer* renderer)
+{
+    // Build set of instance keys found this frame.
+    // For now, only process face geometry (Triangles). Edges and points
+    // add significant overhead and are not needed for the basic view.
+    // TODO: support edges/points when display mode is "Flat Lines"
     std::set<uint64_t> currentKeys;
-    for (auto& fd : cbData.facesets) {
-        currentKeys.insert(fd.instanceKey());
+    for (const auto& item : items) {
+        if (item.type == RenderItem::Triangles) {
+            currentKeys.insert(item.instanceKey());
+        }
     }
 
     // Remove entries that are no longer visible
     for (auto it = meshEntries.begin(); it != meshEntries.end();) {
         if (currentKeys.count(it->first) == 0) {
-            if (it->second.faceMeshId != SceneRenderer::InvalidMesh) {
-                renderer->remove(it->second.faceMeshId);
+            if (it->second.meshId != SceneRenderer::InvalidMesh) {
+                renderer->remove(it->second.meshId);
             }
             it = meshEntries.erase(it);
         }
@@ -280,96 +182,190 @@ void SceneSync::sync(View3DInventorViewer* viewer, SceneRenderer* renderer)
         }
     }
 
-    // Add new entries and update existing ones
-    for (auto& fd : cbData.facesets) {
-        uint64_t key = fd.instanceKey();
+    // Add new entries and update existing ones (faces only for now)
+    for (const auto& item : items) {
+        if (item.type != RenderItem::Triangles) {
+            continue;
+        }
+        uint64_t key = item.instanceKey();
         auto it = meshEntries.find(key);
 
         if (it != meshEntries.end()) {
-            // Already submitted — update transform and material in case they changed
-            renderer->updateTransform(it->second.faceMeshId, fd.modelMatrix);
-            renderer->updateMaterial(it->second.faceMeshId, fd.diffuseColor, fd.transparency);
+            // Already submitted — update transform and material
+            renderer->updateTransform(it->second.meshId, item.modelMatrix);
+            renderer->updateMaterial(it->second.meshId, item.diffuseColor, item.transparency);
+
+            // Update selection/highlight state
+            bool isHighlighted = item.highlightIndex >= 0;
+            bool isSelected = !item.selectedIndices.empty();
+
+            if (isHighlighted) {
+                renderer->setHighlight(it->second.meshId, item.highlightIndex, item.highlightColor);
+            }
+            else {
+                renderer->clearHighlight(it->second.meshId);
+            }
+
+            if (isSelected) {
+                std::vector<int> indices(item.selectedIndices.begin(), item.selectedIndices.end());
+                renderer->setSelection(it->second.meshId, indices, item.selectionColor);
+            }
+            else {
+                renderer->clearSelection(it->second.meshId);
+            }
             continue;
         }
 
         // New instance — submit geometry
-        SyncEntry entry;
-        entry.faceMeshId = renderer->submitMesh(
-            fd.vertices.data(),
-            fd.numVerts,
-            fd.triIndices.data(),
-            static_cast<int>(fd.triIndices.size()),
-            fd.normals.data(),
-            fd.modelMatrix,
-            fd.diffuseColor,
-            fd.transparency
-        );
-        meshEntries[key] = entry;
-    }
+        MeshEntry entry;
+        entry.type = item.type;
 
-    // Apply preselection and selection highlighting.
-    // Query the Selection singleton for the current state and apply
-    // override colors to matching mesh entries.
-    const auto& presel = Gui::Selection().getPreselection();
-    std::string preselObj = presel.pObjectName ? presel.pObjectName : "";
+        switch (item.type) {
+            case RenderItem::Triangles:
+                if (item.coordIndices && item.numCoordIndices > 0) {
+                    // Triangulate: coordIndices uses -1 terminated polygons
+                    std::vector<int32_t> triIndices;
+                    triIndices.reserve(item.numCoordIndices);
+                    int polyStart = 0;
+                    bool valid = true;
+                    for (int i = 0; i < item.numCoordIndices; i++) {
+                        if (item.coordIndices[i] < 0) {
+                            int polyLen = i - polyStart;
+                            for (int j = 1; j + 1 < polyLen; j++) {
+                                int i0 = item.coordIndices[polyStart];
+                                int i1 = item.coordIndices[polyStart + j];
+                                int i2 = item.coordIndices[polyStart + j + 1];
+                                if (i0 < 0 || i0 >= item.numVertices || i1 < 0
+                                    || i1 >= item.numVertices || i2 < 0 || i2 >= item.numVertices) {
+                                    valid = false;
+                                    break;
+                                }
+                                triIndices.push_back(i0);
+                                triIndices.push_back(i1);
+                                triIndices.push_back(i2);
+                            }
+                            polyStart = i + 1;
+                            if (!valid) {
+                                break;
+                            }
+                        }
+                    }
+                    if (valid && !triIndices.empty()) {
+                        // Compute normals if not provided by traversal state
+                        const float* normals = item.normals;
+                        std::vector<float> computedNormals;
+                        if (!normals && item.vertices) {
+                            computedNormals.resize(item.numVertices * 3, 0.0f);
+                            for (size_t ti = 0; ti + 2 < triIndices.size(); ti += 3) {
+                                int i0 = triIndices[ti];
+                                int i1 = triIndices[ti + 1];
+                                int i2 = triIndices[ti + 2];
+                                const float* v0 = &item.vertices[i0 * 3];
+                                const float* v1 = &item.vertices[i1 * 3];
+                                const float* v2 = &item.vertices[i2 * 3];
+                                float e1x = v1[0] - v0[0], e1y = v1[1] - v0[1], e1z = v1[2] - v0[2];
+                                float e2x = v2[0] - v0[0], e2y = v2[1] - v0[1], e2z = v2[2] - v0[2];
+                                float nx = e1y * e2z - e1z * e2y;
+                                float ny = e1z * e2x - e1x * e2z;
+                                float nz = e1x * e2y - e1y * e2x;
+                                for (int vi : {i0, i1, i2}) {
+                                    computedNormals[vi * 3 + 0] += nx;
+                                    computedNormals[vi * 3 + 1] += ny;
+                                    computedNormals[vi * 3 + 2] += nz;
+                                }
+                            }
+                            for (int i = 0; i < item.numVertices; i++) {
+                                float x = computedNormals[i * 3];
+                                float y = computedNormals[i * 3 + 1];
+                                float z = computedNormals[i * 3 + 2];
+                                float len = std::sqrt(x * x + y * y + z * z);
+                                if (len > 1e-8f) {
+                                    computedNormals[i * 3] /= len;
+                                    computedNormals[i * 3 + 1] /= len;
+                                    computedNormals[i * 3 + 2] /= len;
+                                }
+                            }
+                            normals = computedNormals.data();
+                        }
 
-    // Get selected objects for the active document
-    auto selObjs = Gui::Selection().getSelection();
-    std::set<std::string> selectedNames;
-    for (const auto& sel : selObjs) {
-        if (sel.FeatName) {
-            selectedNames.insert(sel.FeatName);
-        }
-    }
-
-    // Default highlight colors (FreeCAD defaults)
-    SbColor preselColor(0.88f, 0.88f, 0.08f);  // yellow-gold for preselection
-    SbColor selColor(0.11f, 0.68f, 0.11f);     // green for selection
-
-    // Build a map from object name to faceset keys for quick lookup
-    std::map<std::string, std::vector<uint64_t>> nameToKeys;
-    for (auto& fd : cbData.facesets) {
-        if (!fd.objectName.empty()) {
-            nameToKeys[fd.objectName].push_back(fd.instanceKey());
-        }
-    }
-
-    // Clear all highlights first, then apply current state
-    for (auto& [key, entry] : meshEntries) {
-        if (entry.faceMeshId != SceneRenderer::InvalidMesh) {
-            renderer->clearHighlight(entry.faceMeshId);
-            renderer->clearSelection(entry.faceMeshId);
-        }
-    }
-
-    // Apply selection highlighting
-    for (const auto& name : selectedNames) {
-        auto nit = nameToKeys.find(name);
-        if (nit != nameToKeys.end()) {
-            for (uint64_t key : nit->second) {
-                auto eit = meshEntries.find(key);
-                if (eit != meshEntries.end() && eit->second.faceMeshId != SceneRenderer::InvalidMesh) {
-                    renderer->setSelection(eit->second.faceMeshId, {0}, selColor);
+                        entry.meshId = renderer->submitMesh(
+                            item.vertices,
+                            item.numVertices,
+                            triIndices.data(),
+                            static_cast<int>(triIndices.size()),
+                            normals,
+                            item.modelMatrix,
+                            item.diffuseColor,
+                            item.transparency
+                        );
+                    }
                 }
-            }
-        }
-    }
+                break;
 
-    // Apply preselection highlighting (overrides selection visually)
-    if (!preselObj.empty()) {
-        auto nit = nameToKeys.find(preselObj);
-        if (nit != nameToKeys.end()) {
-            for (uint64_t key : nit->second) {
-                auto eit = meshEntries.find(key);
-                if (eit != meshEntries.end() && eit->second.faceMeshId != SceneRenderer::InvalidMesh) {
-                    renderer->setHighlight(eit->second.faceMeshId, 0, preselColor);
+            case RenderItem::Lines:
+                if (item.coordIndices && item.numCoordIndices > 0) {
+                    // Convert polylines to line segments
+                    std::vector<int32_t> lineIndices;
+                    lineIndices.reserve(item.numCoordIndices);
+                    for (int i = 0; i + 1 < item.numCoordIndices; i++) {
+                        if (item.coordIndices[i] >= 0 && item.coordIndices[i + 1] >= 0) {
+                            lineIndices.push_back(item.coordIndices[i]);
+                            lineIndices.push_back(item.coordIndices[i + 1]);
+                        }
+                        if (item.coordIndices[i] < 0 || item.coordIndices[i + 1] < 0) {
+                            while (i + 1 < item.numCoordIndices && item.coordIndices[i + 1] < 0) {
+                                i++;
+                            }
+                        }
+                    }
+                    if (!lineIndices.empty()) {
+                        entry.meshId = renderer->submitLines(
+                            item.vertices,
+                            item.numVertices,
+                            lineIndices.data(),
+                            static_cast<int>(lineIndices.size()),
+                            item.modelMatrix,
+                            item.diffuseColor,
+                            item.lineWidth
+                        );
+                    }
                 }
+                break;
+
+            case RenderItem::Points:
+                if (item.numVertices > 0) {
+                    entry.meshId = renderer->submitPoints(
+                        item.vertices,
+                        item.numVertices,
+                        item.modelMatrix,
+                        item.diffuseColor,
+                        item.pointSize
+                    );
+                }
+                break;
+        }
+
+        if (entry.meshId != SceneRenderer::InvalidMesh) {
+            // Apply initial selection state
+            if (item.highlightIndex >= 0) {
+                renderer->setHighlight(entry.meshId, item.highlightIndex, item.highlightColor);
             }
+            if (!item.selectedIndices.empty()) {
+                std::vector<int> indices(item.selectedIndices.begin(), item.selectedIndices.end());
+                renderer->setSelection(entry.meshId, indices, item.selectionColor);
+            }
+            meshEntries[key] = entry;
         }
     }
 }
 
-void SceneSync::invalidateAll()
+void SceneSync::invalidateAll(SceneRenderer* renderer)
 {
+    for (auto& [key, entry] : meshEntries) {
+        if (entry.meshId != SceneRenderer::InvalidMesh) {
+            renderer->remove(entry.meshId);
+        }
+    }
     meshEntries.clear();
+    needsFullSync = true;
 }

@@ -49,6 +49,10 @@
 #include "ViewProviderExt.h"
 #include "SoBrepPointSet.h"
 
+#include <Gui/Renderer/SoRenderDataCollector.h>
+#include <Inventor/elements/SoLazyElement.h>
+#include <Inventor/elements/SoModelMatrixElement.h>
+
 
 using namespace PartGui;
 
@@ -86,6 +90,30 @@ void SoBrepPointSet::GLRender(SoGLRenderAction* action)
         ctx = selContext2;
     }
 
+    // Emit render data to collector if active (SceneRenderer capture mode)
+    auto* collector = Gui::SoRenderDataCollector::getActive();
+    if (collector) {
+        Gui::RenderItem item;
+        item.shapeNode = this;
+        item.vertices = reinterpret_cast<const float*>(coords->getArrayPtr3());
+        item.numVertices = coords->getNum();
+        item.modelMatrix = SoModelMatrixElement::get(state);
+        item.diffuseColor = SoLazyElement::getDiffuse(state, 0);
+        item.transparency = SoLazyElement::getTransparency(state, 0);
+        item.emissiveColor = SoLazyElement::getEmissive(state);
+        item.type = Gui::RenderItem::Points;
+        item.pointSize = SoPointSizeElement::get(state);
+        if (ctx) {
+            item.highlightIndex = ctx->highlightIndex;
+            item.highlightColor = ctx->highlightColor;
+            item.selectedIndices = ctx->selectionIndex;
+            item.selectionColor = ctx->selectionColor;
+        }
+        collector->addItem(std::move(item));
+        if (collector->captureOnly) {
+            return;
+        }
+    }
 
     bool hasContextHighlight = ctx && ctx->isHighlighted() && !ctx->isHighlightAll()
         && ctx->highlightIndex >= 0;

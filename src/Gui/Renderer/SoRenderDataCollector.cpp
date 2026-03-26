@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
+
 /***************************************************************************
  *   Copyright (c) 2026 FreeCAD Project Association                        *
  *                                                                         *
@@ -20,59 +22,21 @@
  *                                                                         *
  ***************************************************************************/
 
-#pragma once
-
-#include "SceneRenderer.h"
 #include "SoRenderDataCollector.h"
-
-#include <cstdint>
-#include <map>
 
 namespace Gui
 {
 
-class View3DInventorViewer;
+static SoRenderDataCollector* g_activeCollector = nullptr;
 
-/// Synchronizes render data from the Coin3D scene graph to a SceneRenderer.
-///
-/// Uses SoRenderDataCollector to intercept data during SoGLRenderAction
-/// traversal. Shape nodes (SoBrepFaceSet, etc.) emit RenderItems into the
-/// collector, which captures geometry, transforms, materials, AND selection
-/// state — all resolved by Coin's normal traversal with SoFCSelectionRoot
-/// color overrides already applied.
-class SceneSync
+void SoRenderDataCollector::setActive(SoRenderDataCollector* collector)
 {
-public:
-    SceneSync();
-    ~SceneSync();
+    g_activeCollector = collector;
+}
 
-    /// Synchronize the scene graph to the renderer.
-    /// Runs a collector-enabled SoGLRenderAction pass, then processes
-    /// the collected RenderItems: new items are submitted, changed items
-    /// updated, removed items deleted, and selection state applied.
-    void sync(View3DInventorViewer* viewer, SceneRenderer* renderer);
-
-    /// Force a full re-sync on the next call to sync().
-    void invalidateAll(SceneRenderer* renderer);
-
-    /// Mark the scene as dirty — next sync() will re-run the collector pass.
-    /// Call this when selection, preselection, or visibility changes.
-    void markDirty()
-    {
-        needsFullSync = true;
-    }
-
-private:
-    void processItems(const std::vector<RenderItem>& items, SceneRenderer* renderer);
-
-    struct MeshEntry
-    {
-        SceneRenderer::MeshId meshId = SceneRenderer::InvalidMesh;
-        RenderItem::Type type = RenderItem::Triangles;
-    };
-
-    std::map<uint64_t, MeshEntry> meshEntries;
-    bool needsFullSync = true;  ///< Set to true when scene graph changes
-};
+SoRenderDataCollector* SoRenderDataCollector::getActive()
+{
+    return g_activeCollector;
+}
 
 }  // namespace Gui

@@ -196,17 +196,22 @@ void GLSceneRenderer::endFrame()
 
     static bool loggedOnce = false;
     if (!loggedOnce && !queue.entries().empty()) {
-        Base::Console().log(
-            "GLSceneRenderer: rendering %d entries\n",
-            static_cast<int>(queue.entries().size())
-        );
-        const auto& first = queue.entries()[0];
-        Base::Console().log(
-            "  first entry: vbo=%u ebo=%u elements=%d type=%d\n",
-            first.vbo,
-            first.ebo,
-            first.numElements,
-            static_cast<int>(first.type)
+        int opaqueCount = 0, transCount = 0;
+        for (const auto& e : queue.entries()) {
+            if (e.visible && e.vbo) {
+                if (e.transparency > 0.001f) {
+                    transCount++;
+                }
+                else {
+                    opaqueCount++;
+                }
+            }
+        }
+        Base::Console().message(
+            "GLSceneRenderer: %d entries (%d opaque, %d transparent)\n",
+            static_cast<int>(queue.entries().size()),
+            opaqueCount,
+            transCount
         );
         loggedOnce = true;
     }

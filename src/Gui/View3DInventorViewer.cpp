@@ -884,6 +884,10 @@ void View3DInventorViewer::onSelectionChanged(const SelectionChanges& reason)
         SoFCSelectionAction selectionAction(Reason);
         selectionAction.apply(pcViewProviderRoot);
     }
+
+    // TODO: selection highlighting will be handled by querying
+    // SoFCSelectionRoot context directly, without re-traversing.
+    // For now, selection changes don't trigger a renderer re-sync.
 }
 /// @endcond
 
@@ -918,8 +922,8 @@ void View3DInventorViewer::setUseSceneRenderer(bool enable)
         sceneRenderer = std::make_unique<GLSceneRenderer>();
         sceneSync = std::make_unique<SceneSync>();
     }
-    if (enable && sceneSync) {
-        sceneSync->invalidateAll();
+    if (enable && sceneSync && sceneRenderer) {
+        sceneSync->invalidateAll(sceneRenderer.get());
     }
     this->getSoRenderManager()->scheduleRedraw();
 }
@@ -2564,17 +2568,11 @@ void View3DInventorViewer::renderScene()
             if (glRenderer && !glRenderer->isInitialized()) {
                 glRenderer->initialize();
             }
-            static bool loggedEntry = false;
-            if (!loggedEntry) {
-                Base::Console().message("SceneRenderer: entering render path\n");
-                loggedEntry = true;
-            }
+            // Collector-based sync: runs SoGLRenderAction with captureOnly=true.
+            // Shape nodes emit RenderItems instead of GL draw calls.
             sceneSync->sync(this, sceneRenderer.get());
 
-            // Get camera matrices from Coin3D
-            // getMatrix() returns the combined view-projection matrix, but
-            // our renderer needs them separate. getMatrices() splits them:
-            // affine = world-to-camera, proj = camera-to-clip.
+            // Draw with our renderer using camera matrices from Coin3D
             SoCamera* camera = this->getSoRenderManager()->getCamera();
             if (camera) {
                 float aspectRatio = (size[1] > 0)
@@ -2583,35 +2581,6 @@ void View3DInventorViewer::renderScene()
                 SbViewVolume vv = camera->getViewVolume(aspectRatio);
                 SbMatrix affine, proj;
                 vv.getMatrices(affine, proj);
-
-                static bool loggedMatrices = false;
-                if (!loggedMatrices) {
-                    Base::Console().message(
-                        "SceneRenderer: camera type=%s\n",
-                        camera->getTypeId().getName().getString()
-                    );
-                    Base::Console().message("SceneRenderer: aspectRatio=%.3f\n", aspectRatio);
-                    Base::Console().message(
-                        "SceneRenderer: affine diagonal: %.6f %.6f %.6f %.6f\n",
-                        affine[0][0],
-                        affine[1][1],
-                        affine[2][2],
-                        affine[3][3]
-                    );
-                    Base::Console().message(
-                        "SceneRenderer: proj diagonal: %.6f %.6f %.6f %.6f\n",
-                        proj[0][0],
-                        proj[1][1],
-                        proj[2][2],
-                        proj[3][3]
-                    );
-                    Base::Console().message(
-                        "SceneRenderer: proj[2][3]=%.6f proj[3][2]=%.6f\n",
-                        proj[2][3],
-                        proj[3][2]
-                    );
-                    loggedMatrices = true;
-                }
 
                 sceneRenderer->beginFrame(affine, proj, vp);
                 sceneRenderer->endFrame();
