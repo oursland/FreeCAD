@@ -2651,16 +2651,21 @@ void View3DInventorViewer::renderScene()
             inherited::actualRedraw();
         }
 
+        // Delayed annotations (joint markers, grounded lock, dimension overlays)
+        // are populated during SoGLRenderAction traversal of the main scene.
+        // With the SceneRenderer active, the main Coin traversal is skipped,
+        // so no delayed paths are collected. These annotations require Coin's
+        // full GL render pipeline and cannot be rendered by our renderer yet.
+        // TODO: extract annotation geometry via SoCallbackAction or dedicated
+        // annotation rendering pass.
         if (!useSceneRenderer) {
             So3DAnnotation::render = true;
             glClear(GL_DEPTH_BUFFER_BIT);
 
-            // process delayed paths with priority support
             if (Gui::Selection().isClarifySelectionActive()) {
                 Gui::SoDelayedAnnotationsElement::processDelayedPathsWithPriority(state, glra);
             }
             else {
-                // standard processing for normal delayed annotations
                 glra->apply(Gui::SoDelayedAnnotationsElement::getDelayedPaths(state));
             }
 
