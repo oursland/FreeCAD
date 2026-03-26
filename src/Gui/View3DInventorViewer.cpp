@@ -930,6 +930,7 @@ bool View3DInventorViewer::containsViewProvider(const ViewProvider* vp) const
 
 void View3DInventorViewer::sceneSyncSensorCB(void* data, SoSensor* /*sensor*/)
 {
+    ZoneScopedN("sceneSyncSensorCB");
     auto* self = static_cast<View3DInventorViewer*>(data);
     if (self->sceneSync && self->useSceneRenderer) {
         self->sceneSync->markDirty();
@@ -948,17 +949,10 @@ void View3DInventorViewer::setUseSceneRenderer(bool enable)
         sceneSync->invalidateAll(sceneRenderer.get());
     }
 
-    // Attach/detach a node sensor on objectGroup to detect visibility changes.
-    // The sensor fires when any child node changes (VP show/hide, add/remove).
-    if (enable && !sceneSyncSensor) {
-        sceneSyncSensor = new SoNodeSensor(sceneSyncSensorCB, this);
-        sceneSyncSensor->attach(objectGroup);
-        // Use default priority (deferred) — fires after processing is done
-    }
-    else if (!enable && sceneSyncSensor) {
-        delete sceneSyncSensor;
-        sceneSyncSensor = nullptr;
-    }
+    // No SoNodeSensor — it fires on every selection/preselection state change
+    // which triggers expensive re-syncs. Instead, markDirty() is called
+    // explicitly from addViewProvider/removeViewProvider and onSelectionChanged
+    // for ShowSelection/HideSelection events only.
 
     this->getSoRenderManager()->scheduleRedraw();
 }
@@ -2873,6 +2867,7 @@ bool View3DInventorViewer::processSoEvent(const SoEvent* ev)
         return true;
     }
     if (isRedirectedToSceneGraph()) {
+        ZoneScopedN("processSoEvent/redirected");
         bool processed = inherited::processSoEvent(ev);
 
         if (!processed) {
@@ -2895,7 +2890,10 @@ bool View3DInventorViewer::processSoEvent(const SoEvent* ev)
         }
     }
 
-    return navigation->processEvent(ev);
+    {
+        ZoneScopedN("navigation->processEvent");
+        return navigation->processEvent(ev);
+    }
 }
 
 bool View3DInventorViewer::processSoEventBase(const SoEvent* const ev)
