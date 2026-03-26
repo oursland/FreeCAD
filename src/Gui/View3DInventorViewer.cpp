@@ -2455,6 +2455,26 @@ void View3DInventorViewer::renderToFramebuffer(QOpenGLFramebufferObject* fbo)
     fbo->release();
 }
 
+void View3DInventorViewer::paintEvent(QPaintEvent* event)
+{
+    ZoneScopedN("paintEvent");
+
+    if (useSceneRenderer && sceneRenderer) {
+        // Fast path: skip QuarterWidget's heavy paintEvent which includes
+        // QGraphicsView painting, delay queue processing, and GL state
+        // save/restore. Just make the GL context current and render.
+        QOpenGLWidget* w = static_cast<QOpenGLWidget*>(this->viewport());
+        if (w && w->isValid()) {
+            w->makeCurrent();
+            this->actualRedraw();
+        }
+        return;
+    }
+
+    // Normal path: full QuarterWidget paintEvent with Qt integration
+    inherited::paintEvent(event);
+}
+
 void View3DInventorViewer::actualRedraw()
 {
     switch (renderType) {
@@ -2588,7 +2608,9 @@ void View3DInventorViewer::renderScene()
         SoGLRenderActionElement::set(state, glra);
         SoGLVBOActivatedElement::set(state, this->vboEnabled);
         drawSingleBackground(col);
-        glra->apply(this->backgroundroot);
+        if (!useSceneRenderer) {
+            glra->apply(this->backgroundroot);
+        }
     }
 
     if (!this->shading) {
@@ -2599,6 +2621,14 @@ void View3DInventorViewer::renderScene()
 
     try {
         // Render normal scenegraph.
+        if (!useSceneRenderer || !sceneRenderer) {
+            Base::Console().message(
+                "renderScene: FALLBACK to Coin (useSceneRenderer=%d, renderer=%p, this=%p)\n",
+                useSceneRenderer,
+                static_cast<void*>(sceneRenderer.get()),
+                static_cast<void*>(this)
+            );
+        }
         if (useSceneRenderer && sceneRenderer) {
             // Fast path: render queue bypasses Coin3D traversal
             auto* glRenderer = dynamic_cast<GLSceneRenderer*>(sceneRenderer.get());
@@ -2628,19 +2658,21 @@ void View3DInventorViewer::renderScene()
             inherited::actualRedraw();
         }
 
-        So3DAnnotation::render = true;
-        glClear(GL_DEPTH_BUFFER_BIT);
+        if (!useSceneRenderer) {
+            So3DAnnotation::render = true;
+            glClear(GL_DEPTH_BUFFER_BIT);
 
-        // process delayed paths with priority support
-        if (Gui::Selection().isClarifySelectionActive()) {
-            Gui::SoDelayedAnnotationsElement::processDelayedPathsWithPriority(state, glra);
-        }
-        else {
-            // standard processing for normal delayed annotations
-            glra->apply(Gui::SoDelayedAnnotationsElement::getDelayedPaths(state));
-        }
+            // process delayed paths with priority support
+            if (Gui::Selection().isClarifySelectionActive()) {
+                Gui::SoDelayedAnnotationsElement::processDelayedPathsWithPriority(state, glra);
+            }
+            else {
+                // standard processing for normal delayed annotations
+                glra->apply(Gui::SoDelayedAnnotationsElement::getDelayedPaths(state));
+            }
 
-        So3DAnnotation::render = false;
+            So3DAnnotation::render = false;
+        }
     }
     catch (const Base::MemoryException&) {
         // FIXME: If this exception appears then the background and camera position get broken
@@ -2667,18 +2699,20 @@ void View3DInventorViewer::renderScene()
 #endif
 
     // Render overlay front scenegraph.
-    {
+    if (!useSceneRenderer) {
         ZoneScopedN("Foreground");
         glra->apply(this->foregroundroot);
     }
 
-    if (this->axiscrossEnabled) {
+    if (this->axiscrossEnabled && !useSceneRenderer) {
         this->drawAxisCross();
     }
 
 #if defined(ENABLE_GL_DEPTH_RANGE)
     // using the main portion of z-buffer again (for frontbuffer highlighting)
-    glDepthRange(0.1, 1.0);
+    if (!useSceneRenderer) {
+        glDepthRange(0.1, 1.0);
+    }
 #endif
 
     // Immediately reschedule to get continuous animation.

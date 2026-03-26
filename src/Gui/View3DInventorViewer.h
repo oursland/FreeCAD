@@ -537,6 +537,7 @@ protected:
     void renderGLImage();
     void animatedViewAll(int steps, int ms);
     void actualRedraw() override;
+    void paintEvent(QPaintEvent* event) override;
     void setSeekMode(bool on) override;
     void afterRealizeHook() override;
     bool processSoEvent(const SoEvent* ev) override;
