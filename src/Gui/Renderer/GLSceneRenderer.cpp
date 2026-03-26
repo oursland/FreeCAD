@@ -44,6 +44,7 @@
 #include <Inventor/SbColor.h>
 #include <Inventor/SbViewportRegion.h>
 #include <Base/Console.h>
+#include <Base/Profiler.h>
 
 #include <cstring>
 
@@ -165,6 +166,7 @@ bool GLSceneRenderer::initialize()
 
 void GLSceneRenderer::beginFrame(const SbMatrix& view, const SbMatrix& proj, const SbViewportRegion& viewport)
 {
+    ZoneScopedN("GLSceneRenderer::beginFrame");
     if (!initialized) {
         return;
     }
@@ -192,6 +194,7 @@ void GLSceneRenderer::beginFrame(const SbMatrix& view, const SbMatrix& proj, con
 
 void GLSceneRenderer::endFrame()
 {
+    ZoneScopedN("GLSceneRenderer::endFrame");
     if (!initialized) {
         return;
     }
@@ -246,10 +249,21 @@ void GLSceneRenderer::endFrame()
     glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);
 
-    // Restore GL state for Coin3D
+    // Restore GL state for subsequent fixed-function rendering
+    // (NaviCube, axis cross, annotations use legacy GL)
     glUseProgram(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
+    glDisable(GL_BLEND);
+    glDepthMask(GL_TRUE);
+    glDepthFunc(GL_LESS);
+    glEnable(GL_DEPTH_TEST);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
 }
 
 void GLSceneRenderer::renderEntry(const DrawEntry& entry)

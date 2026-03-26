@@ -2458,20 +2458,9 @@ void View3DInventorViewer::renderToFramebuffer(QOpenGLFramebufferObject* fbo)
 void View3DInventorViewer::paintEvent(QPaintEvent* event)
 {
     ZoneScopedN("paintEvent");
-
-    if (useSceneRenderer && sceneRenderer) {
-        // Fast path: skip QuarterWidget's heavy paintEvent which includes
-        // QGraphicsView painting, delay queue processing, and GL state
-        // save/restore. Just make the GL context current and render.
-        QOpenGLWidget* w = static_cast<QOpenGLWidget*>(this->viewport());
-        if (w && w->isValid()) {
-            w->makeCurrent();
-            this->actualRedraw();
-        }
-        return;
-    }
-
-    // Normal path: full QuarterWidget paintEvent with Qt integration
+    // Use the full inherited paintEvent for proper QOpenGLWidget
+    // framebuffer management. Expensive Coin render paths inside
+    // renderScene() are already guarded by useSceneRenderer checks.
     inherited::paintEvent(event);
 }
 
@@ -2611,6 +2600,10 @@ void View3DInventorViewer::renderScene()
         if (!useSceneRenderer) {
             glra->apply(this->backgroundroot);
         }
+        else if (pcBackGround) {
+            // Render gradient directly without full separator traversal
+            glra->apply(pcBackGround);
+        }
     }
 
     if (!this->shading) {
@@ -2704,7 +2697,7 @@ void View3DInventorViewer::renderScene()
         glra->apply(this->foregroundroot);
     }
 
-    if (this->axiscrossEnabled && !useSceneRenderer) {
+    if (this->axiscrossEnabled) {
         this->drawAxisCross();
     }
 
