@@ -30,12 +30,14 @@
 #include <Inventor/SoPrimitiveVertex.h>
 #include <Inventor/actions/SoGetBoundingBoxAction.h>
 #include <Inventor/actions/SoGLRenderAction.h>
+#include <Inventor/actions/SoModernRenderAction.h>
 #include <Inventor/bundles/SoMaterialBundle.h>
 #include <Inventor/details/SoLineDetail.h>
 #include <Inventor/elements/SoCoordinateElement.h>
 #include <Inventor/elements/SoDepthBufferElement.h>
 #include <Inventor/elements/SoLazyElement.h>
 #include <Inventor/elements/SoLineWidthElement.h>
+#include <Inventor/elements/SoModelMatrixElement.h>
 #include <Inventor/errors/SoDebugError.h>
 #include <Inventor/misc/SoState.h>
 #include <Inventor/nodes/SoGroup.h>
@@ -114,6 +116,78 @@ SoBrepEdgeSet::~SoBrepEdgeSet()
         overlayLineSet->unref();
         overlayLineSet = nullptr;
     }
+}
+
+void SoBrepEdgeSet::render(SoModernRenderAction* action)
+{
+    int ciNum = this->coordIndex.getNum();
+    if (ciNum < 2) {
+        return;
+    }
+
+    SoState* state = action->getState();
+
+    const SoCoordinateElement* coordElem = SoCoordinateElement::getInstance(state);
+    if (!coordElem) {
+        return;
+    }
+    int numCoords = coordElem->getNum();
+    if (numCoords == 0) {
+        return;
+    }
+    const SbVec3f* coords = coordElem->getArrayPtr3();
+    if (!coords) {
+        return;
+    }
+
+    // Convert coordIndex (line strips with -1 separators) to GL_LINES pairs.
+    // Each line strip v0, v1, v2, -1 becomes line segments: (v0,v1), (v1,v2)
+    const int32_t* ci = this->coordIndex.getValues(0);
+
+    // Count line segments
+    int numSegments = 0;
+    for (int i = 0; i < ciNum; i++) {
+        if (ci[i] >= 0 && i + 1 < ciNum && ci[i + 1] >= 0) {
+            numSegments++;
+        }
+    }
+    if (numSegments == 0) {
+        return;
+    }
+
+    int indexCount = numSegments * 2;
+    auto* indices = static_cast<uint32_t*>(
+        action->allocateGeometryStorage(indexCount * sizeof(uint32_t))
+    );
+
+    int idx = 0;
+    for (int i = 0; i < ciNum; i++) {
+        if (ci[i] >= 0 && i + 1 < ciNum && ci[i + 1] >= 0) {
+            indices[idx++] = static_cast<uint32_t>(ci[i]);
+            indices[idx++] = static_cast<uint32_t>(ci[i + 1]);
+        }
+    }
+
+    SoRenderCommand cmd;
+    std::memset(&cmd, 0, sizeof(SoRenderCommand));
+
+    cmd.geometry.topology = SO_TOPOLOGY_LINES;
+    cmd.geometry.vertexCount = static_cast<uint32_t>(numCoords);
+    cmd.geometry.indexCount = static_cast<uint32_t>(indexCount);
+    cmd.geometry.positions = reinterpret_cast<const float*>(coords);
+    cmd.geometry.normals = nullptr;
+    cmd.geometry.indices = indices;
+    cmd.geometry.vertexStride = sizeof(SbVec3f);
+
+    SoModernIR::fillMaterialFromState(state, cmd.material);
+    SoModernIR::fillRenderStateFromState(state, cmd.state);
+    cmd.modelMatrix = SoModelMatrixElement::get(state);
+
+    cmd.pass = SO_RENDERPASS_OPAQUE;
+    cmd.sortKey = SoIRComputeSortKey(cmd, static_cast<uint32_t>(cmd.pass), 0);
+    cmd.userData = this;
+
+    action->getMutableDrawList().addCommand(cmd);
 }
 
 void SoBrepEdgeSet::GLRender(SoGLRenderAction* action)

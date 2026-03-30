@@ -27,6 +27,7 @@
 #include <Inventor/fields/SoMFInt32.h>
 #include <Inventor/fields/SoSFColor.h>
 #include <Inventor/nodes/SoIndexedLineSet.h>
+class SoModernRenderAction;
 #include <memory>
 #include <vector>
 #include <Gui/Selection/SoFCSelectionContext.h>
@@ -60,6 +61,8 @@ public:
     SoSFColor highlightColor;
     SoSFColor selectionColor;
 
+    void render(SoModernRenderAction* action) override;
+
 protected:
     ~SoBrepEdgeSet() override;
     void GLRender(SoGLRenderAction* action) override;
@@ -78,11 +81,7 @@ private:
     struct SelContext;
     using SelContextPtr = std::shared_ptr<SelContext>;
 
-    void renderShape(
-        SoGLRenderAction* action,
-        const int32_t* vertexindices,
-        int num_vertexindices
-    );
+    void renderShape(SoGLRenderAction* action, const int32_t* vertexindices, int num_vertexindices);
     void renderHighlight(SoGLRenderAction* action, SelContextPtr);
     void renderSelection(SoGLRenderAction* action, SelContextPtr, bool push = true);
     bool validIndexes(const SoCoordinateElement*, const std::vector<int32_t>&) const;

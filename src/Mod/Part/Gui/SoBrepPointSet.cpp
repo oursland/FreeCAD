@@ -28,11 +28,13 @@
 #include <limits>
 #include <Inventor/actions/SoGetBoundingBoxAction.h>
 #include <Inventor/actions/SoGLRenderAction.h>
+#include <Inventor/actions/SoModernRenderAction.h>
 #include <Inventor/bundles/SoMaterialBundle.h>
 #include <Inventor/details/SoPointDetail.h>
 #include <Inventor/elements/SoCoordinateElement.h>
 #include <Inventor/elements/SoDepthBufferElement.h>
 #include <Inventor/elements/SoLazyElement.h>
+#include <Inventor/elements/SoModelMatrixElement.h>
 #include <Inventor/elements/SoPointSizeElement.h>
 #include <Inventor/errors/SoDebugError.h>
 #include <Inventor/misc/SoState.h>
@@ -79,11 +81,7 @@ static void renderOverlayPoints(
     auto state = action->getState();
     state->push();
 
-    SoDepthBufferElement::set(state,
-                              FALSE,
-                              FALSE,
-                              SoDepthBufferElement::ALWAYS,
-                              SbVec2f(0.0f, 1.0f));
+    SoDepthBufferElement::set(state, FALSE, FALSE, SoDepthBufferElement::ALWAYS, SbVec2f(0.0f, 1.0f));
 
     SoLazyElement::setEmissive(state, &color);
     uint32_t packedColor = color.getPackedValue(0.0);
@@ -94,9 +92,7 @@ static void renderOverlayPoints(
         SoPointSizeElement::set(state, pointSet, 4.0f);
     }
 
-    pointSet->coordIndex.setValues(0,
-                                   static_cast<int>(pointIndices.size()),
-                                   pointIndices.data());
+    pointSet->coordIndex.setValues(0, static_cast<int>(pointIndices.size()), pointIndices.data());
     pointSet->GLRender(action);
 
     state->pop();
@@ -129,6 +125,51 @@ SoBrepPointSet::~SoBrepPointSet()
         overlayPointSet->unref();
         overlayPointSet = nullptr;
     }
+}
+
+void SoBrepPointSet::render(SoModernRenderAction* action)
+{
+    SoState* state = action->getState();
+
+    const SoCoordinateElement* coordElem = SoCoordinateElement::getInstance(state);
+    if (!coordElem) {
+        return;
+    }
+    int numCoords = coordElem->getNum();
+    if (numCoords == 0) {
+        return;
+    }
+    const SbVec3f* coords = coordElem->getArrayPtr3();
+    if (!coords) {
+        return;
+    }
+
+    // Use numPoints field if set, otherwise all coordinates
+    int numPoints = this->numPoints.getValue();
+    if (numPoints <= 0 || numPoints > numCoords) {
+        numPoints = numCoords;
+    }
+
+    SoRenderCommand cmd;
+    std::memset(&cmd, 0, sizeof(SoRenderCommand));
+
+    cmd.geometry.topology = SO_TOPOLOGY_POINTS;
+    cmd.geometry.vertexCount = static_cast<uint32_t>(numPoints);
+    cmd.geometry.indexCount = 0;
+    cmd.geometry.positions = reinterpret_cast<const float*>(coords);
+    cmd.geometry.normals = nullptr;
+    cmd.geometry.indices = nullptr;
+    cmd.geometry.vertexStride = sizeof(SbVec3f);
+
+    SoModernIR::fillMaterialFromState(state, cmd.material);
+    SoModernIR::fillRenderStateFromState(state, cmd.state);
+    cmd.modelMatrix = SoModelMatrixElement::get(state);
+
+    cmd.pass = SO_RENDERPASS_OPAQUE;
+    cmd.sortKey = SoIRComputeSortKey(cmd, static_cast<uint32_t>(cmd.pass), 0);
+    cmd.userData = this;
+
+    action->getMutableDrawList().addCommand(cmd);
 }
 
 void SoBrepPointSet::GLRender(SoGLRenderAction* action)
@@ -223,11 +264,7 @@ void SoBrepPointSet::GLRender(SoGLRenderAction* action)
     }
     else if (Gui::SoDelayedAnnotationsElement::isProcessingDelayedPaths) {
         state->push();
-        SoDepthBufferElement::set(state,
-                                  FALSE,
-                                  FALSE,
-                                  SoDepthBufferElement::ALWAYS,
-                                  SbVec2f(0.0f, 1.0f));
+        SoDepthBufferElement::set(state, FALSE, FALSE, SoDepthBufferElement::ALWAYS, SbVec2f(0.0f, 1.0f));
         inherited::GLRender(action);
         state->pop();
     }
@@ -251,19 +288,23 @@ void SoBrepPointSet::GLRender(SoGLRenderAction* action)
     // Optional overlay rendering for deterministic tests (and programmatic usage).
     const int hlNum = highlightCoordIndex.getNum();
     if (hlNum > 0) {
-        renderOverlayPoints(action,
-                            overlayPointSet,
-                            highlightCoordIndex.getValues(0),
-                            hlNum,
-                            highlightColor.getValue());
+        renderOverlayPoints(
+            action,
+            overlayPointSet,
+            highlightCoordIndex.getValues(0),
+            hlNum,
+            highlightColor.getValue()
+        );
     }
     const int selNum = selectionCoordIndex.getNum();
     if (selNum > 0) {
-        renderOverlayPoints(action,
-                            overlayPointSet,
-                            selectionCoordIndex.getValues(0),
-                            selNum,
-                            selectionColor.getValue());
+        renderOverlayPoints(
+            action,
+            overlayPointSet,
+            selectionCoordIndex.getValues(0),
+            selNum,
+            selectionColor.getValue()
+        );
     }
 }
 
@@ -395,9 +436,8 @@ void SoBrepPointSet::renderSelection(SoGLRenderAction* action, SelContextPtr ctx
         }
         pointIndices.push_back(-1);
 
-        overlayPointSet->coordIndex.setValues(0,
-                                              static_cast<int>(pointIndices.size()),
-                                              pointIndices.data());
+        overlayPointSet->coordIndex
+            .setValues(0, static_cast<int>(pointIndices.size()), pointIndices.data());
         overlayPointSet->GLRender(action);
 
         if (warn) {

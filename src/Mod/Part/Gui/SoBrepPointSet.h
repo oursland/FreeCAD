@@ -27,6 +27,7 @@
 #include <Inventor/fields/SoMFInt32.h>
 #include <Inventor/fields/SoSFColor.h>
 #include <Inventor/nodes/SoPointSet.h>
+class SoModernRenderAction;
 #include <memory>
 #include <vector>
 #include <Gui/Selection/SoFCSelectionContext.h>
@@ -60,6 +61,8 @@ public:
     SoMFInt32 selectionCoordIndex;
     SoSFColor highlightColor;
     SoSFColor selectionColor;
+
+    void render(SoModernRenderAction* action) override;
 
 protected:
     ~SoBrepPointSet() override;
