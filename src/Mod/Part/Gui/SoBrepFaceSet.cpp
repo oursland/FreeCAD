@@ -49,8 +49,11 @@
 #include <Inventor/errors/SoDebugError.h>
 #include <Inventor/misc/SoState.h>
 
+#include <App/Document.h>
 #include <Base/Profiler.h>
 
+#include <Gui/Application.h>
+#include <Gui/Document.h>
 #include <Gui/SoFCInteractiveElement.h>
 #include <Gui/Selection/Selection.h>
 #include <Gui/Selection/SoFCSelectionAction.h>
@@ -240,6 +243,19 @@ void SoBrepFaceSet::doAction(SoAction* action)
     }
     else if (action->getTypeId() == Gui::SoSelectionElementAction::getClassTypeId()) {
         auto* selaction = static_cast<Gui::SoSelectionElementAction*>(action);
+        {
+            ZoneScopedN("BrepFaceSet::selAction");
+            char buf[128];
+            std::snprintf(
+                buf,
+                sizeof(buf),
+                "type=%d det=%p selCtx=%p",
+                (int)selaction->getType(),
+                (void*)selaction->getElement(),
+                (void*)selContext.get()
+            );
+            ZoneText(buf, std::strlen(buf));
+        }
         switch (selaction->getType()) {
             case Gui::SoSelectionElementAction::All: {
                 SelContextPtr ctx
@@ -274,6 +290,19 @@ void SoBrepFaceSet::doAction(SoAction* action)
                 int index = static_cast<const SoFaceDetail*>(detail)->getPartIndex();
                 if (selaction->getType() == Gui::SoSelectionElementAction::Append) {
                     auto ctx = Gui::SoFCSelectionRoot::getActionContext(action, this, selContext);
+                    {
+                        ZoneScopedN("BrepFaceSet::selAppend");
+                        char buf[128];
+                        std::snprintf(
+                            buf,
+                            sizeof(buf),
+                            "idx=%d ctx=%p isSelCtx=%d",
+                            index,
+                            (void*)ctx.get(),
+                            (ctx.get() == selContext.get()) ? 1 : 0
+                        );
+                        ZoneText(buf, std::strlen(buf));
+                    }
                     selCounter.checkAction(selaction, ctx);
                     ctx->selectionColor = selaction->getColor();
                     if (ctx->isSelectAll()) {
@@ -461,8 +490,8 @@ void SoBrepFaceSet::render(SoModernRenderAction* action)
     }
 
     // Build the render command
-    SoRenderCommand cmd;
-    std::memset(&cmd, 0, sizeof(SoRenderCommand));
+    SoRenderCommand cmd = {};
+    cmd.selection.highlightElement = -1;
 
     cmd.geometry.topology = SO_TOPOLOGY_TRIANGLES;
     cmd.geometry.vertexCount = static_cast<uint32_t>(numCoords);
@@ -488,6 +517,28 @@ void SoBrepFaceSet::render(SoModernRenderAction* action)
     cmd.sortKey = SoIRComputeSortKey(cmd, static_cast<uint32_t>(cmd.pass), 0);
     cmd.userData = this;
 
+    // Pick identity: "docName\tobjName\tsubPath" for resolvePickIdentity()
+    // Uses the SoFCSelectionRoot action stack to build the full sub-object path
+    // (Assembly Link → Part → Body → element).
+    {
+        std::string docName, objName, subPath;
+        auto* guiDoc = viewProvider
+            ? Gui::Application::Instance->getDocument(viewProvider->getObject()->getDocument())
+            : nullptr;
+        if (guiDoc
+            && Gui::SoFCSelectionRoot::getSelectionPath(action, guiDoc, docName, objName, subPath)) {
+            cmd.pick.pickIdentity = docName + "\t" + objName + "\t" + subPath;
+        }
+        else if (viewProvider && viewProvider->getObject()) {
+            // Fallback for objects not inside a selection root
+            auto* obj = viewProvider->getObject();
+            if (obj->getDocument() && obj->getNameInDocument()) {
+                cmd.pick.pickIdentity = std::string(obj->getDocument()->getName()) + "\t"
+                    + obj->getNameInDocument() + "\t";
+            }
+        }
+    }
+
     // Pick data: per-face ranges from partIndex for GPU picking.
     // Each partIndex entry = number of triangles for that BRep face.
     // Convert to EBO offsets for the pick LUT.
@@ -498,13 +549,79 @@ void SoBrepFaceSet::render(SoModernRenderAction* action)
         cmd.pick.faceCount.resize(numParts);
         int triOffset = 0;
         for (int i = 0; i < numParts; i++) {
-            cmd.pick.faceStart[i] = triOffset * 3;  // index offset in EBO
-            cmd.pick.faceCount[i] = pi[i] * 3;      // index count for this face
+            cmd.pick.faceStart[i] = triOffset * 3;
+            cmd.pick.faceCount[i] = pi[i] * 3;
             triOffset += pi[i];
         }
     }
 
+    // Read highlight and selection from the context map.
+    {
+        SelContextPtr ctx2;
+        SelContextPtr ctx = Gui::SoFCSelectionRoot::getRenderContext(this, selContext, ctx2);
+
+        // Log whenever ctx or selContext has ANY state
+        if ((ctx && (ctx->highlightIndex != -1 || !ctx->selectionIndex.empty()))
+            || (selContext && selContext.get() != ctx.get()
+                && (selContext->highlightIndex != -1 || !selContext->selectionIndex.empty()))) {
+            ZoneScopedN("BrepFaceSet::ctxState");
+            char buf[256];
+            std::snprintf(
+                buf,
+                sizeof(buf),
+                "ctx=%p hl=%d sel=%zu same=%d selCtx=%p scHl=%d scSel=%zu",
+                (void*)ctx.get(),
+                ctx ? ctx->highlightIndex : -99,
+                ctx ? ctx->selectionIndex.size() : 0,
+                (ctx.get() == selContext.get()) ? 1 : 0,
+                (void*)selContext.get(),
+                selContext ? selContext->highlightIndex : -99,
+                selContext ? selContext->selectionIndex.size() : 0
+            );
+            ZoneText(buf, std::strlen(buf));
+        }
+
+        if (ctx) {
+            if (ctx->isHighlighted() && ctx->highlightIndex >= 0 && !ctx->isHighlightAll()
+                && ctx->highlightIndex < partIndex.getNum()) {
+                cmd.selection.highlightElement = ctx->highlightIndex;
+                SbColor hlc = ctx->highlightColor;
+                cmd.selection.highlightColor.setValue(hlc[0], hlc[1], hlc[2], 0.6f);
+            }
+            if (!ctx->selectionIndex.empty() && !ctx->isSelectAll()) {
+                for (int idx : ctx->selectionIndex) {
+                    if (idx >= 0) {
+                        cmd.selection.selectedElements.push_back(idx);
+                    }
+                }
+                SbColor slc = ctx->selectionColor;
+                cmd.selection.selectionColor.setValue(slc[0], slc[1], slc[2], 0.5f);
+            }
+        }
+    }
+
     action->getMutableDrawList().addCommand(cmd);
+    int cmdIdx = action->getMutableDrawList().getNumCommands() - 1;
+
+    // Verify highlight was preserved through addCommand
+    {
+        auto& stored = action->getMutableDrawList().getCommand(cmdIdx);
+        if (stored.selection.highlightElement != -1) {
+            ZoneScopedN("BUG: hl after add");
+            char buf[128];
+            std::snprintf(
+                buf,
+                sizeof(buf),
+                "cmd=%d hl=%d (should be -1)",
+                cmdIdx,
+                stored.selection.highlightElement
+            );
+            ZoneText(buf, std::strlen(buf));
+        }
+    }
+
+    // Store scene path for this command so GPU pick can retrieve it later
+    action->storeCommandPath(cmdIdx, action->getCurPath());
 }
 
 void SoBrepFaceSet::GLRender(SoGLRenderAction* action)

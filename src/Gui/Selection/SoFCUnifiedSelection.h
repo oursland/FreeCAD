@@ -93,16 +93,16 @@ public:
 
     static bool hasHighlight();
 
-    /// GPU pick callback. When set, handleEvent calls this instead of
-    /// SoRayPickAction for mouse move and click events.
-    /// Returns (docName, objName, subElement) or empty for no hit.
+    /// GPU pick callback. Returns a PickedInfo compatible with the existing
+    /// setPreselect/setSelection pipeline, or empty info for no hit.
+    /// When available=false, falls back to legacy SoRayPickAction.
     struct GPUPickResult
     {
-        bool available = false;  ///< true = GPU pick was performed; false = fall back to legacy
-        std::string docName;
-        std::string objName;
-        std::string subElement;
-        float x = 0, y = 0, z = 0;
+        bool available = false;  ///< true = GPU pick was performed
+        ViewProviderDocumentObject* vpd = nullptr;
+        SoFullPath* path = nullptr;  ///< NOT ref'd — valid only during callback scope
+        std::string element;         ///< sub-object path e.g. "Body.Pad.Face3"
+        int faceDetail = -1;         ///< face index for SoFaceDetail, or -1
     };
     std::function<GPUPickResult(int mouseX, int mouseY)> onGPUPick;
 
@@ -346,6 +346,39 @@ public:
     static void moveActionStack(SoAction* from, SoAction* to, bool erase);
 
     static SoNode* getCurrentRoot(bool front, SoNode* def);
+
+    /// Get the render context for a node during SoModernRenderAction traversal.
+    /// Temporarily swaps ActionStacks[action] → SelStack so getRenderContext works.
+    template<class T>
+    static std::shared_ptr<T> getModernRenderContext(
+        SoAction* action,
+        SoNode* node,
+        std::shared_ptr<T> def = std::shared_ptr<T>()
+    )
+    {
+        auto it = ActionStacks.find(action);
+        bool hasStack = (it != ActionStacks.end() && !it->second.empty());
+        if (hasStack) {
+            std::swap(SelStack, it->second);
+        }
+        auto result = std::dynamic_pointer_cast<T>(getNodeContext(SelStack, node, def));
+        if (hasStack) {
+            std::swap(SelStack, it->second);
+        }
+        return result;
+    }
+
+    /// Build the sub-object selection path from the current action stack.
+    /// Returns "LinkName.BodyName.PadName." prefix for a shape nested inside Links.
+    /// The caller appends the element name (e.g. "Face3").
+    /// Also outputs the top-level document object name and document name.
+    static bool getSelectionPath(
+        SoAction* action,
+        Gui::Document* doc,
+        std::string& docName,
+        std::string& objName,
+        std::string& subPath
+    );
 
     void resetContext();
 

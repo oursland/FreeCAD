@@ -23,6 +23,9 @@
 
 #include <FCConfig.h>
 
+#include <Base/Profiler.h>
+
+#include <Inventor/actions/SoModernRenderAction.h>
 #include <Inventor/SoFullPath.h>
 #include <Inventor/SoPickedPoint.h>
 
@@ -632,6 +635,21 @@ bool SoFCUnifiedSelection::setPreselect(
 
         printPreselectionInfo(docname, objname, element, x, y, z, 1e-7);
 
+        {
+            ZoneScopedN("setPreselect::apply");
+            char buf[256];
+            std::snprintf(
+                buf,
+                sizeof(buf),
+                "%s.%s.%s pathLen=%d det=%p",
+                docname,
+                objname,
+                element ? element : "(null)",
+                path->getLength(),
+                (void*)det
+            );
+            ZoneText(buf, std::strlen(buf));
+        }
 
         int ret = Gui::Selection().setPreselect(docname, objname, element, x, y, z);
         if (ret < 0 && currentHighlightPath) {
@@ -904,15 +922,55 @@ void SoFCUnifiedSelection::handleEvent(SoHandleEventAction* action)
     bool isMouseMotionEvent = event->isOfType(SoLocation2Event::getClassTypeId());
     if (isMouseMotionEvent) {
         if (preselectionMode == AUTO || preselectionMode == ON) {
-            auto infos = this->getPickedList(action, true);
-            if (!infos.empty()) {
-                setPreselect(infos[0]);
+            ZoneScopedN("UnifiedSel::hover");
+            bool handled = false;
+            if (onGPUPick) {
+                ZoneScopedN("GPU pick call");
+                auto pos = event->getPosition();
+                auto result = onGPUPick(pos[0], pos[1]);
+                if (result.available) {
+                    handled = true;
+                    if (result.vpd && result.path) {
+                        ZoneText(result.element.c_str(), result.element.size());
+                        // Create SoFaceDetail for the highlight action
+                        SoFaceDetail faceDetail;
+                        if (result.faceDetail >= 0) {
+                            faceDetail.setPartIndex(result.faceDetail);
+                        }
+                        setPreselect(
+                            result.path,
+                            result.faceDetail >= 0 ? &faceDetail : nullptr,
+                            result.vpd,
+                            result.element.c_str(),
+                            0,
+                            0,
+                            0
+                        );
+                    }
+                    else {
+                        ZoneText("no hit", 6);
+                        setPreselect(PickedInfo());
+                        if (this->preSelection > 0) {
+                            this->preSelection = 0;
+                            this->touch();
+                        }
+                    }
+                }
+                else {
+                    ZoneText("unavailable", 11);
+                }
             }
-            else {
-                setPreselect(PickedInfo());
-                if (this->preSelection > 0) {
-                    this->preSelection = 0;
-                    this->touch();
+            if (!handled) {
+                auto infos = this->getPickedList(action, true);
+                if (!infos.empty()) {
+                    setPreselect(infos[0]);
+                }
+                else {
+                    setPreselect(PickedInfo());
+                    if (this->preSelection > 0) {
+                        this->preSelection = 0;
+                        this->touch();
+                    }
                 }
             }
         }
@@ -924,12 +982,49 @@ void SoFCUnifiedSelection::handleEvent(SoHandleEventAction* action)
     ) {
         const auto e = static_cast<const SoMouseButtonEvent*>(event);
         if (SoMouseButtonEvent::isButtonReleaseEvent(e, SoMouseButtonEvent::BUTTON1)) {
-            auto infos = this->getPickedList(action, !Selection().needPickedList());
-            bool greedySel = Gui::Selection().getSelectionStyle()
-                == Gui::SelectionSingleton::SelectionStyle::GreedySelection;
-            greedySel = greedySel || event->wasCtrlDown();
-            if (setSelection(infos, greedySel) || greedySel) {
-                action->setHandled();
+            bool handled = false;
+            if (onGPUPick) {
+                auto pos = event->getPosition();
+                auto result = onGPUPick(pos[0], pos[1]);
+                if (result.available) {
+                    handled = true;
+                    if (result.vpd && result.path) {
+                        auto* obj = result.vpd->getObject();
+                        const char* docname = obj->getDocument()->getName();
+                        const char* objname = obj->getNameInDocument();
+                        bool greedySel = Gui::Selection().getSelectionStyle()
+                            == Gui::SelectionSingleton::SelectionStyle::GreedySelection;
+                        greedySel = greedySel || event->wasCtrlDown();
+
+                        if (!greedySel && !event->wasCtrlDown()) {
+                            Gui::Selection().clearSelection(docname);
+                        }
+
+                        if (Gui::Selection().isSelected(
+                                docname,
+                                objname,
+                                result.element.c_str(),
+                                ResolveMode::NoResolve
+                            )
+                            && event->wasCtrlDown()) {
+                            Gui::Selection().rmvSelection(docname, objname, result.element.c_str());
+                        }
+                        else {
+                            Gui::Selection()
+                                .addSelection(docname, objname, result.element.c_str(), 0, 0, 0);
+                        }
+                        action->setHandled();
+                    }
+                }
+            }
+            if (!handled) {
+                auto infos = this->getPickedList(action, !Selection().needPickedList());
+                bool greedySel = Gui::Selection().getSelectionStyle()
+                    == Gui::SelectionSingleton::SelectionStyle::GreedySelection;
+                greedySel = greedySel || event->wasCtrlDown();
+                if (setSelection(infos, greedySel) || greedySel) {
+                    action->setHandled();
+                }
             }
         }  // mouse release
     }
@@ -1259,6 +1354,78 @@ static void so_bbox_cleanup()
 
 SoFCSelectionRoot::Stack SoFCSelectionRoot::SelStack;
 std::unordered_map<SoAction*, SoFCSelectionRoot::Stack> SoFCSelectionRoot::ActionStacks;
+
+bool SoFCSelectionRoot::getSelectionPath(
+    SoAction* action,
+    Gui::Document* doc,
+    std::string& docName,
+    std::string& objName,
+    std::string& subPath
+)
+{
+    ZoneScopedN("getSelectionPath");
+    if (!action || !doc) {
+        ZoneText("no action/doc", 13);
+        return false;
+    }
+
+    auto it = ActionStacks.find(action);
+    if (it == ActionStacks.end() || it->second.empty()) {
+        char buf[64];
+        std::snprintf(buf, sizeof(buf), "no stack (stacks=%zu)", ActionStacks.size());
+        ZoneText(buf, std::strlen(buf));
+        return false;
+    }
+
+    auto& stack = it->second;
+    {
+        char buf[64];
+        std::snprintf(buf, sizeof(buf), "stack size=%zu", stack.size());
+        ZoneText(buf, std::strlen(buf));
+    }
+
+    // Find the top-level VP from the first selection root in the stack
+    ViewProviderDocumentObject* topVPD = nullptr;
+    std::vector<ViewProviderDocumentObject*> vpChain;
+
+    for (auto* node : stack) {
+        auto* vp = doc->getViewProvider(node);
+        if (vp && vp->isDerivedFrom(ViewProviderDocumentObject::getClassTypeId())) {
+            auto* vpd = static_cast<ViewProviderDocumentObject*>(vp);
+            vpChain.push_back(vpd);
+            if (!topVPD) {
+                topVPD = vpd;
+            }
+        }
+    }
+
+    if (!topVPD) {
+        char buf[64];
+        std::snprintf(buf, sizeof(buf), "no VP found (chain=%zu)", vpChain.size());
+        ZoneText(buf, std::strlen(buf));
+        return false;
+    }
+
+    auto* obj = topVPD->getObject();
+    if (!obj || !obj->getDocument()) {
+        return false;
+    }
+
+    docName = obj->getDocument()->getName();
+    objName = obj->getNameInDocument();
+
+    // Build sub-path from remaining VP chain (skip the top-level)
+    subPath.clear();
+    for (size_t i = 1; i < vpChain.size(); ++i) {
+        auto* childObj = vpChain[i]->getObject();
+        if (childObj && childObj->getNameInDocument()) {
+            subPath += childObj->getNameInDocument();
+            subPath += '.';
+        }
+    }
+
+    return true;
+}
 SoFCSelectionRoot::ColorStack SoFCSelectionRoot::SelColorStack;
 SoFCSelectionRoot::ColorStack SoFCSelectionRoot::HlColorStack;
 SoFCSelectionRoot* SoFCSelectionRoot::ShapeColorNode;
@@ -1769,9 +1936,24 @@ void SoFCSelectionRoot::callback(SoCallbackAction* action)
 void SoFCSelectionRoot::doAction(SoAction* action)
 {
     BEGIN_ACTION
+
+    // For SoModernRenderAction, also populate SelStack so that
+    // getRenderContext() works (same as renderPrivate does for GL render).
+    bool pushSelStack = action->isOfType(SoModernRenderAction::getClassTypeId());
+    if (pushSelStack) {
+        SelStack.nodeSet.insert(this);
+        SelStack.push_back(this);
+    }
+
     if (doActionPrivate(stack, action)) {
         inherited::doAction(action);
     }
+
+    if (pushSelStack) {
+        SelStack.pop_back();
+        SelStack.nodeSet.erase(this);
+    }
+
     END_ACTION
 }
 

@@ -43,6 +43,9 @@
 #include <Inventor/nodes/SoGroup.h>
 #include <Inventor/actions/SoSearchAction.h>
 
+#include <App/Document.h>
+#include <Gui/Application.h>
+#include <Gui/Document.h>
 #include <Gui/Selection/SoFCUnifiedSelection.h>
 #include <Gui/Selection/Selection.h>
 #include <Base/Console.h>
@@ -168,8 +171,8 @@ void SoBrepEdgeSet::render(SoModernRenderAction* action)
         }
     }
 
-    SoRenderCommand cmd;
-    std::memset(&cmd, 0, sizeof(SoRenderCommand));
+    SoRenderCommand cmd = {};
+    cmd.selection.highlightElement = -1;
 
     cmd.geometry.topology = SO_TOPOLOGY_LINES;
     cmd.geometry.vertexCount = static_cast<uint32_t>(numCoords);
@@ -186,6 +189,24 @@ void SoBrepEdgeSet::render(SoModernRenderAction* action)
     cmd.pass = SO_RENDERPASS_OPAQUE;
     cmd.sortKey = SoIRComputeSortKey(cmd, static_cast<uint32_t>(cmd.pass), 0);
     cmd.userData = this;
+
+    {
+        std::string docName, objName, subPath;
+        auto* guiDoc = viewProvider
+            ? Gui::Application::Instance->getDocument(viewProvider->getObject()->getDocument())
+            : nullptr;
+        if (guiDoc
+            && Gui::SoFCSelectionRoot::getSelectionPath(action, guiDoc, docName, objName, subPath)) {
+            cmd.pick.pickIdentity = docName + "\t" + objName + "\t" + subPath;
+        }
+        else if (viewProvider && viewProvider->getObject()) {
+            auto* obj = viewProvider->getObject();
+            if (obj->getDocument() && obj->getNameInDocument()) {
+                cmd.pick.pickIdentity = std::string(obj->getDocument()->getName()) + "\t"
+                    + obj->getNameInDocument() + "\t";
+            }
+        }
+    }
 
     action->getMutableDrawList().addCommand(cmd);
 }

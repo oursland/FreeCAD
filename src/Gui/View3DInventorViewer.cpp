@@ -985,6 +985,56 @@ void View3DInventorViewer::init()
 
     inventorSelection = std::make_unique<View3DInventorSelection>(selectionRoot);
 
+    // Wire GPU pick callback for modern renderer.
+    // Returns VP + path + element so handleEvent can feed into the existing
+    // setPreselect(path, detail, vpd, element) pipeline.
+    selectionRoot->onGPUPick = [this](int mouseX, int mouseY) -> SoFCUnifiedSelection::GPUPickResult {
+        ZoneScopedN("onGPUPick");
+        SoFCUnifiedSelection::GPUPickResult result;
+        auto* mgr = this->getSoRenderManager();
+        if (!mgr || !mgr->isModernRenderEnabled()) {
+            return result;
+        }
+
+        result.available = true;
+
+        uint32_t lutIndex = mgr->gpuPick(mouseX, mouseY, 5);
+        if (lutIndex == 0) {
+            return result;  // no hit
+        }
+
+        // Get the scene graph path stored during traversal
+        auto* path = static_cast<SoFullPath*>(mgr->getGpuPickPath(lutIndex));
+        if (!path) {
+            return result;
+        }
+
+        // Get VP from path using existing viewer infrastructure
+        auto* vp = this->getViewProviderByPath(path);
+        if (!vp || !vp->isDerivedFrom(ViewProviderDocumentObject::getClassTypeId())) {
+            return result;
+        }
+        result.vpd = static_cast<ViewProviderDocumentObject*>(vp);
+        result.path = path;
+
+        // Resolve element name: identity has "doc\tobj\tsubPath" prefix,
+        // resolveGpuPickIdentity appends "Face3" etc.
+        std::string identity = mgr->resolveGpuPickIdentity(lutIndex);
+        if (!identity.empty()) {
+            // Extract the sub-element part (everything after second tab)
+            size_t tab2 = identity.rfind('\t');
+            if (tab2 != std::string::npos) {
+                result.element = identity.substr(tab2 + 1);
+            }
+        }
+
+        // Face index for SoFaceDetail
+        result.faceDetail = mgr->getGpuPickElement(lutIndex);
+
+        ZoneText(result.element.c_str(), result.element.size());
+        return result;
+    };
+
     pcClipPlane = nullptr;
 
     pcEditingRoot = new SoSeparator;
