@@ -75,11 +75,7 @@ static void renderOverlayLines(
     auto state = action->getState();
     state->push();
 
-    SoDepthBufferElement::set(state,
-                              FALSE,
-                              FALSE,
-                              SoDepthBufferElement::ALWAYS,
-                              SbVec2f(0.0f, 1.0f));
+    SoDepthBufferElement::set(state, FALSE, FALSE, SoDepthBufferElement::ALWAYS, SbVec2f(0.0f, 1.0f));
 
     SoLazyElement::setEmissive(state, &color);
     uint32_t packedColor = color.getPackedValue(0.0);
@@ -362,19 +358,15 @@ void SoBrepEdgeSet::GLRender(SoGLRenderAction* action)
     if (ctx2 && !ctx2->selectionIndex.empty()) {
         renderSelection(action, ctx2, false);
     }
-	    else if (Gui::Selection().isClarifySelectionActive()
-	             && !Gui::SoDelayedAnnotationsElement::isProcessingDelayedPaths && hasAnyHighlight) {
-	        state->push();
-	        SoDepthBufferElement::set(state,
-	                                  FALSE,
-	                                  FALSE,
-	                                  SoDepthBufferElement::ALWAYS,
-	                                  SbVec2f(0.0f, 1.0f));
+    else if (Gui::Selection().isClarifySelectionActive()
+             && !Gui::SoDelayedAnnotationsElement::isProcessingDelayedPaths && hasAnyHighlight) {
+        state->push();
+        SoDepthBufferElement::set(state, FALSE, FALSE, SoDepthBufferElement::ALWAYS, SbVec2f(0.0f, 1.0f));
 
-	        inherited::GLRender(action);
+        inherited::GLRender(action);
 
-	        state->pop();
-	    }
+        state->pop();
+    }
     else {
         inherited::GLRender(action);
     }
@@ -395,19 +387,23 @@ void SoBrepEdgeSet::GLRender(SoGLRenderAction* action)
     // Optional overlay rendering for deterministic tests (and programmatic usage).
     const int hlNum = highlightCoordIndex.getNum();
     if (hlNum > 0) {
-        renderOverlayLines(action,
-                           overlayLineSet,
-                           highlightCoordIndex.getValues(0),
-                           hlNum,
-                           highlightColor.getValue());
+        renderOverlayLines(
+            action,
+            overlayLineSet,
+            highlightCoordIndex.getValues(0),
+            hlNum,
+            highlightColor.getValue()
+        );
     }
     const int selNum = selectionCoordIndex.getNum();
     if (selNum > 0) {
-        renderOverlayLines(action,
-                           overlayLineSet,
-                           selectionCoordIndex.getValues(0),
-                           selNum,
-                           selectionColor.getValue());
+        renderOverlayLines(
+            action,
+            overlayLineSet,
+            selectionCoordIndex.getValues(0),
+            selNum,
+            selectionColor.getValue()
+        );
     }
 }
 
@@ -455,11 +451,7 @@ void SoBrepEdgeSet::getBoundingBox(SoGetBoundingBoxAction* action)
     }
 }
 
-void SoBrepEdgeSet::renderShape(
-    SoGLRenderAction* action,
-    const int32_t* cindices,
-    int numindices
-)
+void SoBrepEdgeSet::renderShape(SoGLRenderAction* action, const int32_t* cindices, int numindices)
 {
     if (!action || !overlayLineSet || !cindices || numindices <= 0) {
         return;
@@ -684,7 +676,7 @@ void SoBrepEdgeSet::doAction(SoAction* action)
                     static std::string element("Edge");
                     bool hasEdgeColors = false;
                     for (const auto& [name, color] : colors) {
-                        if (name.empty() || boost::starts_with(name, element)) {
+                        if (name.empty() || name.starts_with(element)) {
                             hasEdgeColors = true;
                             break;
                         }

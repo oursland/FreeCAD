@@ -903,11 +903,7 @@ void SoFCUnifiedSelection::handleEvent(SoHandleEventAction* action)
     //
     bool isMouseMotionEvent = event->isOfType(SoLocation2Event::getClassTypeId());
     if (isMouseMotionEvent) {
-        // NOTE: If preselection is off then we do not check for a picked point because otherwise
-        // this search may slow down extremely the system on really big data sets. In this case we
-        // just check for a picked point if the data set has been selected.
         if (preselectionMode == AUTO || preselectionMode == ON) {
-            // check to see if the mouse is over our geometry...
             auto infos = this->getPickedList(action, true);
             if (!infos.empty()) {
                 setPreselect(infos[0]);
@@ -916,8 +912,6 @@ void SoFCUnifiedSelection::handleEvent(SoHandleEventAction* action)
                 setPreselect(PickedInfo());
                 if (this->preSelection > 0) {
                     this->preSelection = 0;
-                    // touch() makes sure to call GLRenderBelowPath so that the cursor can be updated
-                    // because only from there the SoGLWidgetElement delivers the OpenGL window
                     this->touch();
                 }
             }
@@ -930,7 +924,6 @@ void SoFCUnifiedSelection::handleEvent(SoHandleEventAction* action)
     ) {
         const auto e = static_cast<const SoMouseButtonEvent*>(event);
         if (SoMouseButtonEvent::isButtonReleaseEvent(e, SoMouseButtonEvent::BUTTON1)) {
-            // check to see if the mouse is over a geometry...
             auto infos = this->getPickedList(action, !Selection().needPickedList());
             bool greedySel = Gui::Selection().getSelectionStyle()
                 == Gui::SelectionSingleton::SelectionStyle::GreedySelection;
