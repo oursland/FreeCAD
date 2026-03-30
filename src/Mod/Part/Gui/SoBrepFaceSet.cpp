@@ -582,20 +582,53 @@ void SoBrepFaceSet::render(SoModernRenderAction* action)
         }
 
         if (ctx) {
-            if (ctx->isHighlighted() && ctx->highlightIndex >= 0 && !ctx->isHighlightAll()
-                && ctx->highlightIndex < partIndex.getNum()) {
-                cmd.selection.highlightElement = ctx->highlightIndex;
-                SbColor hlc = ctx->highlightColor;
-                cmd.selection.highlightColor.setValue(hlc[0], hlc[1], hlc[2], 0.6f);
-            }
-            if (!ctx->selectionIndex.empty() && !ctx->isSelectAll()) {
-                for (int idx : ctx->selectionIndex) {
-                    if (idx >= 0) {
-                        cmd.selection.selectedElements.push_back(idx);
-                    }
+            if (ctx->isHighlighted()) {
+                if (ctx->highlightIndex >= 0 && !ctx->isHighlightAll()
+                    && ctx->highlightIndex < partIndex.getNum()) {
+                    cmd.selection.highlightElement = ctx->highlightIndex;
+                    SbColor hlc = ctx->highlightColor;
+                    cmd.selection.highlightColor.setValue(hlc[0], hlc[1], hlc[2], 1.0f);
+                    Base::Console().warning(
+                        "ModernRender: HL face=%d/%d ctx=%p this=%p id=%s\n",
+                        ctx->highlightIndex,
+                        partIndex.getNum(),
+                        (void*)ctx.get(),
+                        (void*)this,
+                        cmd.pick.pickIdentity.c_str()
+                    );
                 }
-                SbColor slc = ctx->selectionColor;
-                cmd.selection.selectionColor.setValue(slc[0], slc[1], slc[2], 0.5f);
+                else {
+                    Base::Console().warning(
+                        "ModernRender: HL SKIPPED hlIdx=%d hlAll=%d parts=%d id=%s\n",
+                        ctx->highlightIndex,
+                        ctx->isHighlightAll() ? 1 : 0,
+                        partIndex.getNum(),
+                        cmd.pick.pickIdentity.c_str()
+                    );
+                }
+            }
+            if (!ctx->selectionIndex.empty()) {
+                if (!ctx->isSelectAll()) {
+                    for (int idx : ctx->selectionIndex) {
+                        if (idx >= 0) {
+                            cmd.selection.selectedElements.push_back(idx);
+                        }
+                    }
+                    SbColor slc = ctx->selectionColor;
+                    cmd.selection.selectionColor.setValue(slc[0], slc[1], slc[2], 0.8f);
+                    Base::Console().warning(
+                        "ModernRender: SEL faces=%zu id=%s\n",
+                        ctx->selectionIndex.size(),
+                        cmd.pick.pickIdentity.c_str()
+                    );
+                }
+                else {
+                    Base::Console().warning(
+                        "ModernRender: SEL SKIPPED (selectAll) selSz=%zu id=%s\n",
+                        ctx->selectionIndex.size(),
+                        cmd.pick.pickIdentity.c_str()
+                    );
+                }
             }
         }
     }

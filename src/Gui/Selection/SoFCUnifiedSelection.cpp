@@ -485,6 +485,14 @@ void SoFCUnifiedSelection::doAction(SoAction* action)
                 }
             }
 
+            Base::Console().warning(
+                "ModernRender: SEL_ACTION obj=%s sub=%s vp=%p isSelectable=%d\n",
+                selectionAction->SelChange.pObjectName ? selectionAction->SelChange.pObjectName
+                                                       : "(null)",
+                selectionAction->SelChange.pSubName ? selectionAction->SelChange.pSubName : "(null)",
+                (void*)vp,
+                isSelectable ? 1 : 0
+            );
             if (vp && (useNewSelection.getValue() || vp->useNewSelectionModel()) && isSelectable) {
                 SoDetail* detail = nullptr;
                 detailPath->truncate(0);
@@ -492,12 +500,20 @@ void SoFCUnifiedSelection::doAction(SoAction* action)
                 App::ElementNamePair elementName;
                 ;
                 App::GeoFeature::resolveElement(obj, subName, elementName);
-                if (Data::isMappedElement(subName)
-                    && !elementName.oldName.empty()) {      // If we have a shortened element name
-                    subName = elementName.oldName.c_str();  // use it.
+                if (Data::isMappedElement(subName) && !elementName.oldName.empty()) {
+                    subName = elementName.oldName.c_str();
                 }
-                if (!selectionAction->SelChange.pSubName || !selectionAction->SelChange.pSubName[0]
-                    || vp->getDetailPath(subName, detailPath, true, detail)) {
+                bool detailOk = !selectionAction->SelChange.pSubName
+                    || !selectionAction->SelChange.pSubName[0]
+                    || vp->getDetailPath(subName, detailPath, true, detail);
+                Base::Console().warning(
+                    "ModernRender: SEL_DETAIL subName=%s detailOk=%d detail=%p pathLen=%d\n",
+                    subName ? subName : "(null)",
+                    detailOk ? 1 : 0,
+                    (void*)detail,
+                    detailPath->getLength()
+                );
+                if (detailOk) {
                     SoSelectionElementAction::Type type = SoSelectionElementAction::None;
                     if (selectionAction->SelChange.Type == SelectionChanges::AddSelection) {
                         if (detail) {
@@ -982,42 +998,10 @@ void SoFCUnifiedSelection::handleEvent(SoHandleEventAction* action)
     ) {
         const auto e = static_cast<const SoMouseButtonEvent*>(event);
         if (SoMouseButtonEvent::isButtonReleaseEvent(e, SoMouseButtonEvent::BUTTON1)) {
-            bool handled = false;
-            if (onGPUPick) {
-                auto pos = event->getPosition();
-                auto result = onGPUPick(pos[0], pos[1]);
-                if (result.available) {
-                    handled = true;
-                    if (result.vpd && result.path) {
-                        auto* obj = result.vpd->getObject();
-                        const char* docname = obj->getDocument()->getName();
-                        const char* objname = obj->getNameInDocument();
-                        bool greedySel = Gui::Selection().getSelectionStyle()
-                            == Gui::SelectionSingleton::SelectionStyle::GreedySelection;
-                        greedySel = greedySel || event->wasCtrlDown();
-
-                        if (!greedySel && !event->wasCtrlDown()) {
-                            Gui::Selection().clearSelection(docname);
-                        }
-
-                        if (Gui::Selection().isSelected(
-                                docname,
-                                objname,
-                                result.element.c_str(),
-                                ResolveMode::NoResolve
-                            )
-                            && event->wasCtrlDown()) {
-                            Gui::Selection().rmvSelection(docname, objname, result.element.c_str());
-                        }
-                        else {
-                            Gui::Selection()
-                                .addSelection(docname, objname, result.element.c_str(), 0, 0, 0);
-                        }
-                        action->setHandled();
-                    }
-                }
-            }
-            if (!handled) {
+            // For click selection, always use the legacy SoRayPickAction path.
+            // GPU pick sub-element format doesn't match getDetailPath for
+            // Assembly Links. Ray pick is only for clicks (infrequent).
+            {
                 auto infos = this->getPickedList(action, !Selection().needPickedList());
                 bool greedySel = Gui::Selection().getSelectionStyle()
                     == Gui::SelectionSingleton::SelectionStyle::GreedySelection;
