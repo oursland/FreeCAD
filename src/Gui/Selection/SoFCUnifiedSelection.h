@@ -23,7 +23,9 @@
 
 #pragma once
 
+#include <functional>
 #include <list>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -90,6 +92,19 @@ public:
     void GLRenderBelowPath(SoGLRenderAction* action) override;
 
     static bool hasHighlight();
+
+    /// GPU pick callback. When set, handleEvent calls this instead of
+    /// SoRayPickAction for mouse move and click events.
+    /// Returns (docName, objName, subElement) or empty for no hit.
+    struct GPUPickResult
+    {
+        bool available = false;  ///< true = GPU pick was performed; false = fall back to legacy
+        std::string docName;
+        std::string objName;
+        std::string subElement;
+        float x = 0, y = 0, z = 0;
+    };
+    std::function<GPUPickResult(int mouseX, int mouseY)> onGPUPick;
 
     friend class View3DInventorViewer;
 

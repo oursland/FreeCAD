@@ -28,6 +28,7 @@
 #include <Inventor/fields/SoSFInt32.h>
 #include <Inventor/fields/SoSFColor.h>
 #include <Inventor/nodes/SoIndexedFaceSet.h>
+class SoModernRenderAction;
 #include <memory>
 #include <vector>
 #include <Gui/Selection/SoFCSelectionContext.h>
@@ -99,6 +100,8 @@ public:
     SoMFInt32 selectionPartIndex;
     SoSFColor highlightColor;
     SoSFColor selectionColor;
+
+    void render(SoModernRenderAction* action) override;
 
 protected:
     ~SoBrepFaceSet() override;

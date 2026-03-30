@@ -176,7 +176,9 @@ SoSeparator* create2DOverlayRoot(int viewportWidth, int viewportHeight)
     root->ref();
 
     auto* camera = new SoOrthographicCamera;
-    camera->aspectRatio.setValue(static_cast<float>(viewportWidth) / static_cast<float>(viewportHeight));
+    camera->aspectRatio.setValue(
+        static_cast<float>(viewportWidth) / static_cast<float>(viewportHeight)
+    );
     camera->height.setValue(static_cast<float>(viewportHeight));
     root->addChild(camera);
 
@@ -200,7 +202,8 @@ void applyOverlay(SoNode* root, int viewportWidth, int viewportHeight)
     action.apply(root);
 }
 
-struct OverlayImageState {
+struct OverlayImageState
+{
     SoSeparator* root {nullptr};
     SoOrthographicCamera* camera {nullptr};
     SoDepthBuffer* depth {nullptr};
@@ -271,9 +274,11 @@ void renderOverlaySolidColor(const QColor& col, int viewportWidth, int viewportH
     SoSeparator* root = create2DOverlayRoot(viewportWidth, viewportHeight);
 
     auto* material = new SoMaterial;
-    material->diffuseColor.setValue(static_cast<float>(col.redF()),
-                                    static_cast<float>(col.greenF()),
-                                    static_cast<float>(col.blueF()));
+    material->diffuseColor.setValue(
+        static_cast<float>(col.redF()),
+        static_cast<float>(col.greenF()),
+        static_cast<float>(col.blueF())
+    );
     material->transparency.setValue(1.0f - static_cast<float>(col.alphaF()));
     root->addChild(material);
 
@@ -357,7 +362,8 @@ SoSeparator* createAxisArrowGeometry()
     return root;
 }
 
-struct OverlayAxisCrossState {
+struct OverlayAxisCrossState
+{
     SoSeparator* axisRoot {nullptr};
     SoPerspectiveCamera* axisCamera {nullptr};
     SoDepthBuffer* axisDepth {nullptr};
@@ -381,7 +387,8 @@ struct OverlayAxisCrossState {
     SoDepthBuffer* lettersDepth {nullptr};
     SoLightModel* lettersLightModel {nullptr};
 
-    struct Letter {
+    struct Letter
+    {
         SoSeparator* root {nullptr};
         SoTranslation* position {nullptr};
         SoScale* scale {nullptr};
@@ -441,7 +448,10 @@ struct OverlayAxisCrossState {
         yMaterial = new SoMaterial;
         yAxis->addChild(yMaterial);
         yRotation = new SoRotation;
-        yRotation->rotation.setValue(SbVec3f(0.0f, 0.0f, 1.0f), static_cast<float>(std::numbers::pi / 2.0));
+        yRotation->rotation.setValue(
+            SbVec3f(0.0f, 0.0f, 1.0f),
+            static_cast<float>(std::numbers::pi / 2.0)
+        );
         yAxis->addChild(yRotation);
         yAxis->addChild(arrow);
 
@@ -450,7 +460,10 @@ struct OverlayAxisCrossState {
         zMaterial = new SoMaterial;
         zAxis->addChild(zMaterial);
         zRotation = new SoRotation;
-        zRotation->rotation.setValue(SbVec3f(0.0f, 1.0f, 0.0f), static_cast<float>(-std::numbers::pi / 2.0));
+        zRotation->rotation.setValue(
+            SbVec3f(0.0f, 1.0f, 0.0f),
+            static_cast<float>(-std::numbers::pi / 2.0)
+        );
         zAxis->addChild(zRotation);
         zAxis->addChild(arrow);
 
@@ -487,7 +500,10 @@ struct OverlayAxisCrossState {
             out.vertices = new SoVertexProperty;
             out.vertices->vertex.set1Value(0, SbVec3f(0.0f, 0.0f, 0.0f));
             out.vertices->vertex.set1Value(1, SbVec3f(static_cast<float>(w), 0.0f, 0.0f));
-            out.vertices->vertex.set1Value(2, SbVec3f(static_cast<float>(w), static_cast<float>(h), 0.0f));
+            out.vertices->vertex.set1Value(
+                2,
+                SbVec3f(static_cast<float>(w), static_cast<float>(h), 0.0f)
+            );
             out.vertices->vertex.set1Value(3, SbVec3f(0.0f, static_cast<float>(h), 0.0f));
 
             out.vertices->texCoord.set1Value(0, SbVec2f(0.0f, 0.0f));
@@ -1026,6 +1042,14 @@ void View3DInventorViewer::init()
     setBackgroundColor(QColor(25, 25, 25));  // NOLINT
     setGradientBackground(Background::LinearGradient);
 
+    // Enable modern renderer when FREECAD_MODERN_RENDER=1
+    if (auto* env = std::getenv("FREECAD_MODERN_RENDERER")) {
+        if (std::string(env) == "1") {
+            this->getSoRenderManager()->setModernRenderEnabled(true);
+            Base::Console().log("Modern renderer enabled via FREECAD_MODERN_RENDER=1\n");
+        }
+    }
+
     // set some callback functions for user interaction
     addStartCallback(interactionStartCB);
     addFinishCallback(interactionFinishCB);
@@ -1068,9 +1092,8 @@ void View3DInventorViewer::init()
     naviCube = new NaviCube(this);
     if (naviCubeAnnotation) {
         if (auto node = naviCube->getCoinNode()) {
-            const bool needsReset =
-                naviCubeAnnotation->getNumChildren() != 1 ||
-                naviCubeAnnotation->getChild(0) != node;
+            const bool needsReset = naviCubeAnnotation->getNumChildren() != 1
+                || naviCubeAnnotation->getChild(0) != node;
             if (needsReset) {
                 naviCubeAnnotation->removeAllChildren();
                 naviCubeAnnotation->addChild(node);
@@ -2873,19 +2896,15 @@ void View3DInventorViewer::renderGLImage()
         return;
     }
 
-    overlay.camera->aspectRatio.setValue(static_cast<float>(viewportWidth) / static_cast<float>(viewportHeight));
+    overlay.camera->aspectRatio.setValue(
+        static_cast<float>(viewportWidth) / static_cast<float>(viewportHeight)
+    );
     overlay.camera->height.setValue(static_cast<float>(viewportHeight));
 
     QImage rgba = glImage.convertToFormat(QImage::Format_RGBA8888);
-    overlay.pixelStorage.assign(
-        rgba.constBits(),
-        rgba.constBits() + qImageByteCount(rgba)
-    );
-    overlay.texture->image.setValue(
-        SbVec2s(rgba.width(), rgba.height()),
-        4,
-        overlay.pixelStorage.data()
-    );
+    overlay.pixelStorage.assign(rgba.constBits(), rgba.constBits() + qImageByteCount(rgba));
+    overlay.texture->image
+        .setValue(SbVec2s(rgba.width(), rgba.height()), 4, overlay.pixelStorage.data());
 
     const float baseX = -0.5f * static_cast<float>(viewportWidth);
     const float baseY = -0.5f * static_cast<float>(viewportHeight);
@@ -4580,17 +4599,21 @@ void View3DInventorViewer::drawAxisCross()
     }
 
     std::array<std::pair<float, SoNode*>, 3> axes = {
-        std::pair<float, SoNode*>{xpos[2], overlay.xAxis},
-        std::pair<float, SoNode*>{ypos[2], overlay.yAxis},
-        std::pair<float, SoNode*>{zpos[2], overlay.zAxis},
+        std::pair<float, SoNode*> {xpos[2], overlay.xAxis},
+        std::pair<float, SoNode*> {ypos[2], overlay.yAxis},
+        std::pair<float, SoNode*> {zpos[2], overlay.zAxis},
     };
-    std::sort(axes.begin(), axes.end(), [](const auto& a, const auto& b) { return a.first > b.first; });
+    std::sort(axes.begin(), axes.end(), [](const auto& a, const auto& b) {
+        return a.first > b.first;
+    });
     overlay.axisGroup->removeAllChildren();
     for (const auto& axis : axes) {
         overlay.axisGroup->addChild(axis.second);
     }
 
-    overlay.lettersCamera->aspectRatio.setValue(static_cast<float>(viewWidth) / static_cast<float>(viewHeight));
+    overlay.lettersCamera->aspectRatio.setValue(
+        static_cast<float>(viewWidth) / static_cast<float>(viewHeight)
+    );
     overlay.lettersCamera->height.setValue(static_cast<float>(viewHeight));
 
     const float scale = static_cast<float>(axiscrossSize) / 30.0f;
@@ -4598,9 +4621,12 @@ void View3DInventorViewer::drawAxisCross()
     overlay.yLetter.scale->scaleFactor.setValue(scale, scale, 1.0f);
     overlay.zLetter.scale->scaleFactor.setValue(scale, scale, 1.0f);
 
-    overlay.xLetter.position->translation.setValue(xpos[0] - 0.5f * viewWidth, xpos[1] - 0.5f * viewHeight, 0.0f);
-    overlay.yLetter.position->translation.setValue(ypos[0] - 0.5f * viewWidth, ypos[1] - 0.5f * viewHeight, 0.0f);
-    overlay.zLetter.position->translation.setValue(zpos[0] - 0.5f * viewWidth, zpos[1] - 0.5f * viewHeight, 0.0f);
+    overlay.xLetter.position->translation
+        .setValue(xpos[0] - 0.5f * viewWidth, xpos[1] - 0.5f * viewHeight, 0.0f);
+    overlay.yLetter.position->translation
+        .setValue(ypos[0] - 0.5f * viewWidth, ypos[1] - 0.5f * viewHeight, 0.0f);
+    overlay.zLetter.position->translation
+        .setValue(zpos[0] - 0.5f * viewWidth, zpos[1] - 0.5f * viewHeight, 0.0f);
 
     overlay.xLetter.texture->image.setValue(SbVec2s(XPM_WIDTH, XPM_HEIGHT), 4, XPM_pixel_data);
     overlay.yLetter.texture->image.setValue(SbVec2s(YPM_WIDTH, YPM_HEIGHT), 4, YPM_pixel_data);
