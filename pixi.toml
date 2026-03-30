@@ -12,7 +12,7 @@ blinker = "*"
 calculix = "*"
 ccache = "*"
 cmake = "*"
-coin3d = "*"
+coin3d = "==4.0.8"
 compilers = ">=1.10,<1.11"
 conda-devenv = "*"
 debugpy = "*"
@@ -66,6 +66,8 @@ yaml-cpp = "*"
 zlib = "*"
 zstd = "*"
 compiler-rt = ">=18.1.8,<22"
+tracy-profiler = ">=0.13.1,<0.14"
+lldb = ">=21.1.0,<22"
 
 ## Linux Dependencies (x86-64)
 [target.linux-64.dependencies]
