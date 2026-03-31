@@ -23,7 +23,7 @@
 #include <FCConfig.h>
 
 #ifdef FC_OS_WIN32
-#include <windows.h>
+# include <windows.h>
 #endif
 
 #include <algorithm>
@@ -78,7 +78,8 @@ using namespace Gui;
 
 SO_NODE_SOURCE(SoNaviCube);
 
-namespace {
+namespace
+{
 
 constexpr std::array<SoNaviCube::PickId, 26> kCubeFacePickOrder = {
     SoNaviCube::PickId::Top,
@@ -199,18 +200,15 @@ SoSeparator* depthClearScene()
     face->vertexProperty = vp;
     vp->vertex.setNum(4);
     vp->vertex.set1Value(0, SbVec3f(-1.0F, -1.0F, -1.0F));
-    vp->vertex.set1Value(1, SbVec3f( 1.0F, -1.0F, -1.0F));
-    vp->vertex.set1Value(2, SbVec3f( 1.0F,  1.0F, -1.0F));
-    vp->vertex.set1Value(3, SbVec3f(-1.0F,  1.0F, -1.0F));
+    vp->vertex.set1Value(1, SbVec3f(1.0F, -1.0F, -1.0F));
+    vp->vertex.set1Value(2, SbVec3f(1.0F, 1.0F, -1.0F));
+    vp->vertex.set1Value(3, SbVec3f(-1.0F, 1.0F, -1.0F));
     root->addChild(face);
 
     return root;
 }
 
-bool pointInTriangle2D(const SbVec2f& p,
-                       const SbVec2f& a,
-                       const SbVec2f& b,
-                       const SbVec2f& c)
+bool pointInTriangle2D(const SbVec2f& p, const SbVec2f& a, const SbVec2f& b, const SbVec2f& c)
 {
     const float px = p[0];
     const float py = p[1];
@@ -373,9 +371,8 @@ bool nearlyEqual(float a, float b, float eps = 1e-6F)
 
 bool nearlyEqual(const SbColor& a, const SbColor& b, float eps = 1e-6F)
 {
-    return nearlyEqual(a[0], b[0], eps) &&
-           nearlyEqual(a[1], b[1], eps) &&
-           nearlyEqual(a[2], b[2], eps);
+    return nearlyEqual(a[0], b[0], eps) && nearlyEqual(a[1], b[1], eps)
+        && nearlyEqual(a[2], b[2], eps);
 }
 
 constexpr float OVERLAY_NEAR = 0.1F;
@@ -434,10 +431,7 @@ void SoNaviCube::setChamfer(float chamfer)
     }
 }
 
-void SoNaviCube::setLabelImage(PickId id,
-                               const SbVec2s& size,
-                               int numComponents,
-                               const unsigned char* pixels)
+void SoNaviCube::setLabelImage(PickId id, const SbVec2s& size, int numComponents, const unsigned char* pixels)
 {
     ensureGeometry();
 
@@ -470,10 +464,7 @@ void SoNaviCube::setLabelImage(PickId id,
         slot.texture->model = SoTexture2::MODULATE;
     }
 
-    slot.texture->image.setValue(size,
-                                 numComponents,
-                                 pixels,
-                                 SoSFImage::COPY);
+    slot.texture->image.setValue(size, numComponents, pixels, SoSFImage::COPY);
     sceneDirty = true;
 }
 
@@ -594,8 +585,9 @@ void SoNaviCube::buildCamerasAndStyle() const
         orthoCamera->height = 2.0F * OVERLAY_ORTHO_EXTENT;
 
         // Match the legacy frustum: dim = near * tan(pi/8) * scale.
-        const float halfAngle =
-            std::atan(std::tan(std::numbers::pi_v<float> / 8.0F) * OVERLAY_FOV_SCALE);
+        const float halfAngle = std::atan(
+            std::tan(std::numbers::pi_v<float> / 8.0F) * OVERLAY_FOV_SCALE
+        );
         perspCamera->heightAngle = 2.0F * halfAngle;
     }
 }
@@ -665,14 +657,15 @@ void SoNaviCube::buildCubeSection() const
         cubeFaces->vertexProperty = cubeVertexProperty;
         cubeVertexProperty->materialBinding = SoVertexProperty::PER_FACE_INDEXED;
         if (!cubeCoordsData.empty()) {
-            cubeVertexProperty->vertex.setValues(0,
-                                                 static_cast<int>(cubeCoordsData.size()),
-                                                 cubeCoordsData.data());
+            cubeVertexProperty->vertex
+                .setValues(0, static_cast<int>(cubeCoordsData.size()), cubeCoordsData.data());
         }
         if (!cubeCoordIndexData.empty()) {
-            cubeFaces->coordIndex.setValues(0,
-                                            static_cast<int>(cubeCoordIndexData.size()),
-                                            cubeCoordIndexData.data());
+            cubeFaces->coordIndex.setValues(
+                0,
+                static_cast<int>(cubeCoordIndexData.size()),
+                cubeCoordIndexData.data()
+            );
         }
         const int faceCount = static_cast<int>(kCubeFacePickOrder.size());
         cubeFaces->materialIndex.setNum(faceCount);
@@ -697,14 +690,15 @@ void SoNaviCube::buildCubeSection() const
         edgeVertexProperty = new SoVertexProperty;
         edges->vertexProperty = edgeVertexProperty;
         if (!edgeCoordsData.empty()) {
-            edgeVertexProperty->vertex.setValues(0,
-                                                 static_cast<int>(edgeCoordsData.size()),
-                                                 edgeCoordsData.data());
+            edgeVertexProperty->vertex
+                .setValues(0, static_cast<int>(edgeCoordsData.size()), edgeCoordsData.data());
         }
         if (!edgeCoordIndexData.empty()) {
-            edges->coordIndex.setValues(0,
-                                        static_cast<int>(edgeCoordIndexData.size()),
-                                        edgeCoordIndexData.data());
+            edges->coordIndex.setValues(
+                0,
+                static_cast<int>(edgeCoordIndexData.size()),
+                edgeCoordIndexData.data()
+            );
         }
     }
 
@@ -771,7 +765,6 @@ void SoNaviCube::buildCubeSection() const
         labelsGroup->addChild(nodes.sep);
         labelNodes[pickIndex(pickId)] = nodes;
     }
-
 }
 
 void SoNaviCube::buildAxisSection(SoSeparator* cubeGroup) const
@@ -852,17 +845,18 @@ void SoNaviCube::buildButtonsSection() const
     }
 
     SbViewVolume ortho;
-    ortho.ortho(-OVERLAY_ORTHO_EXTENT,
-                OVERLAY_ORTHO_EXTENT,
-                -OVERLAY_ORTHO_EXTENT,
-                OVERLAY_ORTHO_EXTENT,
-                OVERLAY_NEAR,
-                OVERLAY_FAR);
+    ortho.ortho(
+        -OVERLAY_ORTHO_EXTENT,
+        OVERLAY_ORTHO_EXTENT,
+        -OVERLAY_ORTHO_EXTENT,
+        OVERLAY_ORTHO_EXTENT,
+        OVERLAY_NEAR,
+        OVERLAY_FAR
+    );
 
     SbViewVolume persp;
-    const float dim = OVERLAY_NEAR *
-                      static_cast<float>(std::tan(std::numbers::pi / 8.0F)) *
-                      OVERLAY_FOV_SCALE;
+    const float dim = OVERLAY_NEAR * static_cast<float>(std::tan(std::numbers::pi / 8.0F))
+        * OVERLAY_FOV_SCALE;
     persp.frustum(-dim, dim, -dim, dim, OVERLAY_NEAR, OVERLAY_FAR);
 
     const float buttonPlaneDist = std::abs(OVERLAY_BUTTON_Z);
@@ -968,7 +962,8 @@ void SoNaviCube::rebuildSceneGraph() const
     sceneDirty = false;
 }
 
-struct SoNaviCube::RenderParams {
+struct SoNaviCube::RenderParams
+{
     float currentOpacity {1.0F};
     float bw {1.0F};
     PickId hilitePick {PickId::None};
@@ -1006,21 +1001,15 @@ SoNaviCube::RenderParams SoNaviCube::makeRenderParams() const
     params.hiliteTr = toTransparency(hiliteA);
     params.emphTr = toTransparency(emphA);
 
-    params.axisRgb = {
-        axisXColor.getValue(),
-        axisYColor.getValue(),
-        axisZColor.getValue()
-    };
+    params.axisRgb = {axisXColor.getValue(), axisYColor.getValue(), axisZColor.getValue()};
     params.axisTr = toTransparency(params.currentOpacity);
     params.showCS = showCoordinateSystem.getValue();
 
     params.ortho = cameraIsOrthographic.getValue();
     params.coordChild = params.ortho ? 0 : 1;
 
-    params.transparentMaterial = (opacity.getValue() < 0.999F) ||
-                                 (baseAlpha.getValue() < 0.999F) ||
-                                 (emphaseAlpha.getValue() < 0.999F) ||
-                                 (hiliteAlpha.getValue() < 0.999F);
+    params.transparentMaterial = (opacity.getValue() < 0.999F) || (baseAlpha.getValue() < 0.999F)
+        || (emphaseAlpha.getValue() < 0.999F) || (hiliteAlpha.getValue() < 0.999F);
     params.transparentTexture = (labelTextureCount > 0);
 
     return params;
@@ -1078,8 +1067,9 @@ void SoNaviCube::updateCube(const RenderParams& params) const
         return;
     }
 
-    const int newHiliteIndex =
-        (params.hilitePick == PickId::None) ? -1 : cubeFaceIndex(params.hilitePick);
+    const int newHiliteIndex = (params.hilitePick == PickId::None)
+        ? -1
+        : cubeFaceIndex(params.hilitePick);
 
     if (newHiliteIndex != style.lastHiliteFaceIndex) {
         if (style.lastHiliteFaceIndex >= 0 && style.lastHiliteFaceIndex < count) {
@@ -1114,11 +1104,9 @@ void SoNaviCube::updateAxes(const RenderParams& params) const
         }
     }
 
-    const bool axisStyleChanged = style.axisDirty ||
-                                  axisColorsChanged ||
-                                  !nearlyEqual(params.axisTr, style.axisTr) ||
-                                  !nearlyEqual(params.bw, style.axisBw) ||
-                                  (params.showCS != style.showCS);
+    const bool axisStyleChanged = style.axisDirty || axisColorsChanged
+        || !nearlyEqual(params.axisTr, style.axisTr) || !nearlyEqual(params.bw, style.axisBw)
+        || (params.showCS != style.showCS);
 
     if (!axisStyleChanged) {
         return;
@@ -1156,15 +1144,14 @@ void SoNaviCube::updateButtons(const RenderParams& params) const
         }
     }
 
-    const bool buttonsStyleChanged =
-        style.buttonDirty ||
-        !nearlyEqual(style.buttonsBaseRgb, params.baseRgb) ||
-        !nearlyEqual(style.buttonsHiliteRgb, params.hiliteRgb) ||
-        !nearlyEqual(style.buttonsOutlineRgb, params.emphRgb) ||
-        !nearlyEqual(style.buttonsBaseTr, params.baseTr) ||
-        !nearlyEqual(style.buttonsHiliteTr, params.hiliteTr) ||
-        !nearlyEqual(style.buttonsOutlineTr, params.emphTr) ||
-        !nearlyEqual(style.buttonsLineWidth, params.bw);
+    const bool buttonsStyleChanged = style.buttonDirty
+        || !nearlyEqual(style.buttonsBaseRgb, params.baseRgb)
+        || !nearlyEqual(style.buttonsHiliteRgb, params.hiliteRgb)
+        || !nearlyEqual(style.buttonsOutlineRgb, params.emphRgb)
+        || !nearlyEqual(style.buttonsBaseTr, params.baseTr)
+        || !nearlyEqual(style.buttonsHiliteTr, params.hiliteTr)
+        || !nearlyEqual(style.buttonsOutlineTr, params.emphTr)
+        || !nearlyEqual(style.buttonsLineWidth, params.bw);
 
     const auto updateButtonFill = [&](PickId id, bool hilite) {
         ButtonNodes& nodes = buttonNodes[pickIndex(id)];
@@ -1210,10 +1197,8 @@ void SoNaviCube::updateButtons(const RenderParams& params) const
 
 void SoNaviCube::updateLabels(const RenderParams& params) const
 {
-    const bool labelsStyleChanged =
-        style.labelDirty ||
-        !nearlyEqual(style.labelsRgb, params.emphRgb) ||
-        !nearlyEqual(style.labelsTr, params.emphTr);
+    const bool labelsStyleChanged = style.labelDirty || !nearlyEqual(style.labelsRgb, params.emphRgb)
+        || !nearlyEqual(style.labelsTr, params.emphTr);
 
     if (!labelsStyleChanged) {
         return;
@@ -1240,12 +1225,14 @@ void SoNaviCube::updateSceneGraph() const
     updateSceneGraph(makeRenderParams());
 }
 
-void SoNaviCube::beginOverlayPass(SoGLRenderAction* action,
-                                  const RenderParams& params,
-                                  int viewportX,
-                                  int viewportY,
-                                  int viewportWidth,
-                                  int viewportHeight)
+void SoNaviCube::beginOverlayPass(
+    SoGLRenderAction* action,
+    const RenderParams& params,
+    int viewportX,
+    int viewportY,
+    int viewportWidth,
+    int viewportHeight
+)
 {
     if (!action) {
         return;
@@ -1358,19 +1345,17 @@ void SoNaviCube::renderCoin(SoGLRenderAction* action)
 
 void SoNaviCube::GLRender(SoGLRenderAction* action)
 {
-    if (!shouldGLRender(action)) {
-        return;
-    }
+    // Bypass shouldGLRender() — the NaviCube manages its own viewport and
+    // visibility via viewportRect. Coin's default culling rejects it because
+    // its bounding box (small cube at origin) doesn't match the foreground
+    // camera's view volume.
     renderCoin(action);
 }
 
-void SoNaviCube::computeBBox(SoAction*,
-                             SbBox3f& box,
-                             SbVec3f& center)
+void SoNaviCube::computeBBox(SoAction*, SbBox3f& box, SbVec3f& center)
 {
     const float halfSize = size.getValue() * 0.5F;
-    box.setBounds(SbVec3f(-halfSize, -halfSize, -halfSize),
-                  SbVec3f(halfSize, halfSize, halfSize));
+    box.setBounds(SbVec3f(-halfSize, -halfSize, -halfSize), SbVec3f(halfSize, halfSize, halfSize));
     center.setValue(0.0F, 0.0F, 0.0F);
 }
 
@@ -1391,15 +1376,14 @@ SoNaviCube::PickId SoNaviCube::pickAt(const SbVec2s& point) const
 
     const SbVec2s localPoint(
         static_cast<short>(static_cast<float>(point[0]) - viewportX),
-        static_cast<short>(static_cast<float>(point[1]) - viewportY));
-    if (localPoint[0] < 0 || localPoint[1] < 0 ||
-        localPoint[0] >= static_cast<short>(viewportWidth) ||
-        localPoint[1] >= static_cast<short>(viewportHeight)) {
+        static_cast<short>(static_cast<float>(point[1]) - viewportY)
+    );
+    if (localPoint[0] < 0 || localPoint[1] < 0 || localPoint[0] >= static_cast<short>(viewportWidth)
+        || localPoint[1] >= static_cast<short>(viewportHeight)) {
         return PickId::None;
     }
 
-    const SbViewportRegion vp(static_cast<int>(viewportWidth),
-                              static_cast<int>(viewportHeight));
+    const SbViewportRegion vp(static_cast<int>(viewportWidth), static_cast<int>(viewportHeight));
     SoRayPickAction pick(vp);
     pick.setPoint(localPoint);
     {
@@ -1524,59 +1508,35 @@ void SoNaviCube::rebuildGeometry() const
     const SbVec3f z(0.0F, 0.0F, 1.0F);
 
     // Main faces
-    addCubeFace(x,  z,  CubeFaceKind::Main, PickId::Top);
-    addCubeFace(x, -y,  CubeFaceKind::Main, PickId::Front);
+    addCubeFace(x, z, CubeFaceKind::Main, PickId::Top);
+    addCubeFace(x, -y, CubeFaceKind::Main, PickId::Front);
     addCubeFace(-y, -x, CubeFaceKind::Main, PickId::Left);
-    addCubeFace(-x,  y, CubeFaceKind::Main, PickId::Rear);
-    addCubeFace( y,  x, CubeFaceKind::Main, PickId::Right);
-    addCubeFace(x, -z,  CubeFaceKind::Main, PickId::Bottom);
+    addCubeFace(-x, y, CubeFaceKind::Main, PickId::Rear);
+    addCubeFace(y, x, CubeFaceKind::Main, PickId::Right);
+    addCubeFace(x, -z, CubeFaceKind::Main, PickId::Bottom);
 
     // Corner faces
-    addCubeFace(-x - y,
-                x - y + z,
-                CubeFaceKind::Corner,
-                PickId::FrontTopRight);
-    addCubeFace(-x + y,
-                -x - y + z,
-                CubeFaceKind::Corner,
-                PickId::FrontTopLeft);
-    addCubeFace(x + y,
-                x - y - z,
-                CubeFaceKind::Corner,
-                PickId::FrontBottomRight);
-    addCubeFace(x - y,
-                -x - y - z,
-                CubeFaceKind::Corner,
-                PickId::FrontBottomLeft);
-    addCubeFace(x - y,
-                x + y + z,
-                CubeFaceKind::Corner,
-                PickId::RearTopRight);
-    addCubeFace(x + y,
-                -x + y + z,
-                CubeFaceKind::Corner,
-                PickId::RearTopLeft);
-    addCubeFace(-x + y,
-                x + y - z,
-                CubeFaceKind::Corner,
-                PickId::RearBottomRight);
-    addCubeFace(-x - y,
-                -x + y - z,
-                CubeFaceKind::Corner,
-                PickId::RearBottomLeft);
+    addCubeFace(-x - y, x - y + z, CubeFaceKind::Corner, PickId::FrontTopRight);
+    addCubeFace(-x + y, -x - y + z, CubeFaceKind::Corner, PickId::FrontTopLeft);
+    addCubeFace(x + y, x - y - z, CubeFaceKind::Corner, PickId::FrontBottomRight);
+    addCubeFace(x - y, -x - y - z, CubeFaceKind::Corner, PickId::FrontBottomLeft);
+    addCubeFace(x - y, x + y + z, CubeFaceKind::Corner, PickId::RearTopRight);
+    addCubeFace(x + y, -x + y + z, CubeFaceKind::Corner, PickId::RearTopLeft);
+    addCubeFace(-x + y, x + y - z, CubeFaceKind::Corner, PickId::RearBottomRight);
+    addCubeFace(-x - y, -x + y - z, CubeFaceKind::Corner, PickId::RearBottomLeft);
 
     // Edge faces
-    addCubeFace(x,  z - y, CubeFaceKind::Edge, PickId::FrontTop);
+    addCubeFace(x, z - y, CubeFaceKind::Edge, PickId::FrontTop);
     addCubeFace(x, -z - y, CubeFaceKind::Edge, PickId::FrontBottom);
-    addCubeFace(x,  y - z, CubeFaceKind::Edge, PickId::RearBottom);
-    addCubeFace(x,  y + z, CubeFaceKind::Edge, PickId::RearTop);
-    addCubeFace(z,  x + y, CubeFaceKind::Edge, PickId::RearRight);
-    addCubeFace(z,  x - y, CubeFaceKind::Edge, PickId::FrontRight);
+    addCubeFace(x, y - z, CubeFaceKind::Edge, PickId::RearBottom);
+    addCubeFace(x, y + z, CubeFaceKind::Edge, PickId::RearTop);
+    addCubeFace(z, x + y, CubeFaceKind::Edge, PickId::RearRight);
+    addCubeFace(z, x - y, CubeFaceKind::Edge, PickId::FrontRight);
     addCubeFace(z, -x - y, CubeFaceKind::Edge, PickId::FrontLeft);
-    addCubeFace(z,  y - x, CubeFaceKind::Edge, PickId::RearLeft);
-    addCubeFace(y,  z - x, CubeFaceKind::Edge, PickId::TopLeft);
-    addCubeFace(y,  x + z, CubeFaceKind::Edge, PickId::TopRight);
-    addCubeFace(y,  x - z, CubeFaceKind::Edge, PickId::BottomRight);
+    addCubeFace(z, y - x, CubeFaceKind::Edge, PickId::RearLeft);
+    addCubeFace(y, z - x, CubeFaceKind::Edge, PickId::TopLeft);
+    addCubeFace(y, x + z, CubeFaceKind::Edge, PickId::TopRight);
+    addCubeFace(y, x - z, CubeFaceKind::Edge, PickId::BottomRight);
     addCubeFace(y, -z - x, CubeFaceKind::Edge, PickId::BottomLeft);
 
     // Precompute cube and edge geometry arrays used by the scene graph nodes.
@@ -1635,9 +1595,7 @@ void SoNaviCube::rebuildGeometry() const
         }
     }
 
-    auto setLabelQuad = [&](PickId pickId,
-                            const SbVec3f& xVec,
-                            const SbVec3f& zVec) {
+    auto setLabelQuad = [&](PickId pickId, const SbVec3f& xVec, const SbVec3f& zVec) {
         auto& slot = labelSlots[pickIndex(pickId)];
         slot.quad.clear();
 
@@ -1661,11 +1619,11 @@ void SoNaviCube::rebuildGeometry() const
         }
     };
 
-    setLabelQuad(PickId::Top,    x,  z);
-    setLabelQuad(PickId::Front,  x, -y);
-    setLabelQuad(PickId::Left,  -y, -x);
-    setLabelQuad(PickId::Rear,  -x,  y);
-    setLabelQuad(PickId::Right,  y,  x);
+    setLabelQuad(PickId::Top, x, z);
+    setLabelQuad(PickId::Front, x, -y);
+    setLabelQuad(PickId::Left, -y, -x);
+    setLabelQuad(PickId::Rear, -x, y);
+    setLabelQuad(PickId::Right, y, x);
     setLabelQuad(PickId::Bottom, x, -z);
 
     rebuildButtonFaces();
@@ -1681,10 +1639,7 @@ void SoNaviCube::rebuildGeometry() const
     sceneDirty = true;
 }
 
-void SoNaviCube::addCubeFace(const SbVec3f& x,
-                             const SbVec3f& z,
-                             CubeFaceKind kind,
-                             PickId pickId) const
+void SoNaviCube::addCubeFace(const SbVec3f& x, const SbVec3f& z, CubeFaceKind kind, PickId pickId) const
 {
     auto& verts = faces[pickIndex(pickId)];
     verts.clear();
@@ -1765,60 +1720,32 @@ void SoNaviCube::addButtonFace(PickId pickId) const
             break;
         case PickId::ArrowRight:
         case PickId::ArrowLeft: {
-            pointData = {
-                66.6F, -66.6F,
-                58.3F, -74.0F,
-                49.2F, -80.3F,
-                39.4F, -85.5F,
-                29.0F, -89.5F,
-                25.3F, -78.1F,
-                34.3F, -74.3F,
-                42.8F, -69.9F,
-                50.8F, -64.4F,
-                58.1F, -58.1F,
-                53.8F, -53.8F,
-                74.7F, -46.8F,
-                70.7F, -70.4F
-            };
+            pointData = {66.6F,  -66.6F, 58.3F,  -74.0F, 49.2F,  -80.3F, 39.4F,  -85.5F, 29.0F,
+                         -89.5F, 25.3F,  -78.1F, 34.3F,  -74.3F, 42.8F,  -69.9F, 50.8F,  -64.4F,
+                         58.1F,  -58.1F, 53.8F,  -53.8F, 74.7F,  -46.8F, 70.7F,  -70.4F};
             break;
         }
         case PickId::ArrowWest:
         case PickId::ArrowNorth:
         case PickId::ArrowSouth:
         case PickId::ArrowEast: {
-            pointData = {
-                100.0F,  0.0F,
-                 80.0F, -18.0F,
-                 80.0F,  18.0F
-            };
+            pointData = {100.0F, 0.0F, 80.0F, -18.0F, 80.0F, 18.0F};
             break;
         }
         case PickId::ViewMenu: {
             offx = 0.84F;
             offy = 0.84F;
-            pointData = {
-                  0.0F,   0.0F,
-                 15.0F,  -6.0F,
-                  0.0F, -12.0F,
-                -15.0F,  -6.0F,
-                  0.0F,   0.0F,
-                -15.0F,  -6.0F,
-                -15.0F,  12.0F,
-                  0.0F,  18.0F,
-                  0.0F,   0.0F,
-                  0.0F,  18.0F,
-                 15.0F,  12.0F,
-                 15.0F,  -6.0F
-            };
+            pointData = {0.0F, 0.0F, 15.0F,  -6.0F, 0.0F,   -12.0F, -15.0F, -6.0F,
+                         0.0F, 0.0F, -15.0F, -6.0F, -15.0F, 12.0F,  0.0F,   18.0F,
+                         0.0F, 0.0F, 0.0F,   18.0F, 15.0F,  12.0F,  15.0F,  -6.0F};
             break;
         }
         case PickId::DotBackside: {
             int steps = 16;
             pointData.reserve(steps * 2);
             for (int i = 0; i < steps; i++) {
-                float angle =
-                    2.0F * std::numbers::pi_v<float> * (static_cast<float>(i) + 0.5F) /
-                    static_cast<float>(steps);
+                float angle = 2.0F * std::numbers::pi_v<float>
+                    * (static_cast<float>(i) + 0.5F) / static_cast<float>(steps);
                 pointData.emplace_back(10.0F * std::cos(angle) + 87.0F);
                 pointData.emplace_back(10.0F * std::sin(angle) - 87.0F);
             }
@@ -1831,12 +1758,16 @@ void SoNaviCube::addButtonFace(PickId pickId) const
     for (int i = 0; i < count; i++) {
         float x = pointData[i * 2] * scale + offx;
         float y = pointData[i * 2 + 1] * scale + offy;
-        if (pickId == PickId::ArrowNorth || pickId == PickId::ArrowWest || pickId == PickId::ArrowLeft)
+        if (pickId == PickId::ArrowNorth || pickId == PickId::ArrowWest
+            || pickId == PickId::ArrowLeft) {
             x = 1.0F - x;
-        if (pickId == PickId::ArrowSouth || pickId == PickId::ArrowNorth)
+        }
+        if (pickId == PickId::ArrowSouth || pickId == PickId::ArrowNorth) {
             verts.emplace_back(SbVec3f(y, x, 0.0F));
-        else
+        }
+        else {
             verts.emplace_back(SbVec3f(x, y, 0.0F));
+        }
     }
 
     // Pre-triangulate button meshes once so filled rendering is robust and independent of Coin's
@@ -1849,14 +1780,9 @@ void SoNaviCube::addButtonFace(PickId pickId) const
         //  - Face 1: 0-1-2-3
         //  - Face 2: 4-5-6-7
         //  - Face 3: 8-9-10-11
-        tris = {
-            0, 1, 2,  0, 2, 3,
-            4, 5, 6,  4, 6, 7,
-            8, 9, 10, 8, 10, 11
-        };
+        tris = {0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11};
     }
-    else if (triangulatePolygon2D(verts, tris) && (tris.size() % 3 == 0) &&
-             tris.size() >= 3) {
+    else if (triangulatePolygon2D(verts, tris) && (tris.size() % 3 == 0) && tris.size() >= 3) {
         // ok
     }
     else if (verts.size() == 3) {
@@ -1869,5 +1795,4 @@ void SoNaviCube::addButtonFace(PickId pickId) const
     else {
         buttonTriangleIndices[pickIndex(pickId)].clear();
     }
-
 }
