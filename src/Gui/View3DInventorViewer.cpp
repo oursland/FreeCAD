@@ -2579,6 +2579,7 @@ void View3DInventorViewer::interactionStartCB(void* ud, SoQTQuarterAdaptor* view
     Q_UNUSED(ud)
     SoGLRenderAction* glra = viewer->getSoRenderManager()->getGLRenderAction();
     SoFCInteractiveElement::set(glra->getState(), viewer->getSceneGraph(), true);
+    viewer->getSoRenderManager()->setInteractive(TRUE);
 }
 
 /**
@@ -2589,6 +2590,7 @@ void View3DInventorViewer::interactionFinishCB(void* ud, SoQTQuarterAdaptor* vie
     Q_UNUSED(ud)
     SoGLRenderAction* glra = viewer->getSoRenderManager()->getGLRenderAction();
     SoFCInteractiveElement::set(glra->getState(), viewer->getSceneGraph(), false);
+    viewer->getSoRenderManager()->setInteractive(FALSE);
     viewer->redraw();
 }
 
