@@ -772,12 +772,6 @@ void SoBrepEdgeSet::doAction(SoAction* action)
 {
     if (action->getTypeId() == Gui::SoHighlightElementAction::getClassTypeId()) {
         auto* hlact = static_cast<Gui::SoHighlightElementAction*>(action);
-        Base::Console().warning(
-            "ModernRender: EDGE doAction ENTER hl=%d det=%p detType=%s\n",
-            hlact->isHighlighted() ? 1 : 0,
-            (void*)hlact->getElement(),
-            hlact->getElement() ? hlact->getElement()->getTypeId().getName().getString() : "nil"
-        );
         Gui::SoHighlightElementAction* hlaction = static_cast<Gui::SoHighlightElementAction*>(action);
         selCounter.checkAction(hlaction);
         if (!hlaction->isHighlighted()) {
@@ -792,7 +786,6 @@ void SoBrepEdgeSet::doAction(SoAction* action)
                 selContext->highlightIndex = -1;
                 selContext->hl.clear();
             }
-            Base::Console().warning("ModernRender: EDGE doAction UN-HL\n");
             return;
         }
         const SoDetail* detail = hlaction->getElement();
@@ -827,13 +820,6 @@ void SoBrepEdgeSet::doAction(SoAction* action)
             selContext->highlightColor = hlaction->getColor();
             selContext->highlightIndex = index;
         }
-        Base::Console().warning(
-            "ModernRender: EDGE doAction HL idx=%d ctx=%p selCtx=%p same=%d\n",
-            index,
-            (void*)ctx.get(),
-            (void*)selContext.get(),
-            (ctx.get() == selContext.get()) ? 1 : 0
-        );
         const int32_t* cindices = this->coordIndex.getValues(0);
         int numcindices = this->coordIndex.getNum();
 

@@ -243,19 +243,6 @@ void SoBrepFaceSet::doAction(SoAction* action)
     }
     else if (action->getTypeId() == Gui::SoSelectionElementAction::getClassTypeId()) {
         auto* selaction = static_cast<Gui::SoSelectionElementAction*>(action);
-        {
-            ZoneScopedN("BrepFaceSet::selAction");
-            char buf[128];
-            std::snprintf(
-                buf,
-                sizeof(buf),
-                "type=%d det=%p selCtx=%p",
-                (int)selaction->getType(),
-                (void*)selaction->getElement(),
-                (void*)selContext.get()
-            );
-            ZoneText(buf, std::strlen(buf));
-        }
         switch (selaction->getType()) {
             case Gui::SoSelectionElementAction::All: {
                 SelContextPtr ctx
@@ -290,19 +277,6 @@ void SoBrepFaceSet::doAction(SoAction* action)
                 int index = static_cast<const SoFaceDetail*>(detail)->getPartIndex();
                 if (selaction->getType() == Gui::SoSelectionElementAction::Append) {
                     auto ctx = Gui::SoFCSelectionRoot::getActionContext(action, this, selContext);
-                    {
-                        ZoneScopedN("BrepFaceSet::selAppend");
-                        char buf[128];
-                        std::snprintf(
-                            buf,
-                            sizeof(buf),
-                            "idx=%d ctx=%p isSelCtx=%d",
-                            index,
-                            (void*)ctx.get(),
-                            (ctx.get() == selContext.get()) ? 1 : 0
-                        );
-                        ZoneText(buf, std::strlen(buf));
-                    }
                     selCounter.checkAction(selaction, ctx);
                     ctx->selectionColor = selaction->getColor();
                     if (ctx->isSelectAll()) {
@@ -556,14 +530,16 @@ void SoBrepFaceSet::render(SoModernRenderAction* action)
     }
 
     // Read highlight and selection from the context map.
+    // Fall back to selContext when getRenderContext returns null (SelStack key mismatch).
     {
         SelContextPtr ctx2;
         SelContextPtr ctx = Gui::SoFCSelectionRoot::getRenderContext(this, selContext, ctx2);
+        if (!ctx) {
+            ctx = selContext;
+        }
 
-        // Log whenever ctx or selContext has ANY state
-        if ((ctx && (ctx->highlightIndex != -1 || !ctx->selectionIndex.empty()))
-            || (selContext && selContext.get() != ctx.get()
-                && (selContext->highlightIndex != -1 || !selContext->selectionIndex.empty()))) {
+        // Log whenever ctx has ANY state
+        if ((ctx && (ctx->highlightIndex != -1 || !ctx->selectionIndex.empty()))) {
             ZoneScopedN("BrepFaceSet::ctxState");
             char buf[256];
             std::snprintf(

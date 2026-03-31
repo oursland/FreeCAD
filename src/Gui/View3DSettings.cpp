@@ -25,7 +25,9 @@
 #include <Inventor/nodes/SoDirectionalLight.h>
 #include <Inventor/nodes/SoOrthographicCamera.h>
 #include <Inventor/nodes/SoPerspectiveCamera.h>
+#include <Inventor/SoRenderManager.h>
 
+#include <algorithm>
 
 #include <Base/Builder3D.h>
 #include <Base/Color.h>
@@ -494,8 +496,16 @@ void View3DSettings::OnChange(ParameterGrp::SubjectType& rCaller, ParameterGrp::
         }
     }
     else if (strcmp(Reason, "PickRadius") == 0) {
+        float pickRadius = rGrp.GetFloat("PickRadius", 5.0f);
         for (auto _viewer : _viewers) {
-            _viewer->setPickRadius(rGrp.GetFloat("PickRadius", 5.0f));
+            _viewer->setPickRadius(pickRadius);
+            // Update GPU pick dimensions to match the new pick radius
+            auto* mgr = _viewer->getSoRenderManager();
+            if (mgr && mgr->isModernRenderEnabled()) {
+                float pickSize = std::max(pickRadius * 2.0f, 5.0f);
+                mgr->setGpuPickLineWidth(pickSize);
+                mgr->setGpuPickPointSize(pickSize);
+            }
         }
     }
     else if (strcmp(Reason, "TransparentObjectRenderType") == 0) {

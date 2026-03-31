@@ -651,22 +651,6 @@ bool SoFCUnifiedSelection::setPreselect(
 
         printPreselectionInfo(docname, objname, element, x, y, z, 1e-7);
 
-        {
-            ZoneScopedN("setPreselect::apply");
-            char buf[256];
-            std::snprintf(
-                buf,
-                sizeof(buf),
-                "%s.%s.%s pathLen=%d det=%p",
-                docname,
-                objname,
-                element ? element : "(null)",
-                path->getLength(),
-                (void*)det
-            );
-            ZoneText(buf, std::strlen(buf));
-        }
-
         int ret = Gui::Selection().setPreselect(docname, objname, element, x, y, z);
         if (ret < 0 && currentHighlightPath) {
             return true;

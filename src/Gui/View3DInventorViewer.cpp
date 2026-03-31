@@ -1096,7 +1096,17 @@ void View3DInventorViewer::init()
     // Enable modern renderer when FREECAD_MODERN_RENDER=1
     if (auto* env = std::getenv("FREECAD_MODERN_RENDERER")) {
         if (std::string(env) == "1") {
-            this->getSoRenderManager()->setModernRenderEnabled(true);
+            auto* mgr = this->getSoRenderManager();
+            mgr->setModernRenderEnabled(true);
+
+            // Derive GPU pick edge/vertex sizes from the existing PickRadius preference.
+            // PickRadius defines "area for selecting elements" — edges and vertices in the
+            // ID buffer should be at least 2*PickRadius wide so they're hittable within that area.
+            float pickRadius = getPickRadius();
+            float pickSize = std::max(pickRadius * 2.0f, 5.0f);
+            mgr->setGpuPickLineWidth(pickSize);
+            mgr->setGpuPickPointSize(pickSize);
+
             Base::Console().log("Modern renderer enabled via FREECAD_MODERN_RENDER=1\n");
         }
     }
