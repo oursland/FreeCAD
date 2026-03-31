@@ -29,6 +29,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include <Inventor/SbColor4f.h>
 #include <Inventor/elements/SoLazyElement.h>
 #include <Inventor/fields/SoSFBool.h>
 #include <Inventor/fields/SoSFColor.h>
@@ -104,8 +105,13 @@ public:
         std::string element;         ///< sub-object path e.g. "Body.Pad.Face3"
         int elementIndex = -1;       ///< element index (face/edge/vertex), or -1
         int elementType = -1;        ///< 0=face, 1=edge, 2=vertex, 3=whole_body
+        uint32_t lutIndex = 0;       ///< pick LUT index for direct draw list highlight
     };
     std::function<GPUPickResult(int mouseX, int mouseY)> onGPUPick;
+
+    /// Direct draw list highlight — sets/clears preselection highlight on the
+    /// cached draw list without scene graph traversal. lutIndex=0 clears.
+    std::function<bool(uint32_t lutIndex, const SbColor4f& color)> onDirectHighlight;
 
     friend class View3DInventorViewer;
 

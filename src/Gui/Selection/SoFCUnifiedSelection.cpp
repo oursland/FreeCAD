@@ -934,36 +934,53 @@ void SoFCUnifiedSelection::handleEvent(SoHandleEventAction* action)
                 auto result = onGPUPick(pos[0], pos[1]);
                 if (result.available) {
                     handled = true;
-                    if (result.vpd && result.path) {
-                        ZoneText(result.element.c_str(), result.element.size());
-                        // Create appropriate detail type for the element
+                    if (result.vpd && result.path && onDirectHighlight) {
+                        // Direct draw list highlight — no scene traversal needed.
+                        // 1. Update status bar via Selection().setPreselect()
+                        const char* docname = result.vpd->getObject()->getDocument()->getName();
+                        const char* objname = result.vpd->getObject()->getNameInDocument();
+                        printPreselectionInfo(docname, objname, result.element.c_str(), 0, 0, 0, 1e-7);
+                        Gui::Selection().setPreselect(docname, objname, result.element.c_str(), 0, 0, 0);
+                        this->preSelection = 1;
+
+                        // 2. Apply highlight directly on the cached draw list
+                        //    (callback also schedules redraw)
+                        SbColor4f hlColor;
+                        const SbColor& c = this->colorHighlight.getValue();
+                        hlColor.setValue(c[0], c[1], c[2], 1.0f);
+                        onDirectHighlight(result.lutIndex, hlColor);
+                    }
+                    else if (result.vpd && result.path) {
+                        // Fallback: no direct highlight callback, use legacy path
                         SoFaceDetail faceDetail;
                         SoLineDetail lineDetail;
                         SoPointDetail pointDetail;
                         const SoDetail* det = nullptr;
                         if (result.elementType == 0 && result.elementIndex >= 0) {
-                            // Face
                             faceDetail.setPartIndex(result.elementIndex);
                             det = &faceDetail;
                         }
                         else if (result.elementType == 1 && result.elementIndex >= 0) {
-                            // Edge
                             lineDetail.setLineIndex(result.elementIndex);
                             det = &lineDetail;
                         }
                         else if (result.elementType == 2 && result.elementIndex >= 0) {
-                            // Vertex
                             pointDetail.setCoordinateIndex(result.elementIndex);
                             det = &pointDetail;
                         }
                         setPreselect(result.path, det, result.vpd, result.element.c_str(), 0, 0, 0);
                     }
                     else {
-                        ZoneText("no hit", 6);
+                        // No hit — clear highlight
+                        if (onDirectHighlight) {
+                            onDirectHighlight(0, SbColor4f(0, 0, 0, 0));
+                        }
                         setPreselect(PickedInfo());
                         if (this->preSelection > 0) {
                             this->preSelection = 0;
-                            this->touch();
+                            if (!onDirectHighlight) {
+                                this->touch();
+                            }
                         }
                     }
                 }
@@ -1342,26 +1359,16 @@ bool SoFCSelectionRoot::getSelectionPath(
     std::string& subPath
 )
 {
-    ZoneScopedN("getSelectionPath");
     if (!action || !doc) {
-        ZoneText("no action/doc", 13);
         return false;
     }
 
     auto it = ActionStacks.find(action);
     if (it == ActionStacks.end() || it->second.empty()) {
-        char buf[64];
-        std::snprintf(buf, sizeof(buf), "no stack (stacks=%zu)", ActionStacks.size());
-        ZoneText(buf, std::strlen(buf));
         return false;
     }
 
     auto& stack = it->second;
-    {
-        char buf[64];
-        std::snprintf(buf, sizeof(buf), "stack size=%zu", stack.size());
-        ZoneText(buf, std::strlen(buf));
-    }
 
     // Find the top-level VP from the first selection root in the stack
     ViewProviderDocumentObject* topVPD = nullptr;
@@ -1379,9 +1386,6 @@ bool SoFCSelectionRoot::getSelectionPath(
     }
 
     if (!topVPD) {
-        char buf[64];
-        std::snprintf(buf, sizeof(buf), "no VP found (chain=%zu)", vpChain.size());
-        ZoneText(buf, std::strlen(buf));
         return false;
     }
 

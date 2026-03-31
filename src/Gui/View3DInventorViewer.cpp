@@ -1028,12 +1028,27 @@ void View3DInventorViewer::init()
             }
         }
 
-        // Element index and type
+        // Element index, type, and LUT index for direct highlight
         result.elementIndex = mgr->getGpuPickElement(lutIndex);
         result.elementType = mgr->getGpuPickElementType(lutIndex);
+        result.lutIndex = lutIndex;
 
         ZoneText(result.element.c_str(), result.element.size());
         return result;
+    };
+
+    // Direct draw list highlight callback — avoids scene graph traversal.
+    // Also schedules a redraw so the updated highlight is rendered.
+    selectionRoot->onDirectHighlight = [this](uint32_t lutIndex, const SbColor4f& color) -> bool {
+        auto* mgr = this->getSoRenderManager();
+        if (!mgr || !mgr->isModernRenderEnabled()) {
+            return false;
+        }
+        bool ok = mgr->setDrawListHighlight(lutIndex, color);
+        if (ok) {
+            mgr->scheduleRedraw();
+        }
+        return ok;
     };
 
     pcClipPlane = nullptr;
