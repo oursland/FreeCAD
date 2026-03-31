@@ -3048,7 +3048,9 @@ void View3DInventorViewer::renderScene()
         glra->apply(this->backgroundroot);
     }
 
-    if (!this->shading) {
+    bool modernActive = this->getSoRenderManager()->isModernRenderEnabled();
+
+    if (!this->shading && !modernActive) {
         state->push();
         SoLightModelElement::set(state, selectionRoot, SoLightModelElement::BASE_COLOR);
         SoOverrideElement::setLightModelOverride(state, selectionRoot, true);
@@ -3058,23 +3060,24 @@ void View3DInventorViewer::renderScene()
         // Render normal scenegraph.
         inherited::actualRedraw();
 
-        So3DAnnotation::render = true;
-        glClear(GL_DEPTH_BUFFER_BIT);
+        // Delayed annotations and foreground are only processed via the legacy
+        // action when the modern renderer is NOT active. When modern is active,
+        // the foreground is rendered as a Coin superimposition by renderModern().
+        if (!modernActive) {
+            So3DAnnotation::render = true;
+            glClear(GL_DEPTH_BUFFER_BIT);
 
-        // process delayed paths with priority support
-        if (Gui::Selection().isClarifySelectionActive()) {
-            Gui::SoDelayedAnnotationsElement::processDelayedPathsWithPriority(state, glra);
-        }
-        else {
-            // standard processing for normal delayed annotations
-            glra->apply(Gui::SoDelayedAnnotationsElement::getDelayedPaths(state));
-        }
+            if (Gui::Selection().isClarifySelectionActive()) {
+                Gui::SoDelayedAnnotationsElement::processDelayedPathsWithPriority(state, glra);
+            }
+            else {
+                glra->apply(Gui::SoDelayedAnnotationsElement::getDelayedPaths(state));
+            }
 
-        So3DAnnotation::render = false;
+            So3DAnnotation::render = false;
+        }
     }
     catch (const Base::MemoryException&) {
-        // FIXME: If this exception appears then the background and camera position get broken
-        // somehow. (Werner 2006-02-01)
         for (auto it : _ViewProviderSet) {
             it->hide();
         }
@@ -3087,18 +3090,20 @@ void View3DInventorViewer::renderScene()
         );
     }
 
-    if (!this->shading) {
+    if (!this->shading && !modernActive) {
         state->pop();
     }
 
 #if defined(ENABLE_GL_DEPTH_RANGE)
-    // using 10% of the z-buffer for the foreground node
     glDepthRange(0.0, 0.1);
 #endif
 
     // Render overlay front scenegraph.
     {
         ZoneScopedN("Foreground");
+        if (modernActive) {
+            glra->invalidateState();
+        }
         glra->apply(this->foregroundroot);
     }
 
