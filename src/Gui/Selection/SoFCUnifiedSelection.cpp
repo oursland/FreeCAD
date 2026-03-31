@@ -672,7 +672,11 @@ bool SoFCUnifiedSelection::setPreselect(
             return true;
         }
 
-        if (ret) {
+        // Always apply visual highlight when we have a valid path.
+        // Selection().setPreselect may return 0 for edge/vertex sub-elements
+        // on Assembly Links due to short path format, but the visual highlight
+        // via SoHighlightElementAction should still work.
+        {
             if (currentHighlightPath) {
                 SoHighlightElementAction action;
                 action.setHighlighted(false);

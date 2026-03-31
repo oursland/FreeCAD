@@ -207,13 +207,17 @@ void SoBrepPointSet::render(SoModernRenderAction* action)
         }
         if (ctx) {
             if (ctx->isHighlighted() && !ctx->isHighlightAll()) {
-                // ctx->highlightIndex is absolute coord index; convert to relative
-                int relIdx = ctx->highlightIndex - startIdx;
+                // Try as relative index first (from GPU pick), then as absolute (from legacy)
+                int hlIdx = ctx->highlightIndex;
+                int relIdx = hlIdx;
+                if (hlIdx >= startIdx) {
+                    relIdx = hlIdx - startIdx;  // absolute → relative
+                }
                 if (relIdx >= 0 && relIdx < numPoints) {
                     cmd.selection.highlightElement = relIdx;
                 }
                 else {
-                    cmd.selection.highlightElement = -2;  // whole body fallback
+                    cmd.selection.highlightElement = -2;
                 }
                 SbColor hlc = ctx->highlightColor;
                 cmd.selection.highlightColor.setValue(hlc[0], hlc[1], hlc[2], 1.0f);
@@ -225,7 +229,10 @@ void SoBrepPointSet::render(SoModernRenderAction* action)
             }
             if (!ctx->selectionIndex.empty() && !ctx->isSelectAll()) {
                 for (int idx : ctx->selectionIndex) {
-                    int relIdx = idx - startIdx;
+                    int relIdx = idx;
+                    if (idx >= startIdx) {
+                        relIdx = idx - startIdx;
+                    }
                     if (relIdx >= 0 && relIdx < numPoints) {
                         cmd.selection.selectedElements.push_back(relIdx);
                     }
