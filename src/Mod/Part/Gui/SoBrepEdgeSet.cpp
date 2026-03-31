@@ -208,7 +208,54 @@ void SoBrepEdgeSet::render(SoModernRenderAction* action)
         }
     }
 
+    // Read highlight/selection from context.
+    // Edge highlight uses ctx->hl vector (vertex indices), not highlightIndex.
+    {
+        SelContextPtr ctx2;
+        SelContextPtr ctx
+            = Gui::SoFCSelectionRoot::getRenderContext<SelContext>(this, selContext, ctx2);
+        if (ctx) {
+            if (!ctx->hl.empty() || ctx->isHighlighted()) {
+                cmd.selection.highlightElement = -2;  // whole edge set
+                SbColor hlc = ctx->highlightColor;
+                cmd.selection.highlightColor.setValue(hlc[0], hlc[1], hlc[2], 1.0f);
+                Base::Console().warning(
+                    "ModernRender: EDGE HL hl=%zu hlIdx=%d id=%s\n",
+                    ctx->hl.size(),
+                    ctx->highlightIndex,
+                    cmd.pick.pickIdentity.c_str()
+                );
+            }
+            if (!ctx->selectionIndex.empty() && !ctx->isSelectAll()) {
+                cmd.selection.selectedElements.push_back(-2);
+                SbColor slc = ctx->selectionColor;
+                cmd.selection.selectionColor.setValue(slc[0], slc[1], slc[2], 0.8f);
+                Base::Console().warning(
+                    "ModernRender: EDGE SEL selSz=%zu id=%s\n",
+                    ctx->selectionIndex.size(),
+                    cmd.pick.pickIdentity.c_str()
+                );
+            }
+        }
+        else {
+            // Log first time to confirm ctx is null
+            static int edgeLogCount = 0;
+            if (edgeLogCount < 3) {
+                Base::Console().warning(
+                    "ModernRender: EDGE no ctx selCtx=%p id=%s\n",
+                    (void*)selContext.get(),
+                    cmd.pick.pickIdentity.c_str()
+                );
+                edgeLogCount++;
+            }
+        }
+    }
+
     action->getMutableDrawList().addCommand(cmd);
+
+    // Store scene path for GPU pick resolution
+    int cmdIdx = action->getMutableDrawList().getNumCommands() - 1;
+    action->storeCommandPath(cmdIdx, action->getCurPath());
 }
 
 void SoBrepEdgeSet::GLRender(SoGLRenderAction* action)

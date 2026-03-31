@@ -1028,8 +1028,9 @@ void View3DInventorViewer::init()
             }
         }
 
-        // Face index for SoFaceDetail
-        result.faceDetail = mgr->getGpuPickElement(lutIndex);
+        // Element index and type
+        result.elementIndex = mgr->getGpuPickElement(lutIndex);
+        result.elementType = mgr->getGpuPickElementType(lutIndex);
 
         ZoneText(result.element.c_str(), result.element.size());
         return result;

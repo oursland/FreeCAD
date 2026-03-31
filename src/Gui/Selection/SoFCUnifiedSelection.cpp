@@ -948,20 +948,27 @@ void SoFCUnifiedSelection::handleEvent(SoHandleEventAction* action)
                     handled = true;
                     if (result.vpd && result.path) {
                         ZoneText(result.element.c_str(), result.element.size());
-                        // Create SoFaceDetail for the highlight action
+                        // Create appropriate detail type for the element
                         SoFaceDetail faceDetail;
-                        if (result.faceDetail >= 0) {
-                            faceDetail.setPartIndex(result.faceDetail);
+                        SoLineDetail lineDetail;
+                        SoPointDetail pointDetail;
+                        const SoDetail* det = nullptr;
+                        if (result.elementType == 0 && result.elementIndex >= 0) {
+                            // Face
+                            faceDetail.setPartIndex(result.elementIndex);
+                            det = &faceDetail;
                         }
-                        setPreselect(
-                            result.path,
-                            result.faceDetail >= 0 ? &faceDetail : nullptr,
-                            result.vpd,
-                            result.element.c_str(),
-                            0,
-                            0,
-                            0
-                        );
+                        else if (result.elementType == 1 && result.elementIndex >= 0) {
+                            // Edge
+                            lineDetail.setLineIndex(result.elementIndex);
+                            det = &lineDetail;
+                        }
+                        else if (result.elementType == 2 && result.elementIndex >= 0) {
+                            // Vertex
+                            pointDetail.setCoordinateIndex(result.elementIndex);
+                            det = &pointDetail;
+                        }
+                        setPreselect(result.path, det, result.vpd, result.element.c_str(), 0, 0, 0);
                     }
                     else {
                         ZoneText("no hit", 6);

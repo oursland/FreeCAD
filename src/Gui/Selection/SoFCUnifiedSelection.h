@@ -102,7 +102,8 @@ public:
         ViewProviderDocumentObject* vpd = nullptr;
         SoFullPath* path = nullptr;  ///< NOT ref'd — valid only during callback scope
         std::string element;         ///< sub-object path e.g. "Body.Pad.Face3"
-        int faceDetail = -1;         ///< face index for SoFaceDetail, or -1
+        int elementIndex = -1;       ///< element index (face/edge/vertex), or -1
+        int elementType = -1;        ///< 0=face, 1=edge, 2=vertex, 3=whole_body
     };
     std::function<GPUPickResult(int mouseX, int mouseY)> onGPUPick;
 

@@ -190,7 +190,30 @@ void SoBrepPointSet::render(SoModernRenderAction* action)
         }
     }
 
+    // Read highlight/selection from context
+    {
+        using SelCtx = Gui::SoFCSelectionContext;
+        std::shared_ptr<SelCtx> ctx2;
+        std::shared_ptr<SelCtx> ctx = Gui::SoFCSelectionRoot::getRenderContext(this, selContext, ctx2);
+        if (ctx) {
+            if (ctx->isHighlighted()) {
+                cmd.selection.highlightElement = -2;  // whole body
+                SbColor hlc = ctx->highlightColor;
+                cmd.selection.highlightColor.setValue(hlc[0], hlc[1], hlc[2], 1.0f);
+            }
+            if (!ctx->selectionIndex.empty() && !ctx->isSelectAll()) {
+                cmd.selection.selectedElements.push_back(-2);  // whole body
+                SbColor slc = ctx->selectionColor;
+                cmd.selection.selectionColor.setValue(slc[0], slc[1], slc[2], 0.8f);
+            }
+        }
+    }
+
     action->getMutableDrawList().addCommand(cmd);
+
+    // Store scene path for GPU pick resolution
+    int cmdIdx = action->getMutableDrawList().getNumCommands() - 1;
+    action->storeCommandPath(cmdIdx, action->getCurPath());
 }
 
 void SoBrepPointSet::GLRender(SoGLRenderAction* action)
