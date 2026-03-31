@@ -1122,6 +1122,19 @@ void View3DInventorViewer::init()
             mgr->setGpuPickLineWidth(pickSize);
             mgr->setGpuPickPointSize(pickSize);
 
+            // Register foregroundroot as a foreground superimposition so
+            // renderModern() renders it via the legacy action after the main
+            // scene. No AUTOREDRAW — redraws are driven by the main scene's
+            // node sensor. AUTOREDRAW causes an infinite loop because the
+            // NaviCube's SoCallback touches fields during traversal.
+            if (this->foregroundroot) {
+                mgr->addSuperimposition(
+                    this->foregroundroot,
+                    SoRenderManager::Superimposition::ZBUFFERON
+                        | SoRenderManager::Superimposition::CLEARZBUFFER
+                );
+            }
+
             Base::Console().log("Modern renderer enabled via FREECAD_MODERN_RENDER=1\n");
         }
     }
@@ -3099,11 +3112,10 @@ void View3DInventorViewer::renderScene()
 #endif
 
     // Render overlay front scenegraph.
-    {
+    // When the modern renderer is active, foreground is rendered as a
+    // superimposition in renderModern() via the modern backend.
+    if (!modernActive) {
         ZoneScopedN("Foreground");
-        if (modernActive) {
-            glra->invalidateState();
-        }
         glra->apply(this->foregroundroot);
     }
 

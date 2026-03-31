@@ -35,6 +35,7 @@
 #include <numbers>
 
 #include <Inventor/actions/SoGLRenderAction.h>
+#include <Inventor/actions/SoModernRenderAction.h>
 #include <Inventor/actions/SoRayPickAction.h>
 #include <Inventor/details/SoFaceDetail.h>
 #include <Inventor/lists/SoPickedPointList.h>
@@ -1350,6 +1351,33 @@ void SoNaviCube::GLRender(SoGLRenderAction* action)
     // its bounding box (small cube at origin) doesn't match the foreground
     // camera's view volume.
     renderCoin(action);
+}
+
+SoSeparator* SoNaviCube::getOverlaySceneRoot() const
+{
+    ensureGeometry();
+    ensureSceneGraph();
+    updateSceneGraph();
+    return sceneRoot;
+}
+
+void SoNaviCube::render(SoModernRenderAction* action)
+{
+    // Traverse the internal scene graph with the modern action.
+    // The standard Coin shapes inside (SoIndexedFaceSet, SoFaceSet, etc.)
+    // will hit the SoShape::render() fallback which uses generatePrimitives.
+    const SbVec4f& rect = viewportRect.getValue();
+    if (rect[2] <= 0 || rect[3] <= 0) {
+        return;
+    }
+
+    ensureGeometry();
+    ensureSceneGraph();
+    updateSceneGraph();
+
+    if (sceneRoot) {
+        sceneRoot->doAction(action);
+    }
 }
 
 void SoNaviCube::computeBBox(SoAction*, SbBox3f& box, SbVec3f& center)

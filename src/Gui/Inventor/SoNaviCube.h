@@ -24,6 +24,7 @@
 #ifndef GUI_INVENTOR_SONAVICUBE_H
 #define GUI_INVENTOR_SONAVICUBE_H
 
+class SoModernRenderAction;
 #include <FCGlobal.h>
 #include <Inventor/SbColor.h>
 #include <Inventor/SbVec2s.h>
@@ -59,7 +60,8 @@ class SoOrthographicCamera;
 class SoPerspectiveCamera;
 class SoTransform;
 class SoVertexProperty;
-namespace Gui {
+namespace Gui
+{
 
 /**
  * Placeholder Coin node for the navigation cube overlay.
@@ -67,7 +69,8 @@ namespace Gui {
  * Rendering responsibilities will be migrated from NaviCubeImplementation
  * into this node in subsequent steps.
  */
-class GuiExport SoNaviCube : public SoShape {
+class GuiExport SoNaviCube: public SoShape
+{
     using inherited = SoShape;
 
     SO_NODE_HEADER(SoNaviCube);
@@ -79,7 +82,8 @@ public:
     //! Cube edge length in viewer units (wired up by the controller later).
     SoSFFloat size;
 
-    enum class PickId {
+    enum class PickId
+    {
         None,
         Front,
         Top,
@@ -118,30 +122,38 @@ public:
     };
 
     void setChamfer(float chamfer);
-    void setLabelImage(PickId id,
-                       const SbVec2s& size,
-                       int numComponents,
-                       const unsigned char* pixels);
+    void setLabelImage(PickId id, const SbVec2s& size, int numComponents, const unsigned char* pixels);
     void clearLabelTextures();
     [[nodiscard]] PickId pickAt(const SbVec2s& point) const;
+
+    /// Access the internal scene graph for modern renderer traversal.
+    /// Returns nullptr if the scene graph hasn't been built yet.
+    SoSeparator* getOverlaySceneRoot() const;
+
+    /// Get the viewport rect (x, y, width, height) in pixels.
+    SbVec4f getOverlayViewportRect() const
+    {
+        return viewportRect.getValue();
+    }
 
 protected:
     ~SoNaviCube() override;
 
     void GLRender(SoGLRenderAction* action) override;
+    void render(SoModernRenderAction* action) override;
     void generatePrimitives(SoAction* action) override;
-    void computeBBox(SoAction* action,
-                     SbBox3f& box,
-                     SbVec3f& center) override;
+    void computeBBox(SoAction* action, SbBox3f& box, SbVec3f& center) override;
 
 private:
-    enum class CubeFaceKind {
+    enum class CubeFaceKind
+    {
         Main,
         Edge,
         Corner
     };
 
-    struct LabelSlot {
+    struct LabelSlot
+    {
         std::vector<SbVec3f> quad;
         ::SoTexture2* texture {nullptr};
     };
@@ -164,23 +176,22 @@ private:
     void updateButtons(const RenderParams& params) const;
     void updateLabels(const RenderParams& params) const;
     void updateSceneGraph() const;
-    void beginOverlayPass(SoGLRenderAction* action,
-                          const RenderParams& params,
-                          int viewportX,
-                          int viewportY,
-                          int viewportWidth,
-                          int viewportHeight);
+    void beginOverlayPass(
+        SoGLRenderAction* action,
+        const RenderParams& params,
+        int viewportX,
+        int viewportY,
+        int viewportWidth,
+        int viewportHeight
+    );
     void renderOverlayScene(SoGLRenderAction* action);
     void ensureGeometry() const;
     void rebuildGeometry() const;
-    void addCubeFace(const SbVec3f& x,
-                     const SbVec3f& z,
-                     CubeFaceKind kind,
-                     PickId pickId) const;
+    void addCubeFace(const SbVec3f& x, const SbVec3f& z, CubeFaceKind kind, PickId pickId) const;
     void rebuildButtonFaces() const;
     void addButtonFace(PickId pickId) const;
 
- private:
+private:
     static constexpr size_t kPickIdCount = static_cast<size_t>(PickId::ViewMenu) + 1;
 
     static constexpr size_t pickIndex(PickId id)
@@ -188,7 +199,8 @@ private:
         return static_cast<size_t>(id);
     }
 
-    struct AxisNodes {
+    struct AxisNodes
+    {
         SoSeparator* sep {nullptr};
         SoMaterial* material {nullptr};
         SoDrawStyle* drawStyle {nullptr};
@@ -197,7 +209,8 @@ private:
         SoPointSet* points {nullptr};
     };
 
-    struct LabelNodes {
+    struct LabelNodes
+    {
         SoSeparator* sep {nullptr};
         SoMaterial* material {nullptr};
         SoTexture2* texture {nullptr};
@@ -205,7 +218,8 @@ private:
         SoFaceSet* face {nullptr};
     };
 
-    struct ButtonNodes {
+    struct ButtonNodes
+    {
         SoSeparator* sep {nullptr};
         SoMaterial* fillMaterial {nullptr};
         SoMaterial* outlineMaterial {nullptr};
@@ -238,7 +252,8 @@ private:
     mutable std::array<LabelNodes, kPickIdCount> labelNodes;
     mutable std::array<ButtonNodes, kPickIdCount> buttonNodes;
 
-    struct StyleState {
+    struct StyleState
+    {
         int lastHiliteFaceIndex {-1};
         PickId lastHilitePick {PickId::None};
         PickId lastButtonsHilitePick {PickId::None};
