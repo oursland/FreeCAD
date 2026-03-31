@@ -1019,12 +1019,13 @@ void View3DInventorViewer::init()
 
         // Resolve element name: identity has "doc\tobj\tsubPath" prefix,
         // resolveGpuPickIdentity appends "Face3" etc.
-        std::string identity = mgr->resolveGpuPickIdentity(lutIndex);
-        if (!identity.empty()) {
-            // Extract the sub-element part (everything after second tab)
-            size_t tab2 = identity.rfind('\t');
-            if (tab2 != std::string::npos) {
-                result.element = identity.substr(tab2 + 1);
+        {
+            std::string identity = mgr->resolveGpuPickIdentity(lutIndex);
+            if (!identity.empty()) {
+                size_t tab2 = identity.rfind('\t');
+                if (tab2 != std::string::npos) {
+                    result.element = identity.substr(tab2 + 1);
+                }
             }
         }
 

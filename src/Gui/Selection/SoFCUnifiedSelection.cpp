@@ -1010,11 +1010,78 @@ void SoFCUnifiedSelection::handleEvent(SoHandleEventAction* action)
     ) {
         const auto e = static_cast<const SoMouseButtonEvent*>(event);
         if (SoMouseButtonEvent::isButtonReleaseEvent(e, SoMouseButtonEvent::BUTTON1)) {
-            // For click selection, always use the legacy SoRayPickAction path.
-            // GPU pick sub-element format doesn't match getDetailPath for
-            // Assembly Links. Ray pick is only for clicks (infrequent).
+            bool handled = false;
+
+            // Run both GPU pick and legacy ray pick in parallel for comparison.
+            // Use the legacy result for actual selection, but log disagreements.
             {
+                // GPU pick
+                std::string gpuElement;
+                std::string gpuObj;
+                bool gpuHit = false;
+                if (onGPUPick) {
+                    auto pos = e->getPosition();
+                    auto result = onGPUPick(pos[0], pos[1]);
+                    if (result.available && result.vpd && result.vpd->getObject()) {
+                        gpuHit = true;
+                        gpuObj = result.vpd->getObject()->getNameInDocument()
+                            ? result.vpd->getObject()->getNameInDocument()
+                            : "";
+                        gpuElement = result.element;
+                    }
+                }
+
+                // Legacy ray pick (always run for actual selection)
                 auto infos = this->getPickedList(action, !Selection().needPickedList());
+                std::string rayElement;
+                std::string rayObj;
+                bool rayHit = !infos.empty() && infos[0].vpd;
+                if (rayHit) {
+                    rayObj = infos[0].vpd->getObject()->getNameInDocument()
+                        ? infos[0].vpd->getObject()->getNameInDocument()
+                        : "";
+                    rayElement = infos[0].element;
+                }
+
+                // Compare results
+                if (gpuHit || rayHit) {
+                    bool match = (gpuHit == rayHit && gpuObj == rayObj && gpuElement == rayElement);
+                    ZoneScopedN("click pick compare");
+                    char buf[512];
+                    std::snprintf(
+                        buf,
+                        sizeof(buf),
+                        "%s GPU=%s[%s.%s] Ray=%s[%s.%s]",
+                        match ? "MATCH" : "MISMATCH",
+                        gpuHit ? "hit" : "miss",
+                        gpuObj.c_str(),
+                        gpuElement.c_str(),
+                        rayHit ? "hit" : "miss",
+                        rayObj.c_str(),
+                        rayElement.c_str()
+                    );
+                    ZoneText(buf, std::strlen(buf));
+                    if (!match) {
+                        Base::Console().warning(
+                            "GPU/Ray pick mismatch: GPU=%s [%s.%s] Ray=%s [%s.%s]\n",
+                            gpuHit ? "hit" : "miss",
+                            gpuObj.c_str(),
+                            gpuElement.c_str(),
+                            rayHit ? "hit" : "miss",
+                            rayObj.c_str(),
+                            rayElement.c_str()
+                        );
+                    }
+                    else {
+                        Base::Console().log(
+                            "GPU/Ray pick MATCH: [%s.%s]\n",
+                            gpuObj.c_str(),
+                            gpuElement.c_str()
+                        );
+                    }
+                }
+
+                // Use legacy result for actual selection
                 bool greedySel = Gui::Selection().getSelectionStyle()
                     == Gui::SelectionSingleton::SelectionStyle::GreedySelection;
                 greedySel = greedySel || event->wasCtrlDown();
