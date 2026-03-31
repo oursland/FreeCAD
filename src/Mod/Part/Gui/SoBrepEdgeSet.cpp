@@ -144,14 +144,26 @@ void SoBrepEdgeSet::render(SoModernRenderAction* action)
     }
 
     // Convert coordIndex (line strips with -1 separators) to GL_LINES pairs.
-    // Each line strip v0, v1, v2, -1 becomes line segments: (v0,v1), (v1,v2)
+    // Each line strip v0, v1, v2, -1 becomes segments: (v0,v1), (v1,v2)
+    // Also track per-edge index ranges for highlighting.
     const int32_t* ci = this->coordIndex.getValues(0);
 
-    // Count line segments
+    // First pass: count segments and edges
     int numSegments = 0;
-    for (int i = 0; i < ciNum; i++) {
-        if (ci[i] >= 0 && i + 1 < ciNum && ci[i + 1] >= 0) {
-            numSegments++;
+    int numEdges = 0;
+    {
+        bool inEdge = false;
+        for (int i = 0; i < ciNum; i++) {
+            if (ci[i] >= 0 && i + 1 < ciNum && ci[i + 1] >= 0) {
+                if (!inEdge) {
+                    numEdges++;
+                    inEdge = true;
+                }
+                numSegments++;
+            }
+            else {
+                inEdge = false;
+            }
         }
     }
     if (numSegments == 0) {
@@ -163,12 +175,34 @@ void SoBrepEdgeSet::render(SoModernRenderAction* action)
         action->allocateGeometryStorage(indexCount * sizeof(uint32_t))
     );
 
+    // Second pass: fill indices and record per-edge ranges
+    std::vector<int> edgeStart, edgeCount;
+    edgeStart.reserve(numEdges);
+    edgeCount.reserve(numEdges);
+
     int idx = 0;
+    bool inEdge = false;
+    int edgeSegCount = 0;
     for (int i = 0; i < ciNum; i++) {
         if (ci[i] >= 0 && i + 1 < ciNum && ci[i + 1] >= 0) {
+            if (!inEdge) {
+                edgeStart.push_back(idx);
+                edgeSegCount = 0;
+                inEdge = true;
+            }
             indices[idx++] = static_cast<uint32_t>(ci[i]);
             indices[idx++] = static_cast<uint32_t>(ci[i + 1]);
+            edgeSegCount++;
         }
+        else {
+            if (inEdge) {
+                edgeCount.push_back(edgeSegCount * 2);  // index count, not segment count
+                inEdge = false;
+            }
+        }
+    }
+    if (inEdge) {
+        edgeCount.push_back(edgeSegCount * 2);
     }
 
     SoRenderCommand cmd = {};
@@ -190,6 +224,10 @@ void SoBrepEdgeSet::render(SoModernRenderAction* action)
     cmd.sortKey = SoIRComputeSortKey(cmd, static_cast<uint32_t>(cmd.pass), 0);
     cmd.userData = this;
 
+    // Per-edge index ranges for pick LUT and overlay
+    cmd.pick.faceStart = std::move(edgeStart);
+    cmd.pick.faceCount = std::move(edgeCount);
+
     {
         std::string docName, objName, subPath;
         auto* guiDoc = viewProvider
@@ -209,44 +247,40 @@ void SoBrepEdgeSet::render(SoModernRenderAction* action)
     }
 
     // Read highlight/selection from context.
-    // Edge highlight uses ctx->hl vector (vertex indices), not highlightIndex.
+    // getRenderContext returns null when SelStack is non-empty but contextMap
+    // has no matching key. Fall back to selContext which may have been modified
+    // directly by SoHighlightElementAction/SoSelectionElementAction.
     {
         SelContextPtr ctx2;
         SelContextPtr ctx
             = Gui::SoFCSelectionRoot::getRenderContext<SelContext>(this, selContext, ctx2);
+        if (!ctx) {
+            ctx = selContext;
+        }
         if (ctx) {
             if (!ctx->hl.empty() || ctx->isHighlighted()) {
-                cmd.selection.highlightElement = -2;  // whole edge set
+                // Use specific edge index if available, otherwise whole body
+                if (ctx->highlightIndex >= 0
+                    && ctx->highlightIndex < static_cast<int>(cmd.pick.faceStart.size())) {
+                    cmd.selection.highlightElement = ctx->highlightIndex;
+                }
+                else {
+                    cmd.selection.highlightElement = -2;
+                }
                 SbColor hlc = ctx->highlightColor;
                 cmd.selection.highlightColor.setValue(hlc[0], hlc[1], hlc[2], 1.0f);
-                Base::Console().warning(
-                    "ModernRender: EDGE HL hl=%zu hlIdx=%d id=%s\n",
-                    ctx->hl.size(),
-                    ctx->highlightIndex,
-                    cmd.pick.pickIdentity.c_str()
-                );
             }
             if (!ctx->selectionIndex.empty() && !ctx->isSelectAll()) {
-                cmd.selection.selectedElements.push_back(-2);
+                for (int idx : ctx->selectionIndex) {
+                    if (idx >= 0) {
+                        cmd.selection.selectedElements.push_back(idx);
+                    }
+                    else {
+                        cmd.selection.selectedElements.push_back(-2);
+                    }
+                }
                 SbColor slc = ctx->selectionColor;
                 cmd.selection.selectionColor.setValue(slc[0], slc[1], slc[2], 0.8f);
-                Base::Console().warning(
-                    "ModernRender: EDGE SEL selSz=%zu id=%s\n",
-                    ctx->selectionIndex.size(),
-                    cmd.pick.pickIdentity.c_str()
-                );
-            }
-        }
-        else {
-            // Log first time to confirm ctx is null
-            static int edgeLogCount = 0;
-            if (edgeLogCount < 3) {
-                Base::Console().warning(
-                    "ModernRender: EDGE no ctx selCtx=%p id=%s\n",
-                    (void*)selContext.get(),
-                    cmd.pick.pickIdentity.c_str()
-                );
-                edgeLogCount++;
             }
         }
     }
@@ -737,6 +771,13 @@ bool SoBrepEdgeSet::validIndexes(const SoCoordinateElement* coords, const std::v
 void SoBrepEdgeSet::doAction(SoAction* action)
 {
     if (action->getTypeId() == Gui::SoHighlightElementAction::getClassTypeId()) {
+        auto* hlact = static_cast<Gui::SoHighlightElementAction*>(action);
+        Base::Console().warning(
+            "ModernRender: EDGE doAction ENTER hl=%d det=%p detType=%s\n",
+            hlact->isHighlighted() ? 1 : 0,
+            (void*)hlact->getElement(),
+            hlact->getElement() ? hlact->getElement()->getTypeId().getName().getString() : "nil"
+        );
         Gui::SoHighlightElementAction* hlaction = static_cast<Gui::SoHighlightElementAction*>(action);
         selCounter.checkAction(hlaction);
         if (!hlaction->isHighlighted()) {
@@ -747,6 +788,11 @@ void SoBrepEdgeSet::doAction(SoAction* action)
                 ctx->hl.clear();
                 touch();
             }
+            if (selContext) {
+                selContext->highlightIndex = -1;
+                selContext->hl.clear();
+            }
+            Base::Console().warning("ModernRender: EDGE doAction UN-HL\n");
             return;
         }
         const SoDetail* detail = hlaction->getElement();
@@ -774,6 +820,20 @@ void SoBrepEdgeSet::doAction(SoAction* action)
         SelContextPtr ctx = Gui::SoFCSelectionRoot::getActionContext(action, this, selContext);
         ctx->highlightColor = hlaction->getColor();
         int index = static_cast<const SoLineDetail*>(detail)->getLineIndex();
+        ctx->highlightIndex = index;
+
+        // Mirror to selContext for modern renderer fallback
+        if (selContext) {
+            selContext->highlightColor = hlaction->getColor();
+            selContext->highlightIndex = index;
+        }
+        Base::Console().warning(
+            "ModernRender: EDGE doAction HL idx=%d ctx=%p selCtx=%p same=%d\n",
+            index,
+            (void*)ctx.get(),
+            (void*)selContext.get(),
+            (ctx.get() == selContext.get()) ? 1 : 0
+        );
         const int32_t* cindices = this->coordIndex.getValues(0);
         int numcindices = this->coordIndex.getNum();
 
