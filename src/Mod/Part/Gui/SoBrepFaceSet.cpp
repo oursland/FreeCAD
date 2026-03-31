@@ -469,11 +469,14 @@ void SoBrepFaceSet::render(SoModernRenderAction* action)
 
     cmd.geometry.topology = SO_TOPOLOGY_TRIANGLES;
     cmd.geometry.vertexCount = static_cast<uint32_t>(numCoords);
+    cmd.geometry.normalCount = static_cast<uint32_t>(numNormals);
     cmd.geometry.indexCount = static_cast<uint32_t>(indexCount);
     cmd.geometry.positions = reinterpret_cast<const float*>(coords);
-    cmd.geometry.normals = (normals && numNormals >= numCoords)
-        ? reinterpret_cast<const float*>(normals)
-        : nullptr;
+    // Normals cover the face tessellation vertices. The coordinate node may
+    // include extra vertices for edges/points (numCoords > numNormals), but
+    // coordIndex only references face vertices which are within normal range.
+    cmd.geometry.normals = (normals && numNormals > 0) ? reinterpret_cast<const float*>(normals)
+                                                       : nullptr;
     cmd.geometry.indices = indices;
     cmd.geometry.vertexStride = sizeof(SbVec3f);
     cmd.geometry.texcoords = nullptr;
