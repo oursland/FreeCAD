@@ -147,10 +147,16 @@ void SoBrepPointSet::render(SoModernRenderAction* action)
         return;
     }
 
-    // Use numPoints field if set, otherwise all coordinates
+    // BRep vertices start at startIndex in the coordinate array.
+    // numPoints gives the count of actual shape vertices.
+    int startIdx = this->startIndex.getValue();
     int numPoints = this->numPoints.getValue();
-    if (numPoints <= 0 || numPoints > numCoords) {
-        numPoints = numCoords;
+    int available = numCoords - startIdx;
+    if (available <= 0) {
+        return;
+    }
+    if (numPoints <= 0 || numPoints > available) {
+        numPoints = available;
     }
 
     SoRenderCommand cmd = {};
@@ -159,7 +165,7 @@ void SoBrepPointSet::render(SoModernRenderAction* action)
     cmd.geometry.topology = SO_TOPOLOGY_POINTS;
     cmd.geometry.vertexCount = static_cast<uint32_t>(numPoints);
     cmd.geometry.indexCount = 0;
-    cmd.geometry.positions = reinterpret_cast<const float*>(coords);
+    cmd.geometry.positions = reinterpret_cast<const float*>(coords + startIdx);
     cmd.geometry.normals = nullptr;
     cmd.geometry.indices = nullptr;
     cmd.geometry.vertexStride = sizeof(SbVec3f);
