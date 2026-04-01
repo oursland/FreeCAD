@@ -927,78 +927,15 @@ void SoFCUnifiedSelection::handleEvent(SoHandleEventAction* action)
     if (isMouseMotionEvent) {
         if (preselectionMode == AUTO || preselectionMode == ON) {
             ZoneScopedN("UnifiedSel::hover");
-            bool handled = false;
-            if (onGPUPick) {
-                ZoneScopedN("GPU pick call");
-                auto pos = event->getPosition();
-                auto result = onGPUPick(pos[0], pos[1]);
-                if (result.available) {
-                    handled = true;
-                    if (result.vpd && result.path && onDirectHighlight) {
-                        // Direct draw list highlight — no scene traversal needed.
-                        // 1. Update status bar via Selection().setPreselect()
-                        const char* docname = result.vpd->getObject()->getDocument()->getName();
-                        const char* objname = result.vpd->getObject()->getNameInDocument();
-                        printPreselectionInfo(docname, objname, result.element.c_str(), 0, 0, 0, 1e-7);
-                        Gui::Selection().setPreselect(docname, objname, result.element.c_str(), 0, 0, 0);
-                        this->preSelection = 1;
-
-                        // 2. Apply highlight directly on the cached draw list
-                        //    (callback also schedules redraw)
-                        SbColor4f hlColor;
-                        const SbColor& c = this->colorHighlight.getValue();
-                        hlColor.setValue(c[0], c[1], c[2], 1.0f);
-                        onDirectHighlight(result.lutIndex, hlColor);
-                    }
-                    else if (result.vpd && result.path) {
-                        // Fallback: no direct highlight callback, use legacy path
-                        SoFaceDetail faceDetail;
-                        SoLineDetail lineDetail;
-                        SoPointDetail pointDetail;
-                        const SoDetail* det = nullptr;
-                        if (result.elementType == 0 && result.elementIndex >= 0) {
-                            faceDetail.setPartIndex(result.elementIndex);
-                            det = &faceDetail;
-                        }
-                        else if (result.elementType == 1 && result.elementIndex >= 0) {
-                            lineDetail.setLineIndex(result.elementIndex);
-                            det = &lineDetail;
-                        }
-                        else if (result.elementType == 2 && result.elementIndex >= 0) {
-                            pointDetail.setCoordinateIndex(result.elementIndex);
-                            det = &pointDetail;
-                        }
-                        setPreselect(result.path, det, result.vpd, result.element.c_str(), 0, 0, 0);
-                    }
-                    else {
-                        // No hit — clear highlight
-                        if (onDirectHighlight) {
-                            onDirectHighlight(0, SbColor4f(0, 0, 0, 0));
-                        }
-                        setPreselect(PickedInfo());
-                        if (this->preSelection > 0) {
-                            this->preSelection = 0;
-                            if (!onDirectHighlight) {
-                                this->touch();
-                            }
-                        }
-                    }
-                }
-                else {
-                    ZoneText("unavailable", 11);
-                }
+            auto infos = this->getPickedList(action, true);
+            if (!infos.empty()) {
+                setPreselect(infos[0]);
             }
-            if (!handled) {
-                auto infos = this->getPickedList(action, true);
-                if (!infos.empty()) {
-                    setPreselect(infos[0]);
-                }
-                else {
-                    setPreselect(PickedInfo());
-                    if (this->preSelection > 0) {
-                        this->preSelection = 0;
-                        this->touch();
-                    }
+            else {
+                setPreselect(PickedInfo());
+                if (this->preSelection > 0) {
+                    this->preSelection = 0;
+                    this->touch();
                 }
             }
         }
@@ -1010,84 +947,12 @@ void SoFCUnifiedSelection::handleEvent(SoHandleEventAction* action)
     ) {
         const auto e = static_cast<const SoMouseButtonEvent*>(event);
         if (SoMouseButtonEvent::isButtonReleaseEvent(e, SoMouseButtonEvent::BUTTON1)) {
-            bool handled = false;
-
-            // Run both GPU pick and legacy ray pick in parallel for comparison.
-            // Use the legacy result for actual selection, but log disagreements.
-            {
-                // GPU pick
-                std::string gpuElement;
-                std::string gpuObj;
-                bool gpuHit = false;
-                if (onGPUPick) {
-                    auto pos = e->getPosition();
-                    auto result = onGPUPick(pos[0], pos[1]);
-                    if (result.available && result.vpd && result.vpd->getObject()) {
-                        gpuHit = true;
-                        gpuObj = result.vpd->getObject()->getNameInDocument()
-                            ? result.vpd->getObject()->getNameInDocument()
-                            : "";
-                        gpuElement = result.element;
-                    }
-                }
-
-                // Legacy ray pick (always run for actual selection)
-                auto infos = this->getPickedList(action, !Selection().needPickedList());
-                std::string rayElement;
-                std::string rayObj;
-                bool rayHit = !infos.empty() && infos[0].vpd;
-                if (rayHit) {
-                    rayObj = infos[0].vpd->getObject()->getNameInDocument()
-                        ? infos[0].vpd->getObject()->getNameInDocument()
-                        : "";
-                    rayElement = infos[0].element;
-                }
-
-                // Compare results
-                if (gpuHit || rayHit) {
-                    bool match = (gpuHit == rayHit && gpuObj == rayObj && gpuElement == rayElement);
-                    ZoneScopedN("click pick compare");
-                    char buf[512];
-                    std::snprintf(
-                        buf,
-                        sizeof(buf),
-                        "%s GPU=%s[%s.%s] Ray=%s[%s.%s]",
-                        match ? "MATCH" : "MISMATCH",
-                        gpuHit ? "hit" : "miss",
-                        gpuObj.c_str(),
-                        gpuElement.c_str(),
-                        rayHit ? "hit" : "miss",
-                        rayObj.c_str(),
-                        rayElement.c_str()
-                    );
-                    ZoneText(buf, std::strlen(buf));
-                    if (!match) {
-                        Base::Console().warning(
-                            "GPU/Ray pick mismatch: GPU=%s [%s.%s] Ray=%s [%s.%s]\n",
-                            gpuHit ? "hit" : "miss",
-                            gpuObj.c_str(),
-                            gpuElement.c_str(),
-                            rayHit ? "hit" : "miss",
-                            rayObj.c_str(),
-                            rayElement.c_str()
-                        );
-                    }
-                    else {
-                        Base::Console().log(
-                            "GPU/Ray pick MATCH: [%s.%s]\n",
-                            gpuObj.c_str(),
-                            gpuElement.c_str()
-                        );
-                    }
-                }
-
-                // Use legacy result for actual selection
-                bool greedySel = Gui::Selection().getSelectionStyle()
-                    == Gui::SelectionSingleton::SelectionStyle::GreedySelection;
-                greedySel = greedySel || event->wasCtrlDown();
-                if (setSelection(infos, greedySel) || greedySel) {
-                    action->setHandled();
-                }
+            auto infos = this->getPickedList(action, !Selection().needPickedList());
+            bool greedySel = Gui::Selection().getSelectionStyle()
+                == Gui::SelectionSingleton::SelectionStyle::GreedySelection;
+            greedySel = greedySel || event->wasCtrlDown();
+            if (setSelection(infos, greedySel) || greedySel) {
+                action->setHandled();
             }
         }  // mouse release
     }
