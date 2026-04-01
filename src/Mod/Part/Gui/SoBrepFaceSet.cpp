@@ -433,15 +433,22 @@ void SoBrepFaceSet::render(SoModernRenderAction* action)
     }
 
     // Convert coordIndex (with -1 separators) to a flat triangle index array.
-    // SoBrepFaceSet only uses triangles: v0, v1, v2, -1, v3, v4, v5, -1, ...
+    // Faces can be triangles, quads, or n-gons — triangulate using fan method.
     const int32_t* ci = this->coordIndex.getValues(0);
     int ciNum = this->coordIndex.getNum();
 
-    // Count triangles (each group of 3 indices separated by -1)
+    // First pass: count output triangles
     int numTriangles = 0;
-    for (int i = 0; i + 3 <= ciNum; i += 4) {
-        if (ci[i] >= 0 && ci[i + 1] >= 0 && ci[i + 2] >= 0) {
-            numTriangles++;
+    {
+        int faceStart = 0;
+        for (int i = 0; i <= ciNum; i++) {
+            if (i == ciNum || ci[i] < 0) {
+                int faceVerts = i - faceStart;
+                if (faceVerts >= 3) {
+                    numTriangles += faceVerts - 2;  // fan triangulation
+                }
+                faceStart = i + 1;
+            }
         }
     }
     if (numTriangles == 0) {
@@ -454,12 +461,23 @@ void SoBrepFaceSet::render(SoModernRenderAction* action)
         action->allocateGeometryStorage(indexCount * sizeof(uint32_t))
     );
 
+    // Second pass: emit triangles via fan triangulation
     int idx = 0;
-    for (int i = 0; i + 3 <= ciNum; i += 4) {
-        if (ci[i] >= 0 && ci[i + 1] >= 0 && ci[i + 2] >= 0) {
-            indices[idx++] = static_cast<uint32_t>(ci[i]);
-            indices[idx++] = static_cast<uint32_t>(ci[i + 1]);
-            indices[idx++] = static_cast<uint32_t>(ci[i + 2]);
+    {
+        int faceStart = 0;
+        for (int i = 0; i <= ciNum; i++) {
+            if (i == ciNum || ci[i] < 0) {
+                int faceVerts = i - faceStart;
+                if (faceVerts >= 3) {
+                    uint32_t v0 = static_cast<uint32_t>(ci[faceStart]);
+                    for (int j = 1; j + 1 < faceVerts; j++) {
+                        indices[idx++] = v0;
+                        indices[idx++] = static_cast<uint32_t>(ci[faceStart + j]);
+                        indices[idx++] = static_cast<uint32_t>(ci[faceStart + j + 1]);
+                    }
+                }
+                faceStart = i + 1;
+            }
         }
     }
 
