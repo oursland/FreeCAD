@@ -675,29 +675,39 @@ bool SoFCUnifiedSelection::setPreselect(
         // on Assembly Links due to short path format, but the visual highlight
         // via SoHighlightElementAction should still work.
         {
-            SoRenderManager::setSuppressShapeTouch(TRUE);
+            bool modernHL = renderManager && renderManager->isModernRenderEnabled();
+            if (!modernHL) {
+                SoRenderManager::setSuppressShapeTouch(TRUE);
+            }
             if (currentHighlightPath) {
-                SoHighlightElementAction action;
-                action.setHighlighted(false);
-                action.apply(currentHighlightPath);
+                if (!modernHL) {
+                    SoHighlightElementAction action;
+                    action.setHighlighted(false);
+                    action.apply(currentHighlightPath);
+                }
                 currentHighlightPath->unref();
                 currentHighlightPath = nullptr;
             }
             currentHighlightPath = static_cast<SoFullPath*>(path->copy());
             currentHighlightPath->ref();
             highlighted = true;
-            SoRenderManager::setSuppressShapeTouch(FALSE);
+            if (!modernHL) {
+                SoRenderManager::setSuppressShapeTouch(FALSE);
+            }
         }
     }
 
     if (currentHighlightPath) {
-        SoRenderManager::setSuppressShapeTouch(TRUE);
-        SoHighlightElementAction action;
-        action.setHighlighted(highlighted);
-        action.setColor(this->colorHighlight.getValue());
-        action.setElement(det);
-        action.apply(currentHighlightPath);
-        SoRenderManager::setSuppressShapeTouch(FALSE);
+        bool modernHL = renderManager && renderManager->isModernRenderEnabled();
+        if (!modernHL) {
+            SoRenderManager::setSuppressShapeTouch(TRUE);
+            SoHighlightElementAction action;
+            action.setHighlighted(highlighted);
+            action.setColor(this->colorHighlight.getValue());
+            action.setElement(det);
+            action.apply(currentHighlightPath);
+            SoRenderManager::setSuppressShapeTouch(FALSE);
+        }
         if (!highlighted) {
             currentHighlightPath->unref();
             currentHighlightPath = nullptr;
