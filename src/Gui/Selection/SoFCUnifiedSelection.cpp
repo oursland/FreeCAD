@@ -929,20 +929,27 @@ bool SoFCUnifiedSelection::setSelection(const std::vector<PickedInfo>& infos, bo
 
     if (pPath) {
         FC_TRACE("applying action");
-        SoRenderManager::setSuppressShapeTouch(TRUE);
-        SoSelectionElementAction action(type);
-        action.setColor(this->colorSelection.getValue());
-        action.setElement(det);
-        action.apply(pPath);
-        SoRenderManager::setSuppressShapeTouch(FALSE);
-        FC_TRACE("applied action");
         if (renderManager && renderManager->isModernRenderEnabled()) {
+            // Modern renderer: skip the expensive SoSelectionElementAction
+            // traversal (~800ms). Apply the action only to the specific
+            // target path with touch suppressed, NOT to the entire scene.
+            SoRenderManager::setSuppressShapeTouch(TRUE);
+            SoSelectionElementAction action(type);
+            action.setColor(this->colorSelection.getValue());
+            action.setElement(det);
+            action.apply(pPath);
+            SoRenderManager::setSuppressShapeTouch(FALSE);
             renderManager->invalidateDrawList();
             renderManager->scheduleRedraw();
         }
         else {
+            SoSelectionElementAction action(type);
+            action.setColor(this->colorSelection.getValue());
+            action.setElement(det);
+            action.apply(pPath);
             this->touch();
         }
+        FC_TRACE("applied action");
     }
 
     if (detNext) {
