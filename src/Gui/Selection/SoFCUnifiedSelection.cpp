@@ -376,7 +376,6 @@ void SoFCUnifiedSelection::doAction(SoAction* action)
     if (action->getTypeId() == SoFCPreselectionAction::getClassTypeId()) {
         // Suppress shape touch() during highlight/selection actions to prevent
         // the node sensor from invalidating the cached draw list.
-        SoRenderManager::setSuppressShapeTouch(TRUE);
 
         // When the modern renderer is active, preselection highlight is handled
         // by direct draw list mutation (onDirectHighlight). Skip the legacy
@@ -459,7 +458,6 @@ void SoFCUnifiedSelection::doAction(SoAction* action)
             }
         }
 
-        SoRenderManager::setSuppressShapeTouch(FALSE);
 
         if (useNewSelection.getValue()) {
             return;
@@ -467,7 +465,6 @@ void SoFCUnifiedSelection::doAction(SoAction* action)
     }
 
     if (action->getTypeId() == SoFCSelectionAction::getClassTypeId()) {
-        SoRenderManager::setSuppressShapeTouch(TRUE);
         auto selectionAction = static_cast<SoFCSelectionAction*>(action);
         if (selectionMode.getValue() == ON
             && (selectionAction->SelChange.Type == SelectionChanges::AddSelection
@@ -615,7 +612,6 @@ void SoFCUnifiedSelection::doAction(SoAction* action)
             }
         }
 
-        SoRenderManager::setSuppressShapeTouch(FALSE);
 
         if (useNewSelection.getValue()) {
             return;
@@ -677,7 +673,6 @@ bool SoFCUnifiedSelection::setPreselect(
         {
             bool modernHL = renderManager && renderManager->isModernRenderEnabled();
             if (!modernHL) {
-                SoRenderManager::setSuppressShapeTouch(TRUE);
             }
             if (currentHighlightPath) {
                 if (!modernHL) {
@@ -692,7 +687,6 @@ bool SoFCUnifiedSelection::setPreselect(
             currentHighlightPath->ref();
             highlighted = true;
             if (!modernHL) {
-                SoRenderManager::setSuppressShapeTouch(FALSE);
             }
         }
     }
@@ -700,13 +694,12 @@ bool SoFCUnifiedSelection::setPreselect(
     if (currentHighlightPath) {
         bool modernHL = renderManager && renderManager->isModernRenderEnabled();
         if (!modernHL) {
-            SoRenderManager::setSuppressShapeTouch(TRUE);
+
             SoHighlightElementAction action;
             action.setHighlighted(highlighted);
             action.setColor(this->colorHighlight.getValue());
             action.setElement(det);
             action.apply(currentHighlightPath);
-            SoRenderManager::setSuppressShapeTouch(FALSE);
         }
         if (!highlighted) {
             currentHighlightPath->unref();
@@ -933,12 +926,12 @@ bool SoFCUnifiedSelection::setSelection(const std::vector<PickedInfo>& infos, bo
             // Modern renderer: skip the expensive SoSelectionElementAction
             // traversal (~800ms). Apply the action only to the specific
             // target path with touch suppressed, NOT to the entire scene.
-            SoRenderManager::setSuppressShapeTouch(TRUE);
+
             SoSelectionElementAction action(type);
             action.setColor(this->colorSelection.getValue());
             action.setElement(det);
             action.apply(pPath);
-            SoRenderManager::setSuppressShapeTouch(FALSE);
+
             renderManager->invalidateDrawList();
             renderManager->scheduleRedraw();
         }
