@@ -1015,6 +1015,11 @@ void SoFCUnifiedSelection::handleEvent(SoHandleEventAction* action)
                     }
                 }
             }
+
+            // GPU pick handled the hover — no need for scene graph traversal
+            if (handled) {
+                action->setHandled();
+            }
         }
     }
     // mouse press events for (de)selection
@@ -1043,7 +1048,9 @@ void SoFCUnifiedSelection::handleEvent(SoHandleEventAction* action)
         }  // mouse release
     }
 
-    inherited::handleEvent(action);
+    if (!action->isHandled()) {
+        inherited::handleEvent(action);
+    }
 }
 
 void SoFCUnifiedSelection::GLRenderBelowPath(SoGLRenderAction* action)
