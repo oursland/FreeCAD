@@ -107,6 +107,9 @@ public:
     /// Render manager for GPU pick access during hover preselection.
     SoRenderManager* renderManager = nullptr;
 
+    /// Last picked LUT index from GPU pick, used for direct selection.
+    uint32_t lastPickedLutIndex = 0;
+
     friend class View3DInventorViewer;
 
 protected:
