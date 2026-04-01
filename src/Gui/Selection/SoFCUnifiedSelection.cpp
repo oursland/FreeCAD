@@ -29,8 +29,6 @@
 #include <Inventor/SoFullPath.h>
 #include <Inventor/SoPickedPoint.h>
 #include <Inventor/SoRenderManager.h>
-
-#include "SoFullPathHelper.h"
 #include <Inventor/actions/SoCallbackAction.h>
 #include <Inventor/actions/SoGetBoundingBoxAction.h>
 #include <Inventor/actions/SoGetPrimitiveCountAction.h>
@@ -143,7 +141,7 @@ SoFCUnifiedSelection::SoFCUnifiedSelection()
     // instances to the SoFullPath type. This will allow you to examine hidden children. Actually,
     // you are not supposed to allocate instances of this class at all. It is only available as an
     // "extended interface" into the superclass SoPath.
-    detailPath = Gui::toFullPath(new SoPath(20));
+    detailPath = static_cast<SoFullPath*>(new SoPath(20));
     detailPath->ref();
 
     setPreSelection = false;
@@ -267,7 +265,7 @@ std::vector<SoFCUnifiedSelection::PickedInfo> SoFCUnifiedSelection::getPickedLis
         info.pp = points[i];
         info.vpd = nullptr;
         ViewProvider* vp = nullptr;
-        auto path = Gui::toFullPath(info.pp->getPath());
+        auto path = static_cast<SoFullPath*>(info.pp->getPath());
         if (this->pcDocument && path && path->containsPath(action->getCurPath())) {
             vp = this->pcDocument->getViewProviderByPathFromHead(path);
             if (singlePick && last_vp && last_vp != vp) {
@@ -376,77 +374,85 @@ void SoFCUnifiedSelection::doAction(SoAction* action)
     }
 
     if (action->getTypeId() == SoFCPreselectionAction::getClassTypeId()) {
+        // When the modern renderer is active, preselection highlight is handled
+        // by direct draw list mutation (onDirectHighlight). Skip the legacy
+        // SoHighlightElementAction traversal which touches shape nodes and
+        // triggers full scene re-traversal via the node sensor.
+        bool modernActive = renderManager && renderManager->isModernRenderEnabled();
+
         auto preselectAction = static_cast<SoFCPreselectionAction*>(action);
-        // Do not clear currently preselected object when setting new preselection
         if (!setPreSelection && preselectAction->SelChange.Type == SelectionChanges::RmvPreselect) {
             if (currentHighlightPath) {
-                SoHighlightElementAction highlightAction;
-                highlightAction.apply(currentHighlightPath);
+                if (!modernActive) {
+                    SoHighlightElementAction highlightAction;
+                    highlightAction.apply(currentHighlightPath);
+                }
                 currentHighlightPath->unref();
                 currentHighlightPath = nullptr;
             }
         }
-        else if (
-            preselectionMode.getValue() != OFF
-            && preselectAction->SelChange.Type == SelectionChanges::SetPreselect
-        ) {
+        else if (preselectionMode.getValue() != OFF
+                 && preselectAction->SelChange.Type == SelectionChanges::SetPreselect) {
             if (currentHighlightPath) {
-                SoHighlightElementAction highlightAction;
-                highlightAction.apply(currentHighlightPath);
+                if (!modernActive) {
+                    SoHighlightElementAction highlightAction;
+                    highlightAction.apply(currentHighlightPath);
+                }
                 currentHighlightPath->unref();
                 currentHighlightPath = nullptr;
             }
 
-            App::Document* doc = App::GetApplication().getDocument(preselectAction->SelChange.pDocName);
-            App::DocumentObject* obj = doc->getObject(preselectAction->SelChange.pObjectName);
-            ViewProvider* vp = Application::Instance->getViewProvider(obj);
+            if (!modernActive) {
+                App::Document* doc = App::GetApplication().getDocument(
+                    preselectAction->SelChange.pDocName
+                );
+                App::DocumentObject* obj = doc->getObject(preselectAction->SelChange.pObjectName);
+                ViewProvider* vp = Application::Instance->getViewProvider(obj);
 
-            // use getDetailPath() like selection does, instead of just getDetail()
-            SoDetail* detail = nullptr;
-            detailPath->truncate(0);
-            auto subName = preselectAction->SelChange.pSubName;
+                SoDetail* detail = nullptr;
+                detailPath->truncate(0);
+                auto subName = preselectAction->SelChange.pSubName;
 
-            SoFullPath* pathToHighlight = nullptr;
-            if (vp && vp->isDerivedFrom(ViewProviderDocumentObject::getClassTypeId())
-                && (useNewSelection.getValue() || vp->useNewSelectionModel()) && vp->isSelectable()) {
-
-                // get proper detail path for sub-objects (like Assembly parts)
-                if (!subName || !subName[0] || vp->getDetailPath(subName, detailPath, true, detail)) {
-                    if (detailPath->getLength()) {
-                        pathToHighlight = detailPath;
-                    }
-                    else {
-                        // fallback to ViewProvider root if no specific path
-                        pathToHighlight = Gui::toFullPath(new SoPath(2));
-                        pathToHighlight->ref();
-                        pathToHighlight->append(vp->getRoot());
+                SoFullPath* pathToHighlight = nullptr;
+                if (vp && vp->isDerivedFrom(ViewProviderDocumentObject::getClassTypeId())
+                    && (useNewSelection.getValue() || vp->useNewSelectionModel())
+                    && vp->isSelectable()) {
+                    if (!subName || !subName[0]
+                        || vp->getDetailPath(subName, detailPath, true, detail)) {
+                        if (detailPath->getLength()) {
+                            pathToHighlight = detailPath;
+                        }
+                        else {
+                            pathToHighlight = static_cast<SoFullPath*>(new SoPath(2));
+                            pathToHighlight->ref();
+                            pathToHighlight->append(vp->getRoot());
+                        }
                     }
                 }
-            }
-            else {
-                detail = vp->getDetail(subName);
-                pathToHighlight = Gui::toFullPath(new SoPath(2));
-                pathToHighlight->ref();
-                pathToHighlight->append(vp->getRoot());
-            }
-
-            if (pathToHighlight) {
-                SoHighlightElementAction highlightAction;
-                highlightAction.setHighlighted(true);
-                highlightAction.setColor(this->colorHighlight.getValue());
-                highlightAction.setElement(detail);
-                highlightAction.apply(pathToHighlight);
-
-                currentHighlightPath = Gui::toFullPath(pathToHighlight->copy());
-                currentHighlightPath->ref();
-
-                // clean up temporary path if we created one
-                if (pathToHighlight != detailPath) {
-                    pathToHighlight->unref();
+                else {
+                    detail = vp->getDetail(subName);
+                    pathToHighlight = static_cast<SoFullPath*>(new SoPath(2));
+                    pathToHighlight->ref();
+                    pathToHighlight->append(vp->getRoot());
                 }
-            }
 
-            delete detail;
+                if (pathToHighlight) {
+                    SoHighlightElementAction highlightAction;
+                    highlightAction.setHighlighted(true);
+                    highlightAction.setColor(this->colorHighlight.getValue());
+                    highlightAction.setElement(detail);
+                    highlightAction.apply(pathToHighlight);
+
+                    currentHighlightPath = static_cast<SoFullPath*>(pathToHighlight->copy());
+                    currentHighlightPath->ref();
+
+                    if (pathToHighlight != detailPath) {
+                        pathToHighlight->unref();
+                    }
+                }
+
+                delete detail;
+            }
         }
 
         if (useNewSelection.getValue()) {
@@ -553,10 +559,8 @@ void SoFCUnifiedSelection::doAction(SoAction* action)
                 selectionAction.apply(this->getChild(i));
             }
         }
-        else if (
-            selectionMode.getValue() == ON
-            && selectionAction->SelChange.Type == SelectionChanges::SetSelection
-        ) {
+        else if (selectionMode.getValue() == ON
+                 && selectionAction->SelChange.Type == SelectionChanges::SetSelection) {
             std::vector<ViewProvider*> vps;
             if (this->pcDocument) {
                 vps = this->pcDocument->getViewProvidersOfType(
@@ -620,7 +624,7 @@ bool SoFCUnifiedSelection::setPreselect(const PickedInfo& info)
 
     const auto& pt = info.pp->getPoint();
     return setPreselect(
-        Gui::toFullPath(info.pp->getPath()),
+        static_cast<SoFullPath*>(info.pp->getPath()),
         info.pp->getDetail(),
         info.vpd,
         info.element.c_str(),
@@ -669,7 +673,7 @@ bool SoFCUnifiedSelection::setPreselect(
                 currentHighlightPath->unref();
                 currentHighlightPath = nullptr;
             }
-            currentHighlightPath = Gui::toFullPath(path->copy());
+            currentHighlightPath = static_cast<SoFullPath*>(path->copy());
             currentHighlightPath->ref();
             highlighted = true;
         }
@@ -752,7 +756,7 @@ bool SoFCUnifiedSelection::setSelection(const std::vector<PickedInfo>& infos, bo
     const SoPickedPoint* pp = info.pp;
     const SoDetail* det = pp->getDetail();
     SoDetail* detNext = nullptr;
-    auto pPath = Gui::toFullPath(pp->getPath());
+    auto pPath = static_cast<SoFullPath*>(pp->getPath());
     const auto& pt = pp->getPoint();
     SoSelectionElementAction::Type type = SoSelectionElementAction::None;
     auto preselectionMode = static_cast<SelectionModes>(this->preselectionMode.getValue());
@@ -1019,10 +1023,8 @@ void SoFCUnifiedSelection::handleEvent(SoHandleEventAction* action)
         }
     }
     // mouse press events for (de)selection
-    else if (
-        event->isOfType(SoMouseButtonEvent::getClassTypeId())
-        && selectionMode.getValue() == SoFCUnifiedSelection::ON
-    ) {
+    else if (event->isOfType(SoMouseButtonEvent::getClassTypeId())
+             && selectionMode.getValue() == SoFCUnifiedSelection::ON) {
         const auto e = static_cast<const SoMouseButtonEvent*>(event);
         if (SoMouseButtonEvent::isButtonReleaseEvent(e, SoMouseButtonEvent::BUTTON1)) {
             auto infos = this->getPickedList(action, !Selection().needPickedList());
@@ -1983,9 +1985,8 @@ bool SoFCSelectionRoot::doActionPrivate(Stack& stack, SoAction* action)
             return true;
         }
     }
-    else if (
-        action->getWhatAppliedTo() != SoAction::NODE && action->getCurPathCode() != SoAction::BELOW_PATH
-    ) {
+    else if (action->getWhatAppliedTo() != SoAction::NODE
+             && action->getCurPathCode() != SoAction::BELOW_PATH) {
         return true;
     }
 
