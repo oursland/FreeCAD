@@ -950,20 +950,38 @@ void SoFCUnifiedSelection::handleEvent(SoHandleEventAction* action)
                 handled = true;
 
                 if (lutIndex > 0) {
-                    SoPickedPoint* pp = renderManager->assemblePickedPoint(pos[0], pos[1], 5);
-                    if (pp) {
-                        auto* path = static_cast<SoFullPath*>(pp->getPath());
-                        auto* vp = pcDocument ? pcDocument->getViewProviderByPathFromHead(path)
-                                              : nullptr;
-                        if (vp && vp->isDerivedFrom(ViewProviderDocumentObject::getClassTypeId())) {
-                            auto* vpd = static_cast<ViewProviderDocumentObject*>(vp);
-                            std::string element;
-                            if (vpd->getElementPicked(pp, element)) {
-                                const char* docname = vpd->getObject()->getDocument()->getName();
-                                const char* objname = vpd->getObject()->getNameInDocument();
+                    // Resolve element name from the pick LUT identity string.
+                    // Avoid creating SoPickedPoint — the stored command paths
+                    // use unrefNoDelete and can have stale node pointers.
+                    std::string identity = renderManager->resolveGpuPickIdentity(lutIndex);
+                    if (!identity.empty()) {
+                        // Identity format: "docName\tobjName\tsubPath+Element"
+                        size_t tab2 = identity.rfind('\t');
+                        if (tab2 != std::string::npos) {
+                            std::string element = identity.substr(tab2 + 1);
+                            size_t tab1 = identity.find('\t');
+                            size_t tab1end = identity.find('\t', tab1 + 1);
+                            if (tab1 != std::string::npos && tab1end != std::string::npos) {
+                                std::string docname = identity.substr(0, tab1);
+                                std::string objname = identity.substr(tab1 + 1, tab1end - tab1 - 1);
                                 this->preSelection = 1;
-                                printPreselectionInfo(docname, objname, element.c_str(), 0, 0, 0, 1e-7);
-                                Gui::Selection().setPreselect(docname, objname, element.c_str(), 0, 0, 0);
+                                printPreselectionInfo(
+                                    docname.c_str(),
+                                    objname.c_str(),
+                                    element.c_str(),
+                                    0,
+                                    0,
+                                    0,
+                                    1e-7
+                                );
+                                Gui::Selection().setPreselect(
+                                    docname.c_str(),
+                                    objname.c_str(),
+                                    element.c_str(),
+                                    0,
+                                    0,
+                                    0
+                                );
 
                                 SbColor4f hlColor;
                                 const SbColor& c = this->colorHighlight.getValue();
@@ -971,7 +989,6 @@ void SoFCUnifiedSelection::handleEvent(SoHandleEventAction* action)
                                 onDirectHighlight(lutIndex, hlColor);
                             }
                         }
-                        delete pp;
                     }
                 }
                 else {
