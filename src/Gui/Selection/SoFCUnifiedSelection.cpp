@@ -28,6 +28,7 @@
 #include <Inventor/actions/SoModernRenderAction.h>
 #include <Inventor/SoFullPath.h>
 #include <Inventor/SoPickedPoint.h>
+#include <Inventor/SoRenderManager.h>
 
 #include "SoFullPathHelper.h"
 #include <Inventor/actions/SoCallbackAction.h>
@@ -927,17 +928,76 @@ void SoFCUnifiedSelection::handleEvent(SoHandleEventAction* action)
     if (isMouseMotionEvent) {
         if (preselectionMode == AUTO || preselectionMode == ON) {
             ZoneScopedN("UnifiedSel::hover");
-            auto infos = this->getPickedList(action, true);
-            if (!infos.empty()) {
-                setPreselect(infos[0]);
-            }
-            else {
-                setPreselect(PickedInfo());
-                if (this->preSelection > 0) {
-                    this->preSelection = 0;
-                    this->touch();
+
+            // For hover preselection, use GPU pick + direct draw list highlight
+            // to avoid scene graph re-traversal (which costs ~900ms per frame).
+            // The standard getPickedPoint API handles element resolution via
+            // SoPickedPoint + getElementPicked, and onDirectHighlight mutates
+            // the cached draw list without touch().
+            if (onDirectHighlight && renderManager) {
+                auto* mgr = renderManager;
+                if (mgr->isModernRenderEnabled()) {
+                    SoPickedPoint* pp = mgr->assemblePickedPoint(
+                        event->getPosition()[0],
+                        event->getPosition()[1],
+                        5
+                    );
+                    if (pp) {
+                        // Resolve element via standard VP path
+                        auto* path = static_cast<SoFullPath*>(pp->getPath());
+                        auto* vp = pcDocument ? pcDocument->getViewProviderByPathFromHead(path)
+                                              : nullptr;
+                        if (vp && vp->isDerivedFrom(ViewProviderDocumentObject::getClassTypeId())) {
+                            auto* vpd = static_cast<ViewProviderDocumentObject*>(vp);
+                            std::string element;
+                            if (vpd->getElementPicked(pp, element)) {
+                                const char* docname = vpd->getObject()->getDocument()->getName();
+                                const char* objname = vpd->getObject()->getNameInDocument();
+                                printPreselectionInfo(docname, objname, element.c_str(), 0, 0, 0, 1e-7);
+                                Gui::Selection().setPreselect(docname, objname, element.c_str(), 0, 0, 0);
+                                this->preSelection = 1;
+
+                                // Direct highlight on draw list — no touch/traversal
+                                uint32_t lutIndex = mgr->gpuPick(
+                                    event->getPosition()[0],
+                                    event->getPosition()[1],
+                                    5
+                                );
+                                SbColor4f hlColor;
+                                const SbColor& c = this->colorHighlight.getValue();
+                                hlColor.setValue(c[0], c[1], c[2], 1.0f);
+                                onDirectHighlight(lutIndex, hlColor);
+                            }
+                        }
+                        delete pp;
+                    }
+                    else {
+                        // No hit — clear highlight
+                        onDirectHighlight(0, SbColor4f(0, 0, 0, 0));
+                        if (this->preSelection > 0) {
+                            this->preSelection = 0;
+                            Selection().rmvPreselect();
+                        }
+                    }
+                    goto hover_done;
                 }
             }
+
+            // Fallback: legacy pick path
+            {
+                auto infos = this->getPickedList(action, true);
+                if (!infos.empty()) {
+                    setPreselect(infos[0]);
+                }
+                else {
+                    setPreselect(PickedInfo());
+                    if (this->preSelection > 0) {
+                        this->preSelection = 0;
+                        this->touch();
+                    }
+                }
+            }
+        hover_done:;
         }
     }
     // mouse press events for (de)selection

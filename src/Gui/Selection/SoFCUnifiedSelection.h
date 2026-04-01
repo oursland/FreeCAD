@@ -29,6 +29,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include <Inventor/SbColor4f.h>
 #include <Inventor/elements/SoLazyElement.h>
 #include <Inventor/fields/SoSFBool.h>
 #include <Inventor/fields/SoSFColor.h>
@@ -42,6 +43,7 @@
 class SoFullPath;
 class SoPickedPoint;
 class SoDetail;
+class SoRenderManager;
 
 
 namespace Gui
@@ -92,6 +94,14 @@ public:
     void GLRenderBelowPath(SoGLRenderAction* action) override;
 
     static bool hasHighlight();
+
+    /// Direct draw list highlight — sets/clears preselection highlight on the
+    /// cached draw list without scene graph traversal. lutIndex=0 clears.
+    /// Used for hover preselection performance optimization.
+    std::function<bool(uint32_t lutIndex, const SbColor4f& color)> onDirectHighlight;
+
+    /// Render manager for GPU pick access during hover preselection.
+    SoRenderManager* renderManager = nullptr;
 
     friend class View3DInventorViewer;
 

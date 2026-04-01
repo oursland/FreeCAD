@@ -985,6 +985,23 @@ void View3DInventorViewer::init()
 
     inventorSelection = std::make_unique<View3DInventorSelection>(selectionRoot);
 
+    // Set render manager for GPU pick access during hover preselection.
+    selectionRoot->renderManager = this->getSoRenderManager();
+
+    // Direct draw list highlight callback for hover preselection performance.
+    // Mutates the cached draw list highlight without scene graph traversal.
+    selectionRoot->onDirectHighlight = [this](uint32_t lutIndex, const SbColor4f& color) -> bool {
+        auto* mgr = this->getSoRenderManager();
+        if (!mgr || !mgr->isModernRenderEnabled()) {
+            return false;
+        }
+        bool ok = mgr->setDrawListHighlight(lutIndex, color);
+        if (ok) {
+            mgr->scheduleRedraw();
+        }
+        return ok;
+    };
+
     pcClipPlane = nullptr;
 
     pcEditingRoot = new SoSeparator;
