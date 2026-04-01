@@ -151,6 +151,7 @@ sed = "*"
 ## macOS Dependencies (Apple Silicon)
 [target.osx-arm64.dependencies]
 sed = "*"
+backtrace = ">=20241216,<20241217"
 
 [target.win-64.dependencies]
 pthreads-win32 = "*"

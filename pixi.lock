@@ -1235,6 +1235,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/atk-1.0-2.38.0-hd03087b_2.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/attrs-26.1.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/backports.zstd-1.3.0-py311hee243d0_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/osx-arm64/backtrace-20241216-h93a6450_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/blinker-1.9.0-pyhff2d567_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/blosc-1.21.6-h7dd00d9_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/boltons-25.0.0-pyhd8ed1ab_0.conda
@@ -2434,6 +2435,17 @@ packages:
   - pkg:pypi/backports-zstd?source=hash-mapping
   size: 243289
   timestamp: 1767045012846
+- conda: https://conda.anaconda.org/conda-forge/osx-arm64/backtrace-20241216-h93a6450_0.conda
+  sha256: 145eca6d1ee5b42fc031299fd33f3a0dd8be441f85060c121ee0487fb23215c5
+  md5: 3e3c5d30ffc959d092dc35f5f5832020
+  depends:
+  - __osx >=11.0
+  - libzlib >=1.3.1,<2.0a0
+  license: BSD-3-Clause
+  license_family: BSD
+  purls: []
+  size: 41015
+  timestamp: 1734465468158
 - conda: https://conda.anaconda.org/conda-forge/linux-64/binutils-2.45.1-default_h4852527_102.conda
   sha256: 3c7c5580c1720206f28b7fa3d60d17986b3f32465e63009c14c9ae1ea64f926c
   md5: 212fe5f1067445544c99dc1c847d032c
