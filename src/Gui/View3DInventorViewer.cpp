@@ -1418,6 +1418,16 @@ void View3DInventorViewer::addViewProvider(ViewProvider* pcProvider)
     if (mgr && mgr->isModernRenderEnabled()) {
         mgr->invalidateDrawList();
     }
+    static int addDbg = 0;
+    if (addDbg < 5) {
+        std::fprintf(
+            stderr,
+            "addViewProvider: mgr=%p modern=%d\n",
+            (void*)mgr,
+            mgr ? (int)mgr->isModernRenderEnabled() : -1
+        );
+        addDbg++;
+    }
 }
 
 void View3DInventorViewer::removeViewProvider(ViewProvider* pcProvider)
