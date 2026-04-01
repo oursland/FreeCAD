@@ -543,18 +543,16 @@ void SoFCUnifiedSelection::doAction(SoAction* action)
                         }
                     }
 
-                    if (renderManager && renderManager->isModernRenderEnabled()) {
-                        // Modern renderer: skip expensive SoSelectionElementAction
-                        // traversal. Invalidate draw list so next render rebuilds
-                        // with selection state. The SoSelectionElementAction will
-                        // run during that traversal via the shapes' doAction.
-                        renderManager->invalidateDrawList();
-                    }
-                    else {
+                    {
                         SoSelectionElementAction selectionAction(type);
                         selectionAction.setColor(this->colorSelection.getValue());
                         selectionAction.setElement(detail);
-                        if (detailPath->getLength()) {
+                        if (renderManager && renderManager->isModernRenderEnabled()) {
+                            // Apply to just the VP root node, not the full path
+                            selectionAction.apply(vp->getRoot());
+                            renderManager->invalidateDrawList();
+                        }
+                        else if (detailPath->getLength()) {
                             selectionAction.apply(detailPath);
                         }
                         else {
@@ -567,14 +565,12 @@ void SoFCUnifiedSelection::doAction(SoAction* action)
             }
         }
         else if (selectionAction->SelChange.Type == SelectionChanges::ClrSelection) {
+            SoSelectionElementAction sa(SoSelectionElementAction::None);
+            for (int i = 0; i < this->getNumChildren(); ++i) {
+                sa.apply(this->getChild(i));
+            }
             if (renderManager && renderManager->isModernRenderEnabled()) {
                 renderManager->invalidateDrawList();
-            }
-            else {
-                SoSelectionElementAction selectionAction(SoSelectionElementAction::None);
-                for (int i = 0; i < this->getNumChildren(); ++i) {
-                    selectionAction.apply(this->getChild(i));
-                }
             }
         }
         else if (selectionMode.getValue() == ON
@@ -937,12 +933,18 @@ bool SoFCUnifiedSelection::setSelection(const std::vector<PickedInfo>& infos, bo
     if (pPath) {
         FC_TRACE("applying action");
         if (renderManager && renderManager->isModernRenderEnabled()) {
-            // Modern renderer: invalidate the draw list so the next
-            // traversal rebuilds with updated selection state. Skip the
-            // SoSelectionElementAction traversal — it walks from the scene
-            // root which costs 800ms+. The Selection() singleton already
-            // has the updated selection, and the next renderModern()
-            // traversal will pick it up via selContext in doAction().
+            // Modern renderer: apply selection action to JUST the target
+            // shape node (not the full scene path which costs 800ms+).
+            // Then invalidate the draw list for a clean re-traversal.
+            {
+                SoSelectionElementAction action(type);
+                action.setColor(this->colorSelection.getValue());
+                action.setElement(det);
+                SoFullPath* fp = static_cast<SoFullPath*>(pPath);
+                if (fp->getLength() > 0) {
+                    action.apply(fp->getTail());
+                }
+            }
             renderManager->invalidateDrawList();
             renderManager->scheduleRedraw();
         }
