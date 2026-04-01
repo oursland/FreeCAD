@@ -1411,6 +1411,13 @@ void View3DInventorViewer::addViewProvider(ViewProvider* pcProvider)
 
     pcProvider->setOverrideMode(this->getOverrideMode());
     _ViewProviderSet.insert(pcProvider);
+
+    // Invalidate the modern renderer's draw list so it re-traverses
+    // to pick up the newly added view provider.
+    auto* mgr = this->getSoRenderManager();
+    if (mgr && mgr->isModernRenderEnabled()) {
+        mgr->invalidateDrawList();
+    }
 }
 
 void View3DInventorViewer::removeViewProvider(ViewProvider* pcProvider)
@@ -1443,6 +1450,11 @@ void View3DInventorViewer::removeViewProvider(ViewProvider* pcProvider)
     }
 
     _ViewProviderSet.erase(pcProvider);
+
+    auto* mgr = this->getSoRenderManager();
+    if (mgr && mgr->isModernRenderEnabled()) {
+        mgr->invalidateDrawList();
+    }
 }
 
 void View3DInventorViewer::setEditingTransform(const Base::Matrix4D& mat)
