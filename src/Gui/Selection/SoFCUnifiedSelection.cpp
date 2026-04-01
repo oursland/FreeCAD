@@ -547,16 +547,14 @@ void SoFCUnifiedSelection::doAction(SoAction* action)
                         SoSelectionElementAction selectionAction(type);
                         selectionAction.setColor(this->colorSelection.getValue());
                         selectionAction.setElement(detail);
-                        if (renderManager && renderManager->isModernRenderEnabled()) {
-                            // Apply to just the VP root node, not the full path
-                            selectionAction.apply(vp->getRoot());
-                            renderManager->invalidateDrawList();
-                        }
-                        else if (detailPath->getLength()) {
+                        if (detailPath->getLength()) {
                             selectionAction.apply(detailPath);
                         }
                         else {
                             selectionAction.apply(vp->getRoot());
+                        }
+                        if (renderManager && renderManager->isModernRenderEnabled()) {
+                            renderManager->invalidateDrawList();
                         }
                     }
                 }
