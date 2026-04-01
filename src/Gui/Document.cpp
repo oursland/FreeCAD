@@ -68,6 +68,7 @@
 #include "Tree.h"
 #include "View3DInventor.h"
 #include "View3DInventorViewer.h"
+#include <Inventor/SoRenderManager.h>
 #include "ViewProviderDocumentObject.h"
 #include "ViewProviderDocumentObjectGroup.h"
 #include "WaitCursor.h"
@@ -2000,6 +2001,19 @@ void Document::slotFinishRestoreDocument(const App::Document& doc)
 
     // reset modified flag
     setModified(doc.testStatus(App::Document::LinkStampChanged));
+
+    // Invalidate modern renderer draw list after document restore.
+    // VP geometries are computed during restore — the draw list needs
+    // rebuilding to include the newly computed geometry.
+    for (auto* view : getMDIViewsOfType(View3DInventor::getClassTypeId())) {
+        auto* view3d = static_cast<View3DInventor*>(view);
+        if (auto* viewer = view3d->getViewer()) {
+            auto* mgr = viewer->getSoRenderManager();
+            if (mgr && mgr->isModernRenderEnabled()) {
+                mgr->invalidateDrawList();
+            }
+        }
+    }
 }
 
 void Document::slotShowHidden(const App::Document& doc)

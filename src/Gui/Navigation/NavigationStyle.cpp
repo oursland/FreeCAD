@@ -2016,12 +2016,7 @@ SbBool NavigationStyle::processWheelEvent(const SoMouseWheelEvent* const event)
     const SbVec2s pos(event->getPosition());
     const SbVec2f posn = normalizePixelPos(pos);
 
-    // Set interactive mode during zoom to prevent auto-clipping
-    // NULL triggers from invalidating the modern renderer's draw list.
-    auto* mgr = viewer->getSoRenderManager();
-    mgr->setInteractive(TRUE);
-    doZoom(mgr->getCamera(), event->getDelta(), posn);
-    mgr->setInteractive(FALSE);
+    doZoom(viewer->getSoRenderManager()->getCamera(), event->getDelta(), posn);
     return true;
 }
 
