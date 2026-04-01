@@ -1065,13 +1065,6 @@ void View3DInventorViewer::init()
             auto* mgr = this->getSoRenderManager();
             mgr->setModernRenderEnabled(true);
 
-            // Disable auto-clipping for the modern renderer. Auto-clipping
-            // modifies camera near/far via field propagation which generates
-            // NULL-trigger sensor notifications, causing spurious draw list
-            // invalidation on every zoom. The modern renderer handles depth
-            // via its own projection matrix.
-            mgr->setAutoClipping(SoRenderManager::NO_AUTO_CLIPPING);
-
             // Derive GPU pick edge/vertex sizes from the existing PickRadius preference.
             // PickRadius defines "area for selecting elements" — edges and vertices in the
             // ID buffer should be at least 2*PickRadius wide so they're hittable within that area.
