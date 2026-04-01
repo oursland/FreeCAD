@@ -496,59 +496,16 @@ void SoBrepFaceSet::render(SoModernRenderAction* action)
     cmd.userData = this;
 
     // Pick identity: "docName\tobjName\tsubPath" for resolvePickIdentity()
-    // Use getElementPicked() with a synthesized SoPickedPoint to resolve the
-    // full Assembly Link hierarchy (uses LinkView::nodeMap internally).
+    // Uses the SoFCSelectionRoot action stack to build the full sub-object path
+    // (Assembly Link → Part → Body → element).
     {
+        std::string docName, objName, subPath;
         auto* guiDoc = viewProvider
             ? Gui::Application::Instance->getDocument(viewProvider->getObject()->getDocument())
             : nullptr;
-        auto* curPath = action->getCurPath();
-        SoState* actionState = action->getState();
-        if (guiDoc && curPath && actionState) {
-            // Find the top-level VP
-            Gui::ViewProviderDocumentObject* topVPD = nullptr;
-            for (int i = 0; i < curPath->getLength(); i++) {
-                auto* vp = guiDoc->getViewProvider(curPath->getNode(i));
-                if (vp && vp->isDerivedFrom(Gui::ViewProviderDocumentObject::getClassTypeId())) {
-                    topVPD = static_cast<Gui::ViewProviderDocumentObject*>(vp);
-                    break;
-                }
-            }
-
-            if (topVPD && topVPD->getObject()) {
-                // Construct a temporary SoPickedPoint with the current path and state.
-                // getElementPicked only uses pp->getPath() to walk the hierarchy.
-                SoPickedPoint pp(curPath, actionState, SbVec3f(0, 0, 0));
-                std::string subname;
-                if (topVPD->getElementPicked(&pp, subname)) {
-                    // subname = "Arm_Mount.Body086.Pocket080.Face5" or "Body085.Pocket086."
-                    // Strip any trailing element suffix (Face/Edge/Vertex) — we add our own
-                    // from the pick LUT. Keep only the sub-object path prefix.
-                    // The suffix starts after the last dot that precedes Face/Edge/Vertex.
-                    std::string subPrefix = subname;
-                    auto lastDot = subPrefix.rfind('.');
-                    if (lastDot != std::string::npos) {
-                        // Check if what follows the last dot is an element name
-                        std::string tail = subPrefix.substr(lastDot + 1);
-                        if (tail.empty() || tail.find("Face") == 0 || tail.find("Edge") == 0
-                            || tail.find("Vertex") == 0) {
-                            subPrefix = subPrefix.substr(0, lastDot + 1);
-                        }
-                    }
-
-                    auto* obj = topVPD->getObject();
-                    cmd.pick.pickIdentity = std::string(obj->getDocument()->getName()) + "\t"
-                        + obj->getNameInDocument() + "\t" + subPrefix;
-                }
-                else {
-                    // getElementPicked failed — use flat identity
-                    auto* obj = topVPD->getObject();
-                    if (obj->getDocument() && obj->getNameInDocument()) {
-                        cmd.pick.pickIdentity = std::string(obj->getDocument()->getName()) + "\t"
-                            + obj->getNameInDocument() + "\t";
-                    }
-                }
-            }
+        if (guiDoc
+            && Gui::SoFCSelectionRoot::getSelectionPath(action, guiDoc, docName, objName, subPath)) {
+            cmd.pick.pickIdentity = docName + "\t" + objName + "\t" + subPath;
         }
         else if (viewProvider && viewProvider->getObject()) {
             auto* obj = viewProvider->getObject();

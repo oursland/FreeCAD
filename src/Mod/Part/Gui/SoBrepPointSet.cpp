@@ -26,7 +26,6 @@
 
 #include <algorithm>
 #include <limits>
-#include <Inventor/SoPickedPoint.h>
 #include <Inventor/actions/SoGetBoundingBoxAction.h>
 #include <Inventor/actions/SoGLRenderAction.h>
 #include <Inventor/actions/SoModernRenderAction.h>
@@ -180,45 +179,13 @@ void SoBrepPointSet::render(SoModernRenderAction* action)
     cmd.userData = this;
 
     {
+        std::string docName, objName, subPath;
         auto* guiDoc = viewProvider
             ? Gui::Application::Instance->getDocument(viewProvider->getObject()->getDocument())
             : nullptr;
-        auto* curPath = action->getCurPath();
-        SoState* actionState = action->getState();
-        if (guiDoc && curPath && actionState) {
-            Gui::ViewProviderDocumentObject* topVPD = nullptr;
-            for (int i = 0; i < curPath->getLength(); i++) {
-                auto* vp = guiDoc->getViewProvider(curPath->getNode(i));
-                if (vp && vp->isDerivedFrom(Gui::ViewProviderDocumentObject::getClassTypeId())) {
-                    topVPD = static_cast<Gui::ViewProviderDocumentObject*>(vp);
-                    break;
-                }
-            }
-            if (topVPD && topVPD->getObject()) {
-                SoPickedPoint pp(curPath, actionState, SbVec3f(0, 0, 0));
-                std::string subname;
-                if (topVPD->getElementPicked(&pp, subname)) {
-                    std::string subPrefix = subname;
-                    auto lastDot = subPrefix.rfind('.');
-                    if (lastDot != std::string::npos) {
-                        std::string tail = subPrefix.substr(lastDot + 1);
-                        if (tail.empty() || tail.find("Face") == 0 || tail.find("Edge") == 0
-                            || tail.find("Vertex") == 0) {
-                            subPrefix = subPrefix.substr(0, lastDot + 1);
-                        }
-                    }
-                    auto* obj = topVPD->getObject();
-                    cmd.pick.pickIdentity = std::string(obj->getDocument()->getName()) + "\t"
-                        + obj->getNameInDocument() + "\t" + subPrefix;
-                }
-                else {
-                    auto* obj = topVPD->getObject();
-                    if (obj->getDocument() && obj->getNameInDocument()) {
-                        cmd.pick.pickIdentity = std::string(obj->getDocument()->getName()) + "\t"
-                            + obj->getNameInDocument() + "\t";
-                    }
-                }
-            }
+        if (guiDoc
+            && Gui::SoFCSelectionRoot::getSelectionPath(action, guiDoc, docName, objName, subPath)) {
+            cmd.pick.pickIdentity = docName + "\t" + objName + "\t" + subPath;
         }
         else if (viewProvider && viewProvider->getObject()) {
             auto* obj = viewProvider->getObject();
