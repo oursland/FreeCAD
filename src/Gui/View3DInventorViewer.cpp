@@ -1136,6 +1136,15 @@ void View3DInventorViewer::init()
                 );
             }
 
+            // Wire GPU pick into the standard SoHandleEventAction pick path
+            auto* evMgr = this->getSoEventManager();
+            if (evMgr) {
+                auto* hea = evMgr->getHandleEventAction();
+                if (hea) {
+                    hea->setRenderManager(mgr);
+                }
+            }
+
             Base::Console().log("Modern renderer enabled via FREECAD_MODERN_RENDER=1\n");
         }
     }
