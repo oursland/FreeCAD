@@ -686,7 +686,14 @@ bool SoFCUnifiedSelection::setPreselect(
             currentHighlightPath = nullptr;
             Selection().rmvPreselect();
         }
-        this->touch();
+        // Schedule redraw without invalidating the draw list.
+        // touch() would trigger the node sensor → full re-traversal.
+        if (renderManager && renderManager->isModernRenderEnabled()) {
+            renderManager->scheduleRedraw();
+        }
+        else {
+            this->touch();
+        }
     }
     return highlighted;
 }
@@ -900,7 +907,13 @@ bool SoFCUnifiedSelection::setSelection(const std::vector<PickedInfo>& infos, bo
         action.setElement(det);
         action.apply(pPath);
         FC_TRACE("applied action");
-        this->touch();
+        if (renderManager && renderManager->isModernRenderEnabled()) {
+            renderManager->invalidateDrawList();
+            renderManager->scheduleRedraw();
+        }
+        else {
+            this->touch();
+        }
     }
 
     if (detNext) {
@@ -993,7 +1006,12 @@ void SoFCUnifiedSelection::handleEvent(SoHandleEventAction* action)
                     setPreselect(PickedInfo());
                     if (this->preSelection > 0) {
                         this->preSelection = 0;
-                        this->touch();
+                        if (renderManager && renderManager->isModernRenderEnabled()) {
+                            renderManager->scheduleRedraw();
+                        }
+                        else {
+                            this->touch();
+                        }
                     }
                 }
             }
