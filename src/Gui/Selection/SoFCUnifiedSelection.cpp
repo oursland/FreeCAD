@@ -374,22 +374,12 @@ void SoFCUnifiedSelection::doAction(SoAction* action)
     }
 
     if (action->getTypeId() == SoFCPreselectionAction::getClassTypeId()) {
-        // Suppress shape touch() during highlight/selection actions to prevent
-        // the node sensor from invalidating the cached draw list.
-
-        // When the modern renderer is active, preselection highlight is handled
-        // by direct draw list mutation (onDirectHighlight). Skip the legacy
-        // SoHighlightElementAction traversal which touches shape nodes and
-        // triggers full scene re-traversal via the node sensor.
-        bool modernActive = renderManager && renderManager->isModernRenderEnabled();
-
         auto preselectAction = static_cast<SoFCPreselectionAction*>(action);
+        // Do not clear currently preselected object when setting new preselection
         if (!setPreSelection && preselectAction->SelChange.Type == SelectionChanges::RmvPreselect) {
             if (currentHighlightPath) {
-                if (!modernActive) {
-                    SoHighlightElementAction highlightAction;
-                    highlightAction.apply(currentHighlightPath);
-                }
+                SoHighlightElementAction highlightAction;
+                highlightAction.apply(currentHighlightPath);
                 currentHighlightPath->unref();
                 currentHighlightPath = nullptr;
             }
@@ -397,67 +387,63 @@ void SoFCUnifiedSelection::doAction(SoAction* action)
         else if (preselectionMode.getValue() != OFF
                  && preselectAction->SelChange.Type == SelectionChanges::SetPreselect) {
             if (currentHighlightPath) {
-                if (!modernActive) {
-                    SoHighlightElementAction highlightAction;
-                    highlightAction.apply(currentHighlightPath);
-                }
+                SoHighlightElementAction highlightAction;
+                highlightAction.apply(currentHighlightPath);
                 currentHighlightPath->unref();
                 currentHighlightPath = nullptr;
             }
 
-            if (!modernActive) {
-                App::Document* doc = App::GetApplication().getDocument(
-                    preselectAction->SelChange.pDocName
-                );
-                App::DocumentObject* obj = doc->getObject(preselectAction->SelChange.pObjectName);
-                ViewProvider* vp = Application::Instance->getViewProvider(obj);
+            App::Document* doc = App::GetApplication().getDocument(preselectAction->SelChange.pDocName);
+            App::DocumentObject* obj = doc->getObject(preselectAction->SelChange.pObjectName);
+            ViewProvider* vp = Application::Instance->getViewProvider(obj);
 
-                SoDetail* detail = nullptr;
-                detailPath->truncate(0);
-                auto subName = preselectAction->SelChange.pSubName;
+            // use getDetailPath() like selection does, instead of just getDetail()
+            SoDetail* detail = nullptr;
+            detailPath->truncate(0);
+            auto subName = preselectAction->SelChange.pSubName;
 
-                SoFullPath* pathToHighlight = nullptr;
-                if (vp && vp->isDerivedFrom(ViewProviderDocumentObject::getClassTypeId())
-                    && (useNewSelection.getValue() || vp->useNewSelectionModel())
-                    && vp->isSelectable()) {
-                    if (!subName || !subName[0]
-                        || vp->getDetailPath(subName, detailPath, true, detail)) {
-                        if (detailPath->getLength()) {
-                            pathToHighlight = detailPath;
-                        }
-                        else {
-                            pathToHighlight = static_cast<SoFullPath*>(new SoPath(2));
-                            pathToHighlight->ref();
-                            pathToHighlight->append(vp->getRoot());
-                        }
+            SoFullPath* pathToHighlight = nullptr;
+            if (vp && vp->isDerivedFrom(ViewProviderDocumentObject::getClassTypeId())
+                && (useNewSelection.getValue() || vp->useNewSelectionModel()) && vp->isSelectable()) {
+
+                // get proper detail path for sub-objects (like Assembly parts)
+                if (!subName || !subName[0] || vp->getDetailPath(subName, detailPath, true, detail)) {
+                    if (detailPath->getLength()) {
+                        pathToHighlight = detailPath;
+                    }
+                    else {
+                        // fallback to ViewProvider root if no specific path
+                        pathToHighlight = static_cast<SoFullPath*>(new SoPath(2));
+                        pathToHighlight->ref();
+                        pathToHighlight->append(vp->getRoot());
                     }
                 }
-                else {
-                    detail = vp->getDetail(subName);
-                    pathToHighlight = static_cast<SoFullPath*>(new SoPath(2));
-                    pathToHighlight->ref();
-                    pathToHighlight->append(vp->getRoot());
-                }
-
-                if (pathToHighlight) {
-                    SoHighlightElementAction highlightAction;
-                    highlightAction.setHighlighted(true);
-                    highlightAction.setColor(this->colorHighlight.getValue());
-                    highlightAction.setElement(detail);
-                    highlightAction.apply(pathToHighlight);
-
-                    currentHighlightPath = static_cast<SoFullPath*>(pathToHighlight->copy());
-                    currentHighlightPath->ref();
-
-                    if (pathToHighlight != detailPath) {
-                        pathToHighlight->unref();
-                    }
-                }
-
-                delete detail;
             }
-        }
+            else {
+                detail = vp->getDetail(subName);
+                pathToHighlight = static_cast<SoFullPath*>(new SoPath(2));
+                pathToHighlight->ref();
+                pathToHighlight->append(vp->getRoot());
+            }
 
+            if (pathToHighlight) {
+                SoHighlightElementAction highlightAction;
+                highlightAction.setHighlighted(true);
+                highlightAction.setColor(this->colorHighlight.getValue());
+                highlightAction.setElement(detail);
+                highlightAction.apply(pathToHighlight);
+
+                currentHighlightPath = static_cast<SoFullPath*>(pathToHighlight->copy());
+                currentHighlightPath->ref();
+
+                // clean up temporary path if we created one
+                if (pathToHighlight != detailPath) {
+                    pathToHighlight->unref();
+                }
+            }
+
+            delete detail;
+        }
 
         if (useNewSelection.getValue()) {
             return;
@@ -496,14 +482,6 @@ void SoFCUnifiedSelection::doAction(SoAction* action)
                 }
             }
 
-            Base::Console().warning(
-                "ModernRender: SEL_ACTION obj=%s sub=%s vp=%p isSelectable=%d\n",
-                selectionAction->SelChange.pObjectName ? selectionAction->SelChange.pObjectName
-                                                       : "(null)",
-                selectionAction->SelChange.pSubName ? selectionAction->SelChange.pSubName : "(null)",
-                (void*)vp,
-                isSelectable ? 1 : 0
-            );
             if (vp && (useNewSelection.getValue() || vp->useNewSelectionModel()) && isSelectable) {
                 SoDetail* detail = nullptr;
                 detailPath->truncate(0);
@@ -517,13 +495,6 @@ void SoFCUnifiedSelection::doAction(SoAction* action)
                 bool detailOk = !selectionAction->SelChange.pSubName
                     || !selectionAction->SelChange.pSubName[0]
                     || vp->getDetailPath(subName, detailPath, true, detail);
-                Base::Console().warning(
-                    "ModernRender: SEL_DETAIL subName=%s detailOk=%d detail=%p pathLen=%d\n",
-                    subName ? subName : "(null)",
-                    detailOk ? 1 : 0,
-                    (void*)detail,
-                    detailPath->getLength()
-                );
                 if (detailOk) {
                     SoSelectionElementAction::Type type = SoSelectionElementAction::None;
                     if (selectionAction->SelChange.Type == SelectionChanges::AddSelection) {
@@ -543,19 +514,14 @@ void SoFCUnifiedSelection::doAction(SoAction* action)
                         }
                     }
 
-                    {
-                        SoSelectionElementAction selectionAction(type);
-                        selectionAction.setColor(this->colorSelection.getValue());
-                        selectionAction.setElement(detail);
-                        if (detailPath->getLength()) {
-                            selectionAction.apply(detailPath);
-                        }
-                        else {
-                            selectionAction.apply(vp->getRoot());
-                        }
-                        if (renderManager && renderManager->isModernRenderEnabled()) {
-                            renderManager->invalidateDrawList();
-                        }
+                    SoSelectionElementAction selectionAction(type);
+                    selectionAction.setColor(this->colorSelection.getValue());
+                    selectionAction.setElement(detail);
+                    if (detailPath->getLength()) {
+                        selectionAction.apply(detailPath);
+                    }
+                    else {
+                        selectionAction.apply(vp->getRoot());
                     }
                 }
                 detailPath->truncate(0);
@@ -563,12 +529,9 @@ void SoFCUnifiedSelection::doAction(SoAction* action)
             }
         }
         else if (selectionAction->SelChange.Type == SelectionChanges::ClrSelection) {
-            SoSelectionElementAction sa(SoSelectionElementAction::None);
+            SoSelectionElementAction selectionAction(SoSelectionElementAction::None);
             for (int i = 0; i < this->getNumChildren(); ++i) {
-                sa.apply(this->getChild(i));
-            }
-            if (renderManager && renderManager->isModernRenderEnabled()) {
-                renderManager->invalidateDrawList();
+                selectionAction.apply(this->getChild(i));
             }
         }
         else if (selectionMode.getValue() == ON
@@ -619,7 +582,6 @@ void SoFCUnifiedSelection::doAction(SoAction* action)
                 delete det;
             }
         }
-
 
         if (useNewSelection.getValue()) {
             return;
@@ -679,43 +641,32 @@ bool SoFCUnifiedSelection::setPreselect(
         // on Assembly Links due to short path format, but the visual highlight
         // via SoHighlightElementAction should still work.
         {
-            bool modernHL = renderManager && renderManager->isModernRenderEnabled();
-            if (!modernHL) {
-            }
             if (currentHighlightPath) {
-                if (!modernHL) {
-                    SoHighlightElementAction action;
-                    action.setHighlighted(false);
-                    action.apply(currentHighlightPath);
-                }
+                SoHighlightElementAction action;
+                action.setHighlighted(false);
+                action.apply(currentHighlightPath);
                 currentHighlightPath->unref();
                 currentHighlightPath = nullptr;
             }
             currentHighlightPath = static_cast<SoFullPath*>(path->copy());
             currentHighlightPath->ref();
             highlighted = true;
-            if (!modernHL) {
-            }
         }
     }
 
     if (currentHighlightPath) {
-        bool modernHL = renderManager && renderManager->isModernRenderEnabled();
-        if (!modernHL) {
-
-            SoHighlightElementAction action;
-            action.setHighlighted(highlighted);
-            action.setColor(this->colorHighlight.getValue());
-            action.setElement(det);
-            action.apply(currentHighlightPath);
-        }
+        SoHighlightElementAction action;
+        action.setHighlighted(highlighted);
+        action.setColor(this->colorHighlight.getValue());
+        action.setElement(det);
+        action.apply(currentHighlightPath);
         if (!highlighted) {
             currentHighlightPath->unref();
             currentHighlightPath = nullptr;
             Selection().rmvPreselect();
         }
-        // Schedule redraw without invalidating the draw list.
-        // touch() would trigger the node sensor → full re-traversal.
+        // Schedule redraw. When the modern renderer's onDirectHighlight handled
+        // the visual feedback, avoid touch() which triggers the node sensor.
         if (renderManager && renderManager->isModernRenderEnabled()) {
             renderManager->scheduleRedraw();
         }
@@ -930,30 +881,22 @@ bool SoFCUnifiedSelection::setSelection(const std::vector<PickedInfo>& infos, bo
 
     if (pPath) {
         FC_TRACE("applying action");
+        SoSelectionElementAction action(type);
+        action.setColor(this->colorSelection.getValue());
+        action.setElement(det);
+        action.apply(pPath);
+        FC_TRACE("applied action");
         if (renderManager && renderManager->isModernRenderEnabled()) {
-            // Modern renderer: apply selection action to JUST the target
-            // shape node (not the full scene path which costs 800ms+).
-            // Then invalidate the draw list for a clean re-traversal.
-            {
-                SoSelectionElementAction action(type);
-                action.setColor(this->colorSelection.getValue());
-                action.setElement(det);
-                SoFullPath* fp = static_cast<SoFullPath*>(pPath);
-                if (fp->getLength() > 0) {
-                    action.apply(fp->getTail());
-                }
-            }
+            // Modern renderer: the SoSelectionElementAction updated selContext.
+            // Invalidate draw list for one clean re-traversal to pick it up.
+            // Don't touch() — that would trigger the sensor with a SoSeparator
+            // trigger, causing an additional cascading invalidation.
             renderManager->invalidateDrawList();
             renderManager->scheduleRedraw();
         }
         else {
-            SoSelectionElementAction action(type);
-            action.setColor(this->colorSelection.getValue());
-            action.setElement(det);
-            action.apply(pPath);
             this->touch();
         }
-        FC_TRACE("applied action");
     }
 
     if (detNext) {
@@ -981,22 +924,20 @@ void SoFCUnifiedSelection::handleEvent(SoHandleEventAction* action)
     if (isMouseMotionEvent) {
         if (preselectionMode == AUTO || preselectionMode == ON) {
             ZoneScopedN("UnifiedSel::hover");
+            bool handled = false;
 
-            // For hover preselection, use GPU pick + direct draw list highlight
-            // to avoid scene graph re-traversal (which costs ~900ms per frame).
-            // The standard getPickedPoint API handles element resolution via
-            // SoPickedPoint + getElementPicked, and onDirectHighlight mutates
-            // the cached draw list without touch().
-            if (onDirectHighlight && renderManager) {
-                auto* mgr = renderManager;
-                if (mgr->isModernRenderEnabled()) {
-                    SoPickedPoint* pp = mgr->assemblePickedPoint(
-                        event->getPosition()[0],
-                        event->getPosition()[1],
-                        5
-                    );
+            // Fast path: GPU pick + direct draw list highlight (no scene traversal).
+            // Uses assemblePickedPoint from Coin's SoRenderManager for element resolution,
+            // and onDirectHighlight to mutate the cached draw list directly.
+            if (onDirectHighlight && renderManager && renderManager->isModernRenderEnabled()) {
+                ZoneScopedN("GPU pick call");
+                auto pos = event->getPosition();
+                uint32_t lutIndex = renderManager->gpuPick(pos[0], pos[1], 5);
+                handled = true;
+
+                if (lutIndex > 0) {
+                    SoPickedPoint* pp = renderManager->assemblePickedPoint(pos[0], pos[1], 5);
                     if (pp) {
-                        // Resolve element via standard VP path
                         auto* path = static_cast<SoFullPath*>(pp->getPath());
                         auto* vp = pcDocument ? pcDocument->getViewProviderByPathFromHead(path)
                                               : nullptr;
@@ -1006,16 +947,10 @@ void SoFCUnifiedSelection::handleEvent(SoHandleEventAction* action)
                             if (vpd->getElementPicked(pp, element)) {
                                 const char* docname = vpd->getObject()->getDocument()->getName();
                                 const char* objname = vpd->getObject()->getNameInDocument();
+                                this->preSelection = 1;
                                 printPreselectionInfo(docname, objname, element.c_str(), 0, 0, 0, 1e-7);
                                 Gui::Selection().setPreselect(docname, objname, element.c_str(), 0, 0, 0);
-                                this->preSelection = 1;
 
-                                // Direct highlight on draw list — no touch/traversal
-                                uint32_t lutIndex = mgr->gpuPick(
-                                    event->getPosition()[0],
-                                    event->getPosition()[1],
-                                    5
-                                );
                                 SbColor4f hlColor;
                                 const SbColor& c = this->colorHighlight.getValue();
                                 hlColor.setValue(c[0], c[1], c[2], 1.0f);
@@ -1024,20 +959,19 @@ void SoFCUnifiedSelection::handleEvent(SoHandleEventAction* action)
                         }
                         delete pp;
                     }
-                    else {
-                        // No hit — clear highlight
-                        onDirectHighlight(0, SbColor4f(0, 0, 0, 0));
-                        if (this->preSelection > 0) {
-                            this->preSelection = 0;
-                            Selection().rmvPreselect();
-                        }
+                }
+                else {
+                    // No hit — clear highlight
+                    onDirectHighlight(0, SbColor4f(0, 0, 0, 0));
+                    if (this->preSelection > 0) {
+                        this->preSelection = 0;
+                        Selection().rmvPreselect();
                     }
-                    goto hover_done;
                 }
             }
 
-            // Fallback: legacy pick path
-            {
+            // Fallback: standard pick path (legacy ray pick or GPU pick via SoHandleEventAction)
+            if (!handled) {
                 auto infos = this->getPickedList(action, true);
                 if (!infos.empty()) {
                     setPreselect(infos[0]);
@@ -1046,16 +980,10 @@ void SoFCUnifiedSelection::handleEvent(SoHandleEventAction* action)
                     setPreselect(PickedInfo());
                     if (this->preSelection > 0) {
                         this->preSelection = 0;
-                        if (renderManager && renderManager->isModernRenderEnabled()) {
-                            renderManager->scheduleRedraw();
-                        }
-                        else {
-                            this->touch();
-                        }
+                        this->touch();
                     }
                 }
             }
-        hover_done:;
         }
     }
     // mouse press events for (de)selection
@@ -1063,12 +991,17 @@ void SoFCUnifiedSelection::handleEvent(SoHandleEventAction* action)
              && selectionMode.getValue() == SoFCUnifiedSelection::ON) {
         const auto e = static_cast<const SoMouseButtonEvent*>(event);
         if (SoMouseButtonEvent::isButtonReleaseEvent(e, SoMouseButtonEvent::BUTTON1)) {
-            auto infos = this->getPickedList(action, !Selection().needPickedList());
-            bool greedySel = Gui::Selection().getSelectionStyle()
-                == Gui::SelectionSingleton::SelectionStyle::GreedySelection;
-            greedySel = greedySel || event->wasCtrlDown();
-            if (setSelection(infos, greedySel) || greedySel) {
-                action->setHandled();
+            // Click selection via standard getPickedList() which transparently
+            // uses GPU pick through SoHandleEventAction when the modern
+            // renderer is active.
+            {
+                auto infos = this->getPickedList(action, !Selection().needPickedList());
+                bool greedySel = Gui::Selection().getSelectionStyle()
+                    == Gui::SelectionSingleton::SelectionStyle::GreedySelection;
+                greedySel = greedySel || event->wasCtrlDown();
+                if (setSelection(infos, greedySel) || greedySel) {
+                    action->setHandled();
+                }
             }
         }  // mouse release
     }

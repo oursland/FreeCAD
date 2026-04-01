@@ -97,8 +97,12 @@ public:
 
     /// Direct draw list highlight — sets/clears preselection highlight on the
     /// cached draw list without scene graph traversal. lutIndex=0 clears.
-    /// Used for hover preselection performance optimization.
     std::function<bool(uint32_t lutIndex, const SbColor4f& color)> onDirectHighlight;
+
+    /// Direct draw list selection — sets/clears selection on the cached draw
+    /// list without scene graph traversal.
+    std::function<bool(uint32_t lutIndex, const SbColor4f& color, bool append)> onDirectSelection;
+    std::function<void()> onClearSelection;
 
     /// Render manager for GPU pick access during hover preselection.
     SoRenderManager* renderManager = nullptr;
