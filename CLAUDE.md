@@ -54,27 +54,31 @@ The ID buffer renders each triangle/edge/vertex with a unique uint32 color. Pick
 ## Known Issues / Remaining Work
 
 ### Rendering
-- (FIXED) B-spline surface corruption was caused by std::vector reallocation in the geometry pool invalidating pointers mid-traversal — replaced with chunk-based allocator in SoIRBuffer
+- (FIXED) B-spline surface corruption — chunk-based SoIRBuffer allocator
+- (FIXED) Polygon offset — GL_POLYGON_OFFSET_FILL applied from render command state
+- (FIXED) Standard Coin shapes — generatePrimitives fallback re-enabled
+- (FIXED) Sketcher lines/circles/points — render via generatePrimitives
+- (FIXED) Visibility toggle — NULL sensor triggers now invalidate draw list
 - Per-vertex colors not supported (flat diffuse per command only)
-- Textures not supported
+- Textures not supported (SoImage, constraint icons skip modern path)
 - Per-face materials not supported
-- Polygon offset not applied (edge-on-face z-fighting in visual pass)
 - Line stipple / wireframe draw styles not supported
-- Sketcher geometry not rendering through modern path
+- SoText2 (screen-space text) skipped — needs texture/billboard support
+- Delayed annotations (SoDelayedAnnotationsElement) require legacy GLRender traversal
 
 ### Selection
 - SoPickedPoint created from stored command paths crashes on delete due to unrefNoDelete — hover uses resolveGpuPickIdentity instead; click path leaks SoPickedPoints as workaround
 - The proper fix: redesign command path storage to use proper ref-counting
+- Tree preselection/selection and progressive click-through selection: WIP stashed, needs selectAll handling
 
 ### Scene Graph Traversal
-- Node sensor filters NULL and SoShape triggers for modern renderer
+- Node sensor filters Camera and SoShape triggers for modern renderer; NULL triggers now pass through
 - Scene load detected via explicit invalidateDrawList() from addViewProvider/removeViewProvider and slotFinishRestoreDocument
-- Zoom NULL triggers (from auto-clipping) still cause some traversals — needs further filtering or auto-clipping disable
 
 ### Shape Coverage
 - NaviCube: renders via legacy SoGLRenderAction superimposition (7ms cost)
-- Grid, background gradient, annotations: not through modern path
-- Standard Coin shapes (SoIndexedFaceSet etc.): generatePrimitives fallback disabled due to corruption
+- Grid, background gradient: rendered via legacy action (backgroundroot)
+- SoImage, SoText2: skipped in modern fallback (need texture support)
 
 ## Build
 
@@ -96,7 +100,6 @@ pixi run build-release
 - FreeCAD: `unified-renderer`
 
 ## Tracy Profiling
-
 Tracy is integrated for performance analysis. Key zones:
 - `GLBackend::render` — total visual + ID pass
 - `IDPickBuffer::renderIdPass` — ID buffer rendering
