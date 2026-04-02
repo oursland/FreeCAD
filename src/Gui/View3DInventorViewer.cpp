@@ -3055,9 +3055,10 @@ void View3DInventorViewer::renderScene()
         // Render normal scenegraph.
         inherited::actualRedraw();
 
-        // Delayed annotations and foreground are only processed via the legacy
-        // action when the modern renderer is NOT active. When modern is active,
-        // the foreground is rendered as a Coin superimposition by renderModern().
+        // Delayed annotations (dimension labels, constraint text) are
+        // populated during SoGLRenderAction traversal of the main scene.
+        // When the modern renderer handles the main scene, the legacy action
+        // doesn't traverse it, so the delayed paths element is empty.
         if (!modernActive) {
             So3DAnnotation::render = true;
             glClear(GL_DEPTH_BUFFER_BIT);
