@@ -1412,10 +1412,14 @@ void View3DInventorViewer::addViewProvider(ViewProvider* pcProvider)
     pcProvider->setOverrideMode(this->getOverrideMode());
     _ViewProviderSet.insert(pcProvider);
 
-    // Don't call invalidateDrawList here — during document restore,
-    // hundreds of addViewProvider calls happen while the scene graph
-    // is being built. The node sensor handles structural changes,
-    // and slotFinishRestoreDocument explicitly invalidates after restore.
+    // Invalidate the modern renderer's draw list so it re-traverses
+    // to pick up the newly added view provider. During document restore,
+    // this fires many times but the node sensor defers actual invalidation
+    // until the next renderModern() call (pending invalidation pattern).
+    auto* mgr = this->getSoRenderManager();
+    if (mgr && mgr->isModernRenderEnabled()) {
+        mgr->invalidateDrawList();
+    }
 }
 
 void View3DInventorViewer::removeViewProvider(ViewProvider* pcProvider)
@@ -1448,8 +1452,11 @@ void View3DInventorViewer::removeViewProvider(ViewProvider* pcProvider)
     }
 
     _ViewProviderSet.erase(pcProvider);
-    // Node sensor handles structural changes; slotFinishRestoreDocument
-    // handles bulk invalidation after restore.
+
+    auto* mgr = this->getSoRenderManager();
+    if (mgr && mgr->isModernRenderEnabled()) {
+        mgr->invalidateDrawList();
+    }
 }
 
 void View3DInventorViewer::setEditingTransform(const Base::Matrix4D& mat)
