@@ -1064,6 +1064,10 @@ void View3DInventorViewer::init()
         if (std::string(env) == "1") {
             auto* mgr = this->getSoRenderManager();
             mgr->setModernRenderEnabled(true);
+            // Set the gradient node (not the entire backgroundroot which
+            // contains a camera that would corrupt the main scene's state)
+            // as the modern background root.
+            mgr->setModernBackgroundRoot(this->pcBackGround);
 
             // Derive GPU pick edge/vertex sizes from the existing PickRadius preference.
             // PickRadius defines "area for selecting elements" — edges and vertices in the
@@ -3024,6 +3028,8 @@ void View3DInventorViewer::renderScene()
     SoGLRenderAction* glra = this->getSoRenderManager()->getGLRenderAction();
     SoState* state = glra->getState();
 
+    bool modernActive = this->getSoRenderManager()->isModernRenderEnabled();
+
     // Render our scenegraph with the image.
     {
         ZoneScopedN("Background");
@@ -3032,10 +3038,10 @@ void View3DInventorViewer::renderScene()
         SoGLRenderActionElement::set(state, glra);
         SoGLVBOActivatedElement::set(state, this->vboEnabled);
         drawSingleBackground(col);
-        glra->apply(this->backgroundroot);
+        if (!modernActive) {
+            glra->apply(this->backgroundroot);
+        }
     }
-
-    bool modernActive = this->getSoRenderManager()->isModernRenderEnabled();
 
     if (!this->shading && !modernActive) {
         state->push();
