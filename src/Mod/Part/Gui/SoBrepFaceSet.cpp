@@ -489,9 +489,24 @@ void SoBrepFaceSet::render(SoModernRenderAction* action)
     SoModernIR::fillRenderStateFromState(state, cmd.state);
     cmd.modelMatrix = SoModelMatrixElement::get(state);
 
-    // Render pass
-    bool transparent = SoModernIR::isMaterialTransparent(cmd.material);
-    cmd.pass = transparent ? SO_RENDERPASS_TRANSPARENT : SO_RENDERPASS_OPAQUE;
+    // Check for per-face/per-part material binding (multi-color bodies)
+    int numDiffuse = SoLazyElement::getInstance(state)->getNumDiffuse();
+    int matBinding = SoMaterialBindingElement::get(state);
+    bool perFaceMaterial
+        = (numDiffuse > 1
+           && (matBinding == SoMaterialBindingElement::PER_PART
+               || matBinding == SoMaterialBindingElement::PER_PART_INDEXED
+               || matBinding == SoMaterialBindingElement::PER_FACE
+               || matBinding == SoMaterialBindingElement::PER_FACE_INDEXED));
+
+    // Render pass (may be overridden per-part below)
+    if (!cmd.state.depth.enabled) {
+        cmd.pass = SO_RENDERPASS_OVERLAY;
+    }
+    else {
+        bool transparent = SoModernIR::isMaterialTransparent(cmd.material);
+        cmd.pass = transparent ? SO_RENDERPASS_TRANSPARENT : SO_RENDERPASS_OPAQUE;
+    }
     cmd.sortKey = SoIRComputeSortKey(cmd, static_cast<uint32_t>(cmd.pass), 0);
     cmd.userData = this;
 
@@ -612,28 +627,74 @@ void SoBrepFaceSet::render(SoModernRenderAction* action)
         }
     }
 
-    action->getMutableDrawList().addCommand(cmd);
-    int cmdIdx = action->getMutableDrawList().getNumCommands() - 1;
+    // Emit command(s). When per-face materials are active, emit one command
+    // per BRep face (partIndex entry) with its own diffuse color. Otherwise
+    // emit a single command for the entire face set.
+    if (perFaceMaterial && numParts > 0) {
+        const int32_t* pi = this->partIndex.getValues(0);
+        int triOffset = 0;
+        for (int face = 0; face < numParts; face++) {
+            int faceTris = pi[face];
+            if (faceTris <= 0) {
+                continue;
+            }
 
-    // Verify highlight was preserved through addCommand
-    {
-        auto& stored = action->getMutableDrawList().getCommand(cmdIdx);
-        if (stored.selection.highlightElement != -1) {
-            ZoneScopedN("BUG: hl after add");
-            char buf[128];
-            std::snprintf(
-                buf,
-                sizeof(buf),
-                "cmd=%d hl=%d (should be -1)",
-                cmdIdx,
-                stored.selection.highlightElement
-            );
-            ZoneText(buf, std::strlen(buf));
+            SoRenderCommand faceCmd = cmd;
+            // Per-face diffuse color
+            int colorIdx = std::min(face, numDiffuse - 1);
+            const SbColor& fc = SoLazyElement::getDiffuse(state, colorIdx);
+            float tr = SoLazyElement::getTransparency(state, colorIdx);
+            faceCmd.material.diffuse.setValue(fc[0], fc[1], fc[2], 1.0f - tr);
+            faceCmd.material.opacity = 1.0f - tr;
+
+            // Adjust pass for per-face transparency
+            if (!faceCmd.state.depth.enabled) {
+                faceCmd.pass = SO_RENDERPASS_OVERLAY;
+            }
+            else if (tr > 0.001f) {
+                faceCmd.pass = SO_RENDERPASS_TRANSPARENT;
+            }
+            else {
+                faceCmd.pass = SO_RENDERPASS_OPAQUE;
+            }
+            faceCmd.sortKey = SoIRComputeSortKey(faceCmd, static_cast<uint32_t>(faceCmd.pass), 0);
+
+            // Geometry: subset of indices for this face
+            faceCmd.geometry.indexCount = static_cast<uint32_t>(faceTris * 3);
+            faceCmd.geometry.indices = indices + triOffset * 3;
+
+            // Pick data: single face
+            faceCmd.pick.faceStart.clear();
+            faceCmd.pick.faceCount.clear();
+            faceCmd.pick.faceStart.push_back(0);
+            faceCmd.pick.faceCount.push_back(faceTris * 3);
+
+            // Selection: remap element indices relative to this face
+            faceCmd.selection.highlightElement = -1;
+            faceCmd.selection.selectedElements.clear();
+            if (cmd.selection.highlightElement == face) {
+                faceCmd.selection.highlightElement = 0;
+                faceCmd.selection.highlightColor = cmd.selection.highlightColor;
+            }
+            for (int sel : cmd.selection.selectedElements) {
+                if (sel == face) {
+                    faceCmd.selection.selectedElements.push_back(0);
+                    faceCmd.selection.selectionColor = cmd.selection.selectionColor;
+                }
+            }
+
+            action->getMutableDrawList().addCommand(faceCmd);
+            int cmdIdx = action->getMutableDrawList().getNumCommands() - 1;
+            action->storeCommandPath(cmdIdx, action->getCurPath());
+
+            triOffset += faceTris;
         }
     }
-
-    // Store scene path for this command so GPU pick can retrieve it later
-    action->storeCommandPath(cmdIdx, action->getCurPath());
+    else {
+        action->getMutableDrawList().addCommand(cmd);
+        int cmdIdx = action->getMutableDrawList().getNumCommands() - 1;
+        action->storeCommandPath(cmdIdx, action->getCurPath());
+    }
 }
 
 void SoBrepFaceSet::GLRender(SoGLRenderAction* action)
