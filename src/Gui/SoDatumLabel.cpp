@@ -35,6 +35,7 @@
 #include <Inventor/SbVec2f.h>
 #include <Inventor/SoPrimitiveVertex.h>
 #include <Inventor/actions/SoGLRenderAction.h>
+#include <Inventor/actions/SoModernRenderAction.h>
 #include <Inventor/elements/SoFocalDistanceElement.h>
 #include <Inventor/elements/SoLazyElement.h>
 #include <Inventor/elements/SoTextureQualityElement.h>
@@ -83,7 +84,12 @@ SbVec3f withZ(const SbVec3f& point, float z)
     return out;
 }
 
-void appendLine(std::vector<SbVec3f>& vertices, std::vector<int32_t>& counts, const SbVec3f& a, const SbVec3f& b)
+void appendLine(
+    std::vector<SbVec3f>& vertices,
+    std::vector<int32_t>& counts,
+    const SbVec3f& a,
+    const SbVec3f& b
+)
 {
     vertices.push_back(a);
     vertices.push_back(b);
@@ -1269,8 +1275,8 @@ void SoDatumLabel::setVertexZ(SbVec3f& point, float z) const
 
 void SoDatumLabel::ensureCoinGeometry(const SbVec3f* points, int numPoints)
 {
-    if (!points || numPoints <= 0 || !m_LineVertexProperty || !m_LineSet || !m_TriangleVertexProperty
-        || !m_TriangleFaceSet) {
+    if (!points || numPoints <= 0 || !m_LineVertexProperty || !m_LineSet
+        || !m_TriangleVertexProperty || !m_TriangleFaceSet) {
         return;
     }
 
@@ -1382,8 +1388,22 @@ void SoDatumLabel::ensureCoinGeometry(const SbVec3f* points, int numPoints)
             appendLine(lineVertices, lineCounts, geom.pnt1, geom.pnt2);
             appendLine(lineVertices, lineCounts, geom.pnt3, geom.pnt4);
 
-            appendArrowTriangle(triangleVertices, triangleCounts, geom.startArrowBase, geom.dirStart, geom.arrowWidth, geom.arrowLength);
-            appendArrowTriangle(triangleVertices, triangleCounts, geom.endArrowBase, geom.dirEnd, geom.arrowWidth, geom.arrowLength);
+            appendArrowTriangle(
+                triangleVertices,
+                triangleCounts,
+                geom.startArrowBase,
+                geom.dirStart,
+                geom.arrowWidth,
+                geom.arrowLength
+            );
+            appendArrowTriangle(
+                triangleVertices,
+                triangleCounts,
+                geom.endArrowBase,
+                geom.dirEnd,
+                geom.arrowWidth,
+                geom.arrowLength
+            );
         }
     }
     else if (type == SYMMETRIC) {
@@ -1401,29 +1421,71 @@ void SoDatumLabel::ensureCoinGeometry(const SbVec3f* points, int numPoints)
             appendLine(lineVertices, lineCounts, p1, ar0);
             appendLine(lineVertices, lineCounts, p2, ar3);
 
-            appendLine(lineVertices, lineCounts, withZ(geom.ar0, ZARROW_TEXT_OFFSET), withZ(geom.ar1, ZARROW_TEXT_OFFSET));
-            appendLine(lineVertices, lineCounts, withZ(geom.ar0, ZARROW_TEXT_OFFSET), withZ(geom.ar2, ZARROW_TEXT_OFFSET));
-            appendLine(lineVertices, lineCounts, withZ(geom.ar3, ZARROW_TEXT_OFFSET), withZ(geom.ar4, ZARROW_TEXT_OFFSET));
-            appendLine(lineVertices, lineCounts, withZ(geom.ar3, ZARROW_TEXT_OFFSET), withZ(geom.ar5, ZARROW_TEXT_OFFSET));
+            appendLine(
+                lineVertices,
+                lineCounts,
+                withZ(geom.ar0, ZARROW_TEXT_OFFSET),
+                withZ(geom.ar1, ZARROW_TEXT_OFFSET)
+            );
+            appendLine(
+                lineVertices,
+                lineCounts,
+                withZ(geom.ar0, ZARROW_TEXT_OFFSET),
+                withZ(geom.ar2, ZARROW_TEXT_OFFSET)
+            );
+            appendLine(
+                lineVertices,
+                lineCounts,
+                withZ(geom.ar3, ZARROW_TEXT_OFFSET),
+                withZ(geom.ar4, ZARROW_TEXT_OFFSET)
+            );
+            appendLine(
+                lineVertices,
+                lineCounts,
+                withZ(geom.ar3, ZARROW_TEXT_OFFSET),
+                withZ(geom.ar5, ZARROW_TEXT_OFFSET)
+            );
         }
     }
     else if (type == ARCLENGTH) {
         if (numPoints >= 3) {
             const ArcLengthGeometry geom = calculateArcLengthGeometry(points);
 
-            appendArc(lineVertices, lineCounts, geom.arcCenter, geom.arcRadius, geom.startangle, geom.endangle);
+            appendArc(
+                lineVertices,
+                lineCounts,
+                geom.arcCenter,
+                geom.arcRadius,
+                geom.startangle,
+                geom.endangle
+            );
             appendLine(lineVertices, lineCounts, geom.pnt1, geom.pnt2);
             appendLine(lineVertices, lineCounts, geom.pnt3, geom.pnt4);
 
             const float arrowLength = geom.margin * 2.0F;
             const float arrowWidth = geom.margin * 0.5F;
-            appendArrowTriangle(triangleVertices, triangleCounts, geom.pnt2, geom.dirStart, arrowWidth, arrowLength);
-            appendArrowTriangle(triangleVertices, triangleCounts, geom.pnt4, geom.dirEnd, arrowWidth, arrowLength);
+            appendArrowTriangle(
+                triangleVertices,
+                triangleCounts,
+                geom.pnt2,
+                geom.dirStart,
+                arrowWidth,
+                arrowLength
+            );
+            appendArrowTriangle(
+                triangleVertices,
+                triangleCounts,
+                geom.pnt4,
+                geom.dirEnd,
+                arrowWidth,
+                arrowLength
+            );
         }
     }
 
     if (!lineVertices.empty()) {
-        m_LineVertexProperty->vertex.setValues(0, static_cast<int>(lineVertices.size()), lineVertices.data());
+        m_LineVertexProperty->vertex
+            .setValues(0, static_cast<int>(lineVertices.size()), lineVertices.data());
         m_LineSet->numVertices.setValues(0, static_cast<int>(lineCounts.size()), lineCounts.data());
     }
     else {
@@ -1432,16 +1494,10 @@ void SoDatumLabel::ensureCoinGeometry(const SbVec3f* points, int numPoints)
     }
 
     if (!triangleVertices.empty()) {
-        m_TriangleVertexProperty->vertex.setValues(
-            0,
-            static_cast<int>(triangleVertices.size()),
-            triangleVertices.data()
-        );
-        m_TriangleFaceSet->numVertices.setValues(
-            0,
-            static_cast<int>(triangleCounts.size()),
-            triangleCounts.data()
-        );
+        m_TriangleVertexProperty->vertex
+            .setValues(0, static_cast<int>(triangleVertices.size()), triangleVertices.data());
+        m_TriangleFaceSet->numVertices
+            .setValues(0, static_cast<int>(triangleCounts.size()), triangleCounts.data());
     }
     else {
         m_TriangleVertexProperty->vertex.setNum(0);
@@ -1451,7 +1507,8 @@ void SoDatumLabel::ensureCoinGeometry(const SbVec3f* points, int numPoints)
 
 void SoDatumLabel::ensureCoinText(SoState* state, int srcw, int srch, float angle, const SbVec3f& textOffset)
 {
-    if (!state || !m_TextSwitch || !m_TextVertexProperty || !m_TextFaceSet || !m_TextTransform || !m_TextTexture) {
+    if (!state || !m_TextSwitch || !m_TextVertexProperty || !m_TextFaceSet || !m_TextTransform
+        || !m_TextTexture) {
         return;
     }
 
@@ -1502,17 +1559,8 @@ void SoDatumLabel::ensureCoinText(SoState* state, int srcw, int srch, float angl
     m_TextSwitch->whichChild.setValue(0);
 }
 
-void SoDatumLabel::GLRender(SoGLRenderAction* action)
+void SoDatumLabel::prepareForRender(SoState* state)
 {
-    SoState* state = action->getState();
-
-    if (!shouldGLRender(action)) {
-        return;
-    }
-    if (action->handleTransparency(true)) {
-        return;
-    }
-
     const float scale = getScaleFactor(state);
     bool hasText = hasDatumText();
 
@@ -1528,7 +1576,6 @@ void SoDatumLabel::GLRender(SoGLRenderAction* action)
         this->imgWidth = scale * 25.0F;
     }
 
-    // Get the points stored in the pnt field
     const SbVec3f* points = this->pnts.getValues(0);
 
     state->push();
@@ -1573,9 +1620,42 @@ void SoDatumLabel::GLRender(SoGLRenderAction* action)
     else if (m_TextSwitch) {
         m_TextSwitch->whichChild.setValue(SO_SWITCH_NONE);
     }
+    // Note: state is left pushed — caller must pop after traversing m_Root.
+}
+
+void SoDatumLabel::GLRender(SoGLRenderAction* action)
+{
+    SoState* state = action->getState();
+
+    if (!shouldGLRender(action)) {
+        return;
+    }
+    if (action->handleTransparency(true)) {
+        return;
+    }
+
+    prepareForRender(state);
 
     if (m_Root) {
         m_Root->GLRender(action);
+    }
+
+    state->pop();
+}
+
+void SoDatumLabel::render(SoModernRenderAction* action)
+{
+    SoState* state = action->getState();
+
+    // SoDatumLabel geometry depends on the camera (getScaleFactor uses
+    // the view volume). Tell the action so the render manager invalidates
+    // the draw list on camera changes.
+    action->setHasCameraDependentShapes(true);
+
+    prepareForRender(state);
+
+    if (m_Root) {
+        m_Root->doAction(action);
     }
 
     state->pop();

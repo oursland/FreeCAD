@@ -42,6 +42,7 @@ class SoDepthBuffer;
 class SoDrawStyle;
 class SoFaceSet;
 class SoLineSet;
+class SoModernRenderAction;
 class SoSeparator;
 class SoLightModel;
 class SoSwitch;
@@ -107,11 +108,14 @@ public:
 protected:
     ~SoDatumLabel() override;
     void GLRender(SoGLRenderAction* action) override;
+    void render(SoModernRenderAction* action) override;
     void computeBBox(SoAction*, SbBox3f& box, SbVec3f& center) override;
     void generatePrimitives(SoAction* action) override;
     void notify(SoNotList* l) override;
 
 private:
+    void prepareForRender(SoState* state);
+
     struct DistanceGeometry
     {
         SbVec3f p1, p2;                  // main points used for measurement
@@ -233,6 +237,7 @@ private:
         float width,
         float length
     );
+
 private:
     void drawImage();
     void ensureCoinGeometry(const SbVec3f* points, int numPoints);
