@@ -67,7 +67,11 @@ public:
 
 protected:
     void GLRender(SoGLRenderAction* action) override;
+    void doAction(SoAction* action) override;
     ~SoShapeScale() override;
+
+private:
+    void updateScale(SoAction* action);
 };
 
 class GuiExport SoAxisCrossKit: public SoBaseKit

@@ -28,6 +28,7 @@
 
 #include <Inventor/actions/SoGetBoundingBoxAction.h>
 #include <Inventor/actions/SoGLRenderAction.h>
+#include <Inventor/actions/SoModernRenderAction.h>
 #include <Inventor/elements/SoLazyElement.h>
 #include <Inventor/elements/SoModelMatrixElement.h>
 #include <Inventor/elements/SoViewportRegionElement.h>
@@ -79,7 +80,7 @@ void SoShapeScale::initClass()
     SO_KIT_INIT_CLASS(SoShapeScale, SoBaseKit, "BaseKit");
 }
 
-void SoShapeScale::GLRender(SoGLRenderAction* action)
+void SoShapeScale::updateScale(SoAction* action)
 {
     auto* scale = static_cast<SoScale*>(this->getAnyPart(SbName("scale"), true));
     if (!this->active.getValue()) {
@@ -98,15 +99,30 @@ void SoShapeScale::GLRender(SoGLRenderAction* action)
         SoModelMatrixElement::get(state).multVecMatrix(center, center);  // world coords
         float sf = vv.getWorldToScreenScale(center, nsize);
 
-        sf *= SoDevicePixelRatioElement::get(state);
+        // SoDevicePixelRatioElement may not be enabled for all action types
+        if (action->isOfType(SoGLRenderAction::getClassTypeId())) {
+            sf *= SoDevicePixelRatioElement::get(state);
+        }
 
         SbVec3f v(sf, sf, sf);
         if (scale->scaleFactor.getValue() != v) {
             scale->scaleFactor = v;
         }
     }
+}
 
+void SoShapeScale::GLRender(SoGLRenderAction* action)
+{
+    updateScale(action);
     inherited::GLRender(action);
+}
+
+void SoShapeScale::doAction(SoAction* action)
+{
+    if (action->isOfType(SoModernRenderAction::getClassTypeId())) {
+        updateScale(action);
+    }
+    inherited::doAction(action);
 }
 
 // --------------------------------------------------------------
