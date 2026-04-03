@@ -121,6 +121,10 @@ void SoShapeScale::doAction(SoAction* action)
 {
     if (action->isOfType(SoModernRenderAction::getClassTypeId())) {
         updateScale(action);
+        // SoShapeScale geometry depends on the camera view volume.
+        // Flag the action so the render manager invalidates the draw
+        // list on camera changes, keeping the scale current.
+        static_cast<SoModernRenderAction*>(action)->setHasCameraDependentShapes(true);
     }
     inherited::doAction(action);
 }
