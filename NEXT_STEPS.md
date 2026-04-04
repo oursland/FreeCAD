@@ -175,10 +175,14 @@ Full plan: `/Users/jso/.claude/plans/glittery-chasing-lemur.md`
 - [ ] Replace GL_LUMINANCE with GL_RED + swizzle or shader
 - [ ] Test on macOS with GL 4.1 Core context
 
-### Step 6: NaviCube overlay fix
+### Step 6: Pass refinement & NaviCube overlay fix
+- [ ] Split `renderMainScenePass` into `renderOpaquePass()`, `renderTransparentPass()`, `renderOverlayPass()`
 - [ ] Split overlay into 2D (annotations) and 3D (NaviCube) sub-passes
 - [ ] 3D overlay: clear depth, enable depth test+write, enable cull
-- [ ] Verify NaviCube self-occlusion and annotations on top
+- [ ] 2D overlay: depth disabled, no cull
+- [ ] Verify NaviCube self-occlusion (back faces hidden)
+- [ ] Verify annotations render on top of everything
+- [ ] Verify pass ordering: selection before overlay
 
 ## Reference: Resume Prompt
 
