@@ -150,20 +150,24 @@ public:
         Q_UNUSED(shareWidget);
         QSurfaceFormat surfaceFormat(format);
         surfaceFormat.setSwapBehavior(QSurfaceFormat::DoubleBuffer);
-        // With the settings below we could determine deprecated OpenGL API
-        // but can't do this since otherwise it will complain about almost any
-        // OpenGL call in Coin3d
-        //surfaceFormat.setMajorVersion(3);
-        //surfaceFormat.setMinorVersion(2);
-        //surfaceFormat.setProfile(QSurfaceFormat::CoreProfile);
-
-        // On Wayland, we typically get a core profile unless we explicitly
-        // request a compatibility profile. On llvmpipe, this still seems to
-        // "just work" even if out of spec; on proprietary Nvidia drivers, it
-        // does not.
         surfaceFormat.setRenderableType(QSurfaceFormat::OpenGL);
-        surfaceFormat.setProfile(QSurfaceFormat::CompatibilityProfile);
-        surfaceFormat.setOption(QSurfaceFormat::DeprecatedFunctions, true);
+
+        // When the modern renderer is active, request OpenGL 4.1 Core Profile.
+        // This provides GLSL 4.10 and removes deprecated GL features.
+        // The legacy Coin3D rendering path requires Compatibility Profile.
+        const char * modernRenderer = getenv("FREECAD_MODERN_RENDERER");
+        if (modernRenderer && modernRenderer[0] == '1') {
+            surfaceFormat.setVersion(4, 1);
+            surfaceFormat.setProfile(QSurfaceFormat::CoreProfile);
+        }
+        else {
+            // On Wayland, we typically get a core profile unless we explicitly
+            // request a compatibility profile. On llvmpipe, this still seems to
+            // "just work" even if out of spec; on proprietary Nvidia drivers,
+            // it does not.
+            surfaceFormat.setProfile(QSurfaceFormat::CompatibilityProfile);
+            surfaceFormat.setOption(QSurfaceFormat::DeprecatedFunctions, true);
+        }
 
 #if defined (_DEBUG) && 0
         surfaceFormat.setOption(QSurfaceFormat::DebugContext);

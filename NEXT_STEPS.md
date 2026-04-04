@@ -186,7 +186,7 @@ Full plan: `/Users/jso/.claude/plans/glittery-chasing-lemur.md`
 - [x] Remove GL_POINT_SMOOTH_HINT calls
 - [ ] Test on macOS with GL 4.1 Core context (requires Core Profile context creation — separate task)
 
-### Step 6: Pass refinement & NaviCube overlay fix
+### Step 6: Pass refinement, NaviCube overlay fix, background fixes
 - [ ] Split `renderMainScenePass` into `renderOpaquePass()`, `renderTransparentPass()`, `renderOverlayPass()`
 - [ ] Split overlay into 2D (annotations) and 3D (NaviCube) sub-passes
 - [ ] 3D overlay: clear depth, enable depth test+write, enable cull
@@ -194,6 +194,8 @@ Full plan: `/Users/jso/.claude/plans/glittery-chasing-lemur.md`
 - [ ] Verify NaviCube self-occlusion (back faces hidden)
 - [ ] Verify annotations render on top of everything
 - [ ] Verify pass ordering: selection before overlay
+- [ ] Fix single-color background mode (not rendering — only gradient works)
+- [ ] Fix background color intensity ("white" background appears ~50% gray)
 
 ## Reference: Resume Prompt
 

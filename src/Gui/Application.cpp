@@ -2568,8 +2568,19 @@ void Application::runApplication()
     {
         QSurfaceFormat defaultFormat;
         defaultFormat.setRenderableType(QSurfaceFormat::OpenGL);
-        defaultFormat.setProfile(QSurfaceFormat::CompatibilityProfile);
-        defaultFormat.setOption(QSurfaceFormat::DeprecatedFunctions, true);
+
+        // When the modern renderer is active, request OpenGL 4.1 Core Profile
+        // which gives GLSL 4.10 and removes all deprecated GL features.
+        // Otherwise, use Compatibility Profile for legacy Coin3D rendering.
+        const char* modernRenderer = getenv("FREECAD_MODERN_RENDERER");
+        if (modernRenderer && modernRenderer[0] == '1') {
+            defaultFormat.setVersion(4, 1);
+            defaultFormat.setProfile(QSurfaceFormat::CoreProfile);
+        }
+        else {
+            defaultFormat.setProfile(QSurfaceFormat::CompatibilityProfile);
+            defaultFormat.setOption(QSurfaceFormat::DeprecatedFunctions, true);
+        }
 #if defined(FC_OS_LINUX) || defined(FC_OS_BSD)
         // QGuiApplication::platformName() doesn't yet work at this point, so we use the env var
         if (getenv("WAYLAND_DISPLAY")) {
