@@ -175,11 +175,12 @@ Full plan: `/Users/jso/.claude/plans/glittery-chasing-lemur.md`
 - [x] macOS VAO fix: replaced `glGenVertexArraysAPPLE` macros with `extern "C"` standard function declarations (APPLE suffix doesn't exist in Core Profile)
 - [x] GL error drain in `beginFrame()` — clears errors from legacy Coin code making deprecated calls in Core Profile
 
-**4c: PBR material uniforms**
-- [ ] Add PBR material fields to SoMaterialData (metalness, roughness, AO)
-- [ ] Add `u_metalness`, `u_roughness` uniforms (default: 0.0, 0.5)
-- [ ] Implement GGX NDF + Fresnel-Schlick in fragment shader
-- [ ] Verify Blinn-Phong-equivalent output with default PBR values
+**4c: PBR material uniforms ✓**
+- [x] Add `metalness`/`roughness` fields to SoMaterialData (both IR header copies)
+- [x] Add `u_metalness`, `u_roughness` uniforms (default: 0.0, 0.5)
+- [x] Implement GGX NDF + Fresnel-Schlick in fragment shader (mode 0)
+- [x] Defaults produce Blinn-Phong-equivalent output (dielectric, moderate roughness)
+- [x] Per-command PBR upload in drawCommand, defaults in fillMaterialFromState
 
 ### Step 5: Replace deprecated GL features ✓
 - [x] Replace GL_POINT_SMOOTH with `gl_PointCoord` circle discard (`u_renderMode=1.5`)
@@ -198,6 +199,14 @@ Full plan: `/Users/jso/.claude/plans/glittery-chasing-lemur.md`
 - [ ] Verify pass ordering: selection before overlay
 - [ ] Fix single-color background mode (not rendering — only gradient works)
 - [ ] Fix background color intensity ("white" background appears ~50% gray)
+
+### Step 7: Performance regression from NaviCube modernization
+The NaviCube migration to the modern renderer caused a significant performance regression. Investigate and fix:
+- [ ] Profile with Tracy to identify the bottleneck (draw call count, texture uploads, re-traversal)
+- [ ] NaviCube commands may trigger full draw list rebuild each frame (camera-dependent shapes)
+- [ ] NaviCube textures may be re-uploaded every frame instead of cached
+- [ ] Consider separating NaviCube into its own draw list or render pass to avoid invalidating the main scene
+- [ ] Target: NaviCube overhead < 1ms per frame (was ~7ms with legacy superimposition)
 
 ## Reference: Resume Prompt
 
