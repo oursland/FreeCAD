@@ -125,11 +125,17 @@ Stored command paths use `unrefNoDelete()` when cleared — dangling pointers cr
 
 Full plan: `/Users/jso/.claude/plans/glittery-chasing-lemur.md`
 
-### Step 1: Named constants
-- [ ] Create constants header section in SoModernGLBackend.cpp
-- [ ] Replace all magic numbers in SoModernGLBackend.cpp
-- [ ] Replace flag literals in SoModernIR.cpp, SoShape.cpp, SoMarkerSet.cpp, SoText2.cpp
-- [ ] Replace flag literals in SoBrepFaceSet.cpp, SoBrepEdgeSet.cpp, SoBrepPointSet.cpp
+### Step 1: Named constants ✓
+- [x] Create constants header section in SoModernGLBackend.cpp
+- [x] Replace all magic numbers in SoModernGLBackend.cpp (14 replacements)
+- [x] Replace flag literals in SoModernIR.cpp, SoShape.cpp, SoMarkerSet.cpp, SoText2.cpp
+- [x] Replace flag literals in SoIDPickBuffer.cpp (4 occurrences), SoRenderManager.cpp
+- N/A: SoBrepFaceSet/EdgeSet/PointSet — no flag literals found (flags set via Coin-side IR)
+
+**Constants added:**
+- `SoModernIR.h` (both copies): `SO_MAT_HAS_TEXTURE`, `SO_MAT_IS_BILLBOARD`, `SO_FEAT_BASE_COLOR`, `SO_PARAM_CLEAR_WINDOW/INTERACTIVE/CLEAR_DEPTH/SKIP_ID`
+- `SoModernGLBackend.cpp`: `AMBIENT/DIFFUSE/SPECULAR_COEFF`, `DEFAULT_SHININESS`, `HIGHLIGHT/SELECTION_ALPHA`, `ALPHA_DISCARD_THRESHOLD`, `MIN_HIGHLIGHT_POINT_SIZE`, `CACHE_UNUSED_FRAME_THRESHOLD`, `MAX_VERTEX_COUNT`, `DEFAULT_PICK_SIZE`
+- GLSL shader string literals retain numeric values with comments referencing the constant names (GPU-side, can't use C++ constexpr)
 
 ### Step 2: Convert drawCached to method
 - [ ] Extract lambda to `drawCommand()` method
