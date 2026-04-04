@@ -197,8 +197,8 @@ Full plan: `/Users/jso/.claude/plans/glittery-chasing-lemur.md`
 - [ ] Verify NaviCube self-occlusion (back faces hidden)
 - [ ] Verify annotations render on top of everything
 - [ ] Verify pass ordering: selection before overlay
-- [ ] Fix single-color background mode (not rendering — only gradient works)
-- [ ] Fix background color intensity ("white" background appears ~50% gray)
+- [x] Fix single-color background mode — add `glClear(GL_COLOR_BUFFER_BIT)` + unregister `modernBackgroundRoot` when NoGradient
+- [x] Fix background color intensity — per-vertex color capture flag in `SoModernPrimitiveAssembler` (old heuristic compared vertex[0] against white, discarding all gradient colors when gradient started with white)
 
 ### Step 7: Performance regression from NaviCube modernization
 The NaviCube migration to the modern renderer caused a significant performance regression. Investigate and fix:
