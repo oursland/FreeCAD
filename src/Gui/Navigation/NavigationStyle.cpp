@@ -983,6 +983,11 @@ void NavigationStyle::doZoom(SoCamera* camera, float logfactor, const SbVec2f& p
     if (fabs(logfactor) > 4.0) {
         return;
     }
+    // Signal that the camera is being modified so the deferred sensor
+    // callback treats the resulting notification as a camera change
+    // (fg-only rebuild) rather than a structural change (full rebuild).
+    viewer->getSoRenderManager()->notifyCameraChange();
+
     SbBool zoomAtCur = this->zoomAtCursor;
     if (zoomAtCur) {
         const SbViewportRegion& vp = viewer->getSoRenderManager()->getViewportRegion();
