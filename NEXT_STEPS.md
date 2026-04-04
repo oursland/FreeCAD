@@ -65,10 +65,10 @@
 
 ### Feature Parity — Critical
 
-- [ ] **SoFCBoundingBox** — bounding box display missing. Add `doAction()` override.
-- [ ] **SoDrawingGrid** — grid display missing. Add `doAction()` override.
-- [ ] **So3DAnnotation** — 3D annotations missing (delayed annotation path). Add `doAction()` override.
-- [ ] **Dragger nodes** — SoTransformDragger, SoLinearDragger, SoRotatorDragger only implement `GLRender()`. Add `doAction()` overrides.
+- [ ] **SoFCBoundingBox** — `render(SoModernRenderAction*)` override added but bbox not showing. Likely a sensor/invalidation issue — toggling bbox doesn't trigger scene rebuild.
+- [x] **SoDrawingGrid** — `render(SoModernRenderAction*)` override working. Grid renders on new sketches. Lines faint vs legacy (color/alpha). Pre-existing bug: grid doesn't show on existing sketches.
+- [x] **So3DAnnotation** — `doAction()` override added. Traverses children directly for modern renderer.
+- [ ] **Dragger nodes** — `SoDragger::doAction()` added in Coin. Draggers render + highlight on click, but translation/rotation doesn't work. Text colors incorrect. May be partially upstream dragger regression.
 
 ### Feature Parity — Medium Priority
 
