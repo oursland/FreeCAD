@@ -189,16 +189,14 @@ Full plan: `/Users/jso/.claude/plans/glittery-chasing-lemur.md`
 - [x] Remove GL_POINT_SMOOTH_HINT calls
 - [x] Test on macOS with GL 4.1 Core context (implemented in Step 4b)
 
-### Step 6: Pass refinement, NaviCube overlay fix, background fixes
-- [ ] Split `renderMainScenePass` into `renderOpaquePass()`, `renderTransparentPass()`, `renderOverlayPass()`
-- [ ] Split overlay into 2D (annotations) and 3D (NaviCube) sub-passes
-- [ ] 3D overlay: clear depth, enable depth test+write, enable cull
-- [ ] 2D overlay: depth disabled, no cull
-- [ ] Verify NaviCube self-occlusion (back faces hidden)
-- [ ] Verify annotations render on top of everything
-- [ ] Verify pass ordering: selection before overlay
+### Step 6: Pass refinement, NaviCube overlay fix, background fixes ✓
+- [x] Split `renderMainScenePass` into `renderOpaquePass()`, `renderTransparentPass()`, `renderOverlayPass()`
+- [x] Split overlay into 2D (annotations) and 3D (NaviCube) sub-passes — detected by per-command view matrix vs main camera
+- [x] 3D overlay: clear depth, enable depth test+write (NaviCube back faces now hidden)
+- [x] 2D overlay: depth disabled (annotations render on top of everything)
+- [x] Pass ordering: opaque → transparent → selection → overlay
 - [x] Fix single-color background mode — add `glClear(GL_COLOR_BUFFER_BIT)` + unregister `modernBackgroundRoot` when NoGradient
-- [x] Fix background color intensity — per-vertex color capture flag in `SoModernPrimitiveAssembler` (old heuristic compared vertex[0] against white, discarding all gradient colors when gradient started with white)
+- [x] Fix background color intensity — `capturedPerVertexColor` flag in `SoModernPrimitiveAssembler` replaces broken white-comparison heuristic
 
 ### Step 7: Performance regression from NaviCube modernization
 The NaviCube migration to the modern renderer caused a significant performance regression. Investigate and fix:
