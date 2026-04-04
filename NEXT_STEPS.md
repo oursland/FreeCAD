@@ -142,17 +142,23 @@ Full plan: `/Users/jso/.claude/plans/glittery-chasing-lemur.md`
 - [x] Pass view/proj/params as parameters (no lambda capture)
 - [x] Fix line width and point size not restored after draw (added `glPointSize(1.0f)` / `glLineWidth(1.0f)` restore)
 
-### Step 3: Extract render passes
-- [ ] Extract `beginFrame()` / `endFrame()`
-- [ ] Extract `updateGeometryCache()`
-- [ ] Extract `renderBackgroundPass()`
-- [ ] Extract `renderOpaquePass()`
-- [ ] Extract `renderTransparentPass()`
-- [ ] Extract `renderSelectionPass()`
-- [ ] Extract `renderOverlayPass()` (split 2D and 3D sub-passes)
-- [ ] Extract ID buffer to `renderIDBufferPass()`
+### Step 3: Extract render passes ✓ (partial — structural extraction done)
+- [x] Extract `beginFrame()` / `endFrame()`
+- [x] Extract `updateGeometryCache()`
+- [x] Extract `renderBackgroundPass()`
+- [x] Extract `renderMainScenePass()` — combined opaque + transparent + overlay
+- [x] Extract `renderSelectionPass()`
+- [x] Extract `renderIDBufferPass()`
+- [x] `render()` reduced to 18-line orchestrator calling pass methods
+- [x] Each pass owns its GL state setup and restore (renderBackgroundPass, renderMainScenePass now restore defaults at exit)
+- [x] Pass ordering: selection rendered after main scene (before endFrame), overlays within main scene sort order
+
+**Deferred to Step 6 (NaviCube overlay fix):**
+- [ ] Split `renderMainScenePass` opaque/transparent/overlay into separate methods
+- [ ] Split overlay into 2D (annotations) and 3D (NaviCube) sub-passes
 - [ ] Fix NaviCube back-face rendering (3D overlay with depth clear)
-- [ ] Verify pass ordering: selection before overlay
+
+**Rationale:** The current `renderMainScenePass` iterates sorted commands with state transitions (opaque→transparent→overlay). Splitting requires either multiple sort iterations or pre-partitioning commands by pass type. This restructuring is only needed for the NaviCube depth fix (Step 6), not for shader migration (Steps 4-5). Deferring avoids speculative refactoring.
 
 ### Step 4: Shader migration to GLSL 4.10
 - [ ] Write unified PBR vertex shader
