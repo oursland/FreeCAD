@@ -179,11 +179,12 @@ Full plan: `/Users/jso/.claude/plans/glittery-chasing-lemur.md`
 - [ ] Implement GGX NDF + Fresnel-Schlick in fragment shader
 - [ ] Verify Blinn-Phong-equivalent output with default PBR values
 
-### Step 5: Replace deprecated GL features
-- [ ] Replace GL_LINE_STIPPLE with shader-based dashing
-- [ ] Replace GL_POINT_SMOOTH with gl_PointCoord circle discard
-- [ ] Replace GL_LUMINANCE with GL_RED + swizzle or shader
-- [ ] Test on macOS with GL 4.1 Core context
+### Step 5: Replace deprecated GL features ✓
+- [x] Replace GL_POINT_SMOOTH with `gl_PointCoord` circle discard (`u_renderMode=1.5`)
+- [x] Replace GL_LUMINANCE/GL_LUMINANCE_ALPHA with CPU RGBA expansion in `uploadGeometry`
+- [x] Replace GL_LINE_STIPPLE with shader-based dashing — per-vertex cumulative object-space distance (`a_lineDistance` attribute), MVP-projected period conversion, 50% duty cycle
+- [x] Remove GL_POINT_SMOOTH_HINT calls
+- [ ] Test on macOS with GL 4.1 Core context (requires Core Profile context creation — separate task)
 
 ### Step 6: Pass refinement & NaviCube overlay fix
 - [ ] Split `renderMainScenePass` into `renderOpaquePass()`, `renderTransparentPass()`, `renderOverlayPass()`
