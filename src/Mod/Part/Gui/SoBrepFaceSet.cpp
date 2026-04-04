@@ -41,6 +41,8 @@
 #include <Inventor/elements/SoLazyElement.h>
 #include <Inventor/elements/SoMaterialBindingElement.h>
 #include <Inventor/elements/SoModelMatrixElement.h>
+#include <Inventor/elements/SoProjectionMatrixElement.h>
+#include <Inventor/elements/SoViewingMatrixElement.h>
 #include <Inventor/elements/SoNormalBindingElement.h>
 #include <Inventor/elements/SoNormalElement.h>
 #include <Inventor/elements/SoOverrideElement.h>
@@ -488,6 +490,8 @@ void SoBrepFaceSet::render(SoModernRenderAction* action)
     SoModernIR::fillMaterialFromState(state, cmd.material);
     SoModernIR::fillRenderStateFromState(state, cmd.state);
     cmd.modelMatrix = SoModelMatrixElement::get(state);
+    cmd.viewMatrix = SoViewingMatrixElement::get(state);
+    cmd.projMatrix = SoProjectionMatrixElement::get(state);
 
     // Check for per-face/per-part material binding (multi-color bodies)
     int numDiffuse = SoLazyElement::getInstance(state)->getNumDiffuse();

@@ -35,6 +35,8 @@
 #include <Inventor/elements/SoDepthBufferElement.h>
 #include <Inventor/elements/SoLazyElement.h>
 #include <Inventor/elements/SoModelMatrixElement.h>
+#include <Inventor/elements/SoProjectionMatrixElement.h>
+#include <Inventor/elements/SoViewingMatrixElement.h>
 #include <Inventor/elements/SoPointSizeElement.h>
 #include <Inventor/errors/SoDebugError.h>
 #include <Inventor/misc/SoState.h>
@@ -173,6 +175,8 @@ void SoBrepPointSet::render(SoModernRenderAction* action)
     SoModernIR::fillMaterialFromState(state, cmd.material);
     SoModernIR::fillRenderStateFromState(state, cmd.state);
     cmd.modelMatrix = SoModelMatrixElement::get(state);
+    cmd.viewMatrix = SoViewingMatrixElement::get(state);
+    cmd.projMatrix = SoProjectionMatrixElement::get(state);
 
     cmd.pass = SO_RENDERPASS_OPAQUE;
     cmd.sortKey = SoIRComputeSortKey(cmd, static_cast<uint32_t>(cmd.pass), 0);
