@@ -39,183 +39,62 @@
 - Foreground root API (setModernForegroundRoot)
 - Viewport decoupled from SoGLRenderAction (modernViewport member)
 - featureFlags reset bug fixed in fillMaterialFromState
+- Named constants: SO_MAT_HAS_TEXTURE/IS_BILLBOARD, SO_FEAT_BASE_COLOR, SO_PARAM_* flags, lighting coefficients
+- drawCached lambda → drawCommand() method with state restore fixes
+- Render pass extraction: beginFrame/endFrame, updateGeometryCache, renderBackgroundPass, renderOpaquePass, renderTransparentPass, renderSelectionPass, renderOverlayPass, renderIDBufferPass
+- Unified shader: u_renderMode (0=lit, 1=flat, 1.5=point, 2=billboard, 3=textured) replaces separate texture shader
+- GLSL 4.10 Core Profile: layout(location=N) in, in/out varyings, out vec4 fragColor, texture()
+- Runtime Core Profile context: FREECAD_MODERN_RENDERER=1 → GL 4.1 Core (Application.cpp, QuarterWidget.cpp)
+- macOS VAO: extern "C" standard function declarations replace APPLE suffix macros
+- PBR lighting: GGX NDF + Fresnel-Schlick, u_metalness/u_roughness uniforms
+- GL_POINT_SMOOTH → gl_PointCoord circle discard (u_renderMode=1.5)
+- GL_LUMINANCE/GL_LUMINANCE_ALPHA → CPU RGBA expansion
+- GL_LINE_STIPPLE → shader-based dashing (a_lineDistance attribute, MVP-projected period)
+- GL_POINT_SMOOTH_HINT removed
+- Overlay pass split: 2D (annotations, depth disabled) + 3D (NaviCube, depth clear + depth test)
+- Pass ordering: opaque → transparent → selection → overlay
+- Single-color background: glClear(GL_COLOR_BUFFER_BIT) + modernBackgroundRoot unregister on NoGradient
+- Background per-vertex color capture: capturedPerVertexColor flag in SoModernPrimitiveAssembler
+- Generation-based draw list caching (sceneGeneration + foregroundGeneration)
+- Foreground-only re-traversal on camera changes with geometry pool save/rewind
+- Sensor callback: camera/interactive/pendingCameraChange → fg-only, SoCamera type check, shape touch skip
+- notifyCameraChange() API for zoom scroll
+- ID pick buffer: skip overlay commands (not pickable)
 
-## Phase 1: Feature Parity — Critical
+## Remaining Tasks
 
-### ~~1.1 Per-face materials for BRep shapes~~ DONE
+### Feature Parity — Critical
 
-### 1.2 Custom FreeCAD nodes missing modern renderer support
-These nodes only implement `GLRender()`:
-- ~~**SoFCBackgroundGradient**~~ DONE — migrated to modern renderer
-- **SoFCBoundingBox** — bounding box display missing
-- **SoDrawingGrid** — grid display missing
-- **So3DAnnotation** — 3D annotations missing (delayed annotation path)
-- **Fix pattern:** Add `doAction()` override with child traversal (same as SoDatumLabel/SoShapeScale)
+- [ ] **SoFCBoundingBox** — bounding box display missing. Add `doAction()` override.
+- [ ] **SoDrawingGrid** — grid display missing. Add `doAction()` override.
+- [ ] **So3DAnnotation** — 3D annotations missing (delayed annotation path). Add `doAction()` override.
+- [ ] **Dragger nodes** — SoTransformDragger, SoLinearDragger, SoRotatorDragger only implement `GLRender()`. Add `doAction()` overrides.
 
-### ~~1.3 NaviCube modernization~~ DONE
-Known issue: NaviCube back faces visible (needs 3D overlay sub-pass with depth).
+### Feature Parity — Medium Priority
 
-### 1.4 Dragger nodes
-SoTransformDragger, SoLinearDragger, SoRotatorDragger only implement `GLRender()`.
-- **Approach:** Add `doAction()` overrides similar to SoShapeScale pattern.
+- [ ] **Emissive material handling** — current hack detects emissive-only by checking diffuse ≈ (0.8,0.8,0.8). Replace with proper emissive handling in PBR shader.
+- [ ] **Multiple light sources** — shader uses only headlight. Capture lights from SoLightElement; pass up to 4 as uniforms.
+- [ ] **Texture filtering** — all textures use GL_NEAREST. World-space textures should use GL_LINEAR.
+- [ ] **Vertex highlight using marker bitmap** — selection highlight is GL_POINTS circle, not marker bitmap shape.
 
-## Phase 2: Feature Parity — Medium Priority
+### Code Quality
 
-### 2.1 Emissive material handling
-Current hack: detects emissive-only materials by checking if diffuse ≈ (0.8,0.8,0.8). Fragile.
-- **Approach:** Proper emissive handling in shader. Remove default-gray heuristic.
+- [ ] **Sync public/internal IR headers** — manual sync causes heap corruption on drift. Use single source with guards.
+- [ ] **GL state management cleanup** — ad-hoc enable/disable → RAII guards or state-diff tracking.
 
-### 2.2 Multiple light sources
-Shader uses only view-space headlight. Legacy supports light list.
-- **Approach:** Capture lights from `SoLightElement`; pass up to 4 as uniforms.
+### Architecture
 
-### 2.3 Texture filtering
-All textures use `GL_NEAREST`. World-space textures (SoDatumLabel text) should use `GL_LINEAR`.
-- **Approach:** `GL_NEAREST` for billboard (flags & 0x2), `GL_LINEAR` for world-space.
+- [ ] **Eliminate legacy superimposition rendering** — NaviCube is modernized, remove legacy foreground path.
+- [ ] **SoRenderCommand value-initialization** — add default member initializers to all POD fields. Remove all memset calls.
+- [ ] **Proper command path lifecycle** — stored paths use unrefNoDelete() → dangling pointers. Redesign as strings/indices.
+- [ ] **Remove FreeCAD-specific workarounds** — onDirectHighlight callback, renderManager pointer on SoFCUnifiedSelection, lastPickedLutIndex.
 
-### 2.4 Vertex highlight using marker bitmap
-Selection highlight is `GL_POINTS` circle, not marker bitmap shape.
-- **Approach:** Re-render billboard with highlight color in overlay pass.
+### Performance
 
-## Phase 3: Refactoring — Code Quality
-
-### 3.1 Split monolithic render() method (~438 lines)
-Extract: `updateGeometryCache()`, `renderVisualPass()`, `renderSelectionOverlays()`, `renderIDBuffer()`
-
-### 3.2 Convert drawCached lambda to method
-163-line lambda captures 15+ variables. Move to `drawCommand()` method.
-
-### 3.3 Extract magic numbers to named constants
-Point sizes, alpha thresholds, shader coefficients, flag bits → config struct + enums.
-
-### 3.4 Sync public/internal IR headers
-Manual sync causes heap corruption on drift. Use single source with guards.
-
-### 3.5 Simplify sensor callback logic
-Accumulated special cases → explicit invalidation reason enum.
-
-### 3.6 GL state management cleanup
-Ad-hoc enable/disable → RAII guards or state-diff tracking.
-
-### 3.7 Include generation in VBO cache key
-Pool address reuse can match stale entries. Add generation to CacheKey struct.
-
-## Phase 4: Refactoring — Architecture
-
-### 4.1 Camera-dependent shapes optimization
-`hasCameraDependentShapes` causes full rebuild on every notification. Track per-command instead.
-
-### 4.2 Eliminate legacy superimposition rendering
-Once NaviCube is modernized, remove legacy foreground path.
-
-### 4.3 SoRenderCommand value-initialization
-Add default member initializers to all POD fields. Remove all memset calls.
-
-### Proper command path lifecycle
-Stored command paths use `unrefNoDelete()` when cleared — dangling pointers crash on delete.
-- **Current workarounds:** hover uses string-based identity, click leaks SoPickedPoints
-- **Fix:** Redesign storage — store as strings/indices instead of SoPath pointers
-
-### Remove FreeCAD-specific workarounds
-- `onDirectHighlight` callback → Coin action framework
-- `renderManager` pointer on SoFCUnifiedSelection → SoHandleEventAction
-- `lastPickedLutIndex` → tracked inside Coin
-
-## IMMEDIATE: SoModernGLBackend Refactoring
-
-Full plan: `/Users/jso/.claude/plans/glittery-chasing-lemur.md`
-
-### Step 1: Named constants ✓
-- [x] Create constants header section in SoModernGLBackend.cpp
-- [x] Replace all magic numbers in SoModernGLBackend.cpp (14 replacements)
-- [x] Replace flag literals in SoModernIR.cpp, SoShape.cpp, SoMarkerSet.cpp, SoText2.cpp
-- [x] Replace flag literals in SoIDPickBuffer.cpp (4 occurrences), SoRenderManager.cpp
-- N/A: SoBrepFaceSet/EdgeSet/PointSet — no flag literals found (flags set via Coin-side IR)
-
-**Constants added:**
-- `SoModernIR.h` (both copies): `SO_MAT_HAS_TEXTURE`, `SO_MAT_IS_BILLBOARD`, `SO_FEAT_BASE_COLOR`, `SO_PARAM_CLEAR_WINDOW/INTERACTIVE/CLEAR_DEPTH/SKIP_ID`
-- `SoModernGLBackend.cpp`: `AMBIENT/DIFFUSE/SPECULAR_COEFF`, `DEFAULT_SHININESS`, `HIGHLIGHT/SELECTION_ALPHA`, `ALPHA_DISCARD_THRESHOLD`, `MIN_HIGHLIGHT_POINT_SIZE`, `CACHE_UNUSED_FRAME_THRESHOLD`, `MAX_VERTEX_COUNT`, `DEFAULT_PICK_SIZE`
-- GLSL shader string literals retain numeric values with comments referencing the constant names (GPU-side, can't use C++ constexpr)
-
-### Step 2: Convert drawCached to method ✓
-- [x] Extract lambda to `drawCommand()` method (202-line lambda → proper member function)
-- [x] Pass view/proj/params as parameters (no lambda capture)
-- [x] Fix line width and point size not restored after draw (added `glPointSize(1.0f)` / `glLineWidth(1.0f)` restore)
-
-### Step 3: Extract render passes ✓ (partial — structural extraction done)
-- [x] Extract `beginFrame()` / `endFrame()`
-- [x] Extract `updateGeometryCache()`
-- [x] Extract `renderBackgroundPass()`
-- [x] Extract `renderMainScenePass()` — combined opaque + transparent + overlay
-- [x] Extract `renderSelectionPass()`
-- [x] Extract `renderIDBufferPass()`
-- [x] `render()` reduced to 18-line orchestrator calling pass methods
-- [x] Each pass owns its GL state setup and restore (renderBackgroundPass, renderMainScenePass now restore defaults at exit)
-- [x] Pass ordering: selection rendered after main scene (before endFrame), overlays within main scene sort order
-
-**Deferred to Step 6 (NaviCube overlay fix):**
-- [ ] Split `renderMainScenePass` opaque/transparent/overlay into separate methods
-- [ ] Split overlay into 2D (annotations) and 3D (NaviCube) sub-passes
-- [ ] Fix NaviCube back-face rendering (3D overlay with depth clear)
-
-**Rationale:** The current `renderMainScenePass` iterates sorted commands with state transitions (opaque→transparent→overlay). Splitting requires either multiple sort iterations or pre-partitioning commands by pass type. This restructuring is only needed for the NaviCube depth fix (Step 6), not for shader migration (Steps 4-5). Deferring avoids speculative refactoring.
-
-### Step 4: Shader migration to GLSL 4.10
-**4a: Unified shader program ✓**
-- [x] Merge texture shader into main shader with `u_renderMode` (0=lit, 1=flat, 2=billboard, 3=textured)
-- [x] Remove separate `texShaderProgram`, `texVAO`, all `texU*` uniform locations
-- [x] Merge texcoord attribute into main VAO (setupVisualVAO)
-- [x] Replace `u_emissive` boolean with `u_renderMode` float throughout
-- [x] Explicit `glBindAttribLocation` before linking — macOS GLSL 1.20 reassigns attribute locations when adding new attributes, causing silent VAO mismatch
-
-**4b: GLSL 4.10 syntax upgrade ✓ (coupled with Step 5)**
-- [x] Upgrade `#version 120` → `#version 410 core` (main shader + ID pick shader)
-- [x] `attribute` → `layout(location=N) in`, `varying` → `in/out`, `gl_FragColor` → `out vec4 fragColor`, `texture2D` → `texture`
-- [x] Runtime Core Profile: `FREECAD_MODERN_RENDERER=1` → `QSurfaceFormat::CoreProfile` + GL 4.1 (Application.cpp, QuarterWidget.cpp)
-- [x] macOS VAO fix: replaced `glGenVertexArraysAPPLE` macros with `extern "C"` standard function declarations (APPLE suffix doesn't exist in Core Profile)
-- [x] GL error drain in `beginFrame()` — clears errors from legacy Coin code making deprecated calls in Core Profile
-
-**4c: PBR material uniforms ✓**
-- [x] Add `metalness`/`roughness` fields to SoMaterialData (both IR header copies)
-- [x] Add `u_metalness`, `u_roughness` uniforms (default: 0.0, 0.5)
-- [x] Implement GGX NDF + Fresnel-Schlick in fragment shader (mode 0)
-- [x] Defaults produce Blinn-Phong-equivalent output (dielectric, moderate roughness)
-- [x] Per-command PBR upload in drawCommand, defaults in fillMaterialFromState
-
-### Step 5: Replace deprecated GL features ✓
-- [x] Replace GL_POINT_SMOOTH with `gl_PointCoord` circle discard (`u_renderMode=1.5`)
-- [x] Replace GL_LUMINANCE/GL_LUMINANCE_ALPHA with CPU RGBA expansion in `uploadGeometry`
-- [x] Replace GL_LINE_STIPPLE with shader-based dashing — per-vertex cumulative object-space distance (`a_lineDistance` attribute), MVP-projected period conversion, 50% duty cycle
-- [x] Remove GL_POINT_SMOOTH_HINT calls
-- [x] Test on macOS with GL 4.1 Core context (implemented in Step 4b)
-
-### Step 6: Pass refinement, NaviCube overlay fix, background fixes ✓
-- [x] Split `renderMainScenePass` into `renderOpaquePass()`, `renderTransparentPass()`, `renderOverlayPass()`
-- [x] Split overlay into 2D (annotations) and 3D (NaviCube) sub-passes — detected by per-command view matrix vs main camera
-- [x] 3D overlay: clear depth, enable depth test+write (NaviCube back faces now hidden)
-- [x] 2D overlay: depth disabled (annotations render on top of everything)
-- [x] Pass ordering: opaque → transparent → selection → overlay
-- [x] Fix single-color background mode — add `glClear(GL_COLOR_BUFFER_BIT)` + unregister `modernBackgroundRoot` when NoGradient
-- [x] Fix background color intensity — `capturedPerVertexColor` flag in `SoModernPrimitiveAssembler` replaces broken white-comparison heuristic
-
-### Step 7: Performance regression from NaviCube modernization
-The NaviCube migration to the modern renderer caused a significant performance regression. Investigate and fix:
-**Done:**
-- [x] Generation-based draw list caching (sceneGeneration + foregroundGeneration)
-- [x] Foreground-only re-traversal on camera changes (main scene VBOs cached)
-- [x] Geometry pool save/rewind for stable VBO cache keys during partial rebuild
-- [x] Sensor callback classifies camera vs structural notifications
-- [x] notifyCameraChange() API for zoom scroll integration
-- [x] Skip overlay commands in ID pick buffer (not pickable)
-- [x] Tracy plots for generation diagnostics
-
-**Results:** uploads 568K→142K (4x), cacheUpdate 21ms→11ms, full rebuilds 223→16
-
-**Remaining performance items:**
-- [ ] render(self) 10.6ms→30.9ms — ~100 NaviCube overlay draw calls add overhead to visual pass
-- [ ] ID pass 10ms→24ms — investigate why still 2.4x slower after overlay skip
-- [ ] Zoom over geometry triggers selection events → NULL trigger scene invalidation (~17 per session)
-- [ ] NaviCube command count reduction (batch 100+ commands into fewer draws)
+- [ ] **render(self) regression** — 10.6ms→30.9ms from ~100 NaviCube overlay draw calls. Batch into fewer draws.
+- [ ] **ID pass regression** — 10ms→24ms. Investigate remaining overhead after overlay skip.
+- [ ] **Zoom-over-geometry invalidation** — selection events during zoom produce NULL trigger → scene invalidation (~17 per session).
+- [ ] **NaviCube command count** — reduce 100+ commands to fewer batched draws.
 
 ## Reference: Resume Prompt
 
