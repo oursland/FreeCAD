@@ -137,10 +137,10 @@ Full plan: `/Users/jso/.claude/plans/glittery-chasing-lemur.md`
 - `SoModernGLBackend.cpp`: `AMBIENT/DIFFUSE/SPECULAR_COEFF`, `DEFAULT_SHININESS`, `HIGHLIGHT/SELECTION_ALPHA`, `ALPHA_DISCARD_THRESHOLD`, `MIN_HIGHLIGHT_POINT_SIZE`, `CACHE_UNUSED_FRAME_THRESHOLD`, `MAX_VERTEX_COUNT`, `DEFAULT_PICK_SIZE`
 - GLSL shader string literals retain numeric values with comments referencing the constant names (GPU-side, can't use C++ constexpr)
 
-### Step 2: Convert drawCached to method
-- [ ] Extract lambda to `drawCommand()` method
-- [ ] Pass view/proj/params as parameters (no lambda capture)
-- [ ] Fix line width and point size not restored after draw
+### Step 2: Convert drawCached to method ✓
+- [x] Extract lambda to `drawCommand()` method (202-line lambda → proper member function)
+- [x] Pass view/proj/params as parameters (no lambda capture)
+- [x] Fix line width and point size not restored after draw (added `glPointSize(1.0f)` / `glLineWidth(1.0f)` restore)
 
 ### Step 3: Extract render passes
 - [ ] Extract `beginFrame()` / `endFrame()`
