@@ -1077,17 +1077,11 @@ void View3DInventorViewer::init()
             mgr->setGpuPickLineWidth(pickSize);
             mgr->setGpuPickPointSize(pickSize);
 
-            // Register foregroundroot as a foreground superimposition so
-            // renderModern() renders it via the legacy action after the main
-            // scene. No AUTOREDRAW — redraws are driven by the main scene's
-            // node sensor. AUTOREDRAW causes an infinite loop because the
-            // NaviCube's SoCallback touches fields during traversal.
+            // Register foregroundroot for modern renderer traversal.
+            // The NaviCube adjusts its projection matrix to map to the
+            // corner sub-viewport without needing glViewport changes.
             if (this->foregroundroot) {
-                mgr->addSuperimposition(
-                    this->foregroundroot,
-                    SoRenderManager::Superimposition::ZBUFFERON
-                        | SoRenderManager::Superimposition::CLEARZBUFFER
-                );
+                mgr->setModernForegroundRoot(this->foregroundroot);
             }
 
             // Wire GPU pick into the standard SoHandleEventAction pick path

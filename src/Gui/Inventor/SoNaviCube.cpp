@@ -40,8 +40,10 @@
 #include <Inventor/details/SoFaceDetail.h>
 #include <Inventor/lists/SoPickedPointList.h>
 #include <Inventor/SoPickedPoint.h>
+#include <Inventor/elements/SoDepthBufferElement.h>
 #include <Inventor/elements/SoLazyElement.h>
 #include <Inventor/elements/SoOverrideElement.h>
+#include <Inventor/elements/SoProjectionMatrixElement.h>
 #include <Inventor/elements/SoShapeStyleElement.h>
 #include <Inventor/elements/SoViewportRegionElement.h>
 #include <Inventor/elements/SoGLLazyElement.h>
@@ -63,6 +65,7 @@
 #include <Inventor/nodes/SoPolygonOffset.h>
 #include <Inventor/nodes/SoSeparator.h>
 #include <Inventor/nodes/SoShapeHints.h>
+#include <Inventor/nodes/SoCamera.h>
 #include <Inventor/nodes/SoSwitch.h>
 #include <Inventor/nodes/SoTransform.h>
 #include <Inventor/nodes/SoTexture2.h>
@@ -1363,21 +1366,97 @@ SoSeparator* SoNaviCube::getOverlaySceneRoot() const
 
 void SoNaviCube::render(SoModernRenderAction* action)
 {
-    // Traverse the internal scene graph with the modern action.
-    // The standard Coin shapes inside (SoIndexedFaceSet, SoFaceSet, etc.)
-    // will hit the SoShape::render() fallback which uses generatePrimitives.
     const SbVec4f& rect = viewportRect.getValue();
-    if (rect[2] <= 0 || rect[3] <= 0) {
+    const float vpX = rect[0];
+    const float vpY = rect[1];
+    const float vpW = rect[2];
+    const float vpH = rect[3];
+    if (vpW <= 0 || vpH <= 0) {
+        return;
+    }
+
+    SoState* state = action->getState();
+    if (!state) {
         return;
     }
 
     ensureGeometry();
     ensureSceneGraph();
-    updateSceneGraph();
+    const RenderParams params = makeRenderParams();
+    updateSceneGraph(params);
 
-    if (sceneRoot) {
-        sceneRoot->doAction(action);
+    if (!sceneRoot) {
+        return;
     }
+
+    state->push();
+
+    // Clear overrides from the main scene
+    SoOverrideElement::setDiffuseColorOverride(state, this, FALSE);
+    SoOverrideElement::setTransparencyOverride(state, this, FALSE);
+    SoOverrideElement::setLightModelOverride(state, this, FALSE);
+    SoOverrideElement::setMaterialBindingOverride(state, this, FALSE);
+    SoOverrideElement::setDrawStyleOverride(state, this, FALSE);
+
+    // BASE_COLOR light model for flat rendering
+    SoLazyElement::setLightModel(state, SoLazyElement::BASE_COLOR);
+
+    // Disable depth test for the element so commands get SO_RENDERPASS_OVERLAY
+    // (renders after main scene). The backend handles self-occlusion by
+    // enabling depth test and clearing depth for overlay commands.
+    SoDepthBufferElement::set(state, FALSE, FALSE, SoDepthBufferElement::ALWAYS, SbVec2f(0.0f, 1.0f));
+
+    // Traverse the camera switch first so it sets the projection matrix.
+    int numChildren = sceneRoot->getNumChildren();
+    for (int i = 0; i < numChildren; i++) {
+        SoNode* child = sceneRoot->getChild(i);
+        if (child->isOfType(SoSwitch::getClassTypeId())
+            || child->isOfType(SoCamera::getClassTypeId())) {
+            child->doAction(action);
+        }
+    }
+
+    // Re-apply BASE_COLOR after camera traversal (camera may reset light model)
+    SoLightModelElement::set(state, this, SoLightModelElement::BASE_COLOR);
+    SoLazyElement::setLightModel(state, SoLazyElement::BASE_COLOR);
+
+    // Map the NaviCube to its corner sub-viewport via projection adjustment.
+    // Instead of glViewport (not supported per-command), post-multiply the
+    // camera's projection matrix with a scale+translate that maps full NDC
+    // (-1,1) to the sub-viewport's NDC region.
+    const SbViewportRegion& mainVP = SoViewportRegionElement::get(state);
+    SbVec2s mainSize = mainVP.getViewportSizePixels();
+    float W = static_cast<float>(mainSize[0]);
+    float H = static_cast<float>(mainSize[1]);
+
+    if (W > 0 && H > 0) {
+        float sx = vpW / W;
+        float sy = vpH / H;
+        float tx = 2.0f * (vpX + vpW * 0.5f) / W - 1.0f;
+        float ty = 2.0f * (vpY + vpH * 0.5f) / H - 1.0f;
+
+        SbMatrix cornerMap;
+        cornerMap.makeIdentity();
+        cornerMap[0][0] = sx;
+        cornerMap[1][1] = sy;
+        cornerMap[3][0] = tx;
+        cornerMap[3][1] = ty;
+
+        SbMatrix proj = SoProjectionMatrixElement::get(state);
+        proj.multRight(cornerMap);
+        SoProjectionMatrixElement::set(state, this, proj);
+    }
+
+    // Now traverse the rest of the scene graph (geometry, not camera)
+    for (int i = 0; i < numChildren; i++) {
+        SoNode* child = sceneRoot->getChild(i);
+        if (!child->isOfType(SoSwitch::getClassTypeId())
+            && !child->isOfType(SoCamera::getClassTypeId())) {
+            child->doAction(action);
+        }
+    }
+
+    state->pop();
 }
 
 void SoNaviCube::computeBBox(SoAction*, SbBox3f& box, SbVec3f& center)

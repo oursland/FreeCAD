@@ -36,6 +36,7 @@
 #include <Inventor/SbVec4f.h>
 #include <Inventor/actions/SoAction.h>
 #include <Inventor/actions/SoGLRenderAction.h>
+#include <Inventor/actions/SoModernRenderAction.h>
 #include <Inventor/elements/SoViewportRegionElement.h>
 #include <Inventor/events/SoEvent.h>
 #include <Inventor/events/SoLocation2Event.h>
@@ -410,10 +411,21 @@ void NaviCubeImplementation::syncNodeState(SoAction* action)
 
     const SoType type = action->getTypeId();
     const bool isGLRender = type.isDerivedFrom(SoGLRenderAction::getClassTypeId());
+    const bool isModernRender = type.isDerivedFrom(SoModernRenderAction::getClassTypeId());
 
     if (isGLRender) {
         if (!readyToRender()) {
             return;
+        }
+    }
+    else if (isModernRender) {
+        // Modern renderer: ensure geometry is prepared (same as readyToRender
+        // but without GL-specific checks).
+        if (!prepared) {
+            prepared = readyToRender();
+            if (!prepared) {
+                return;
+            }
         }
     }
     else if (!prepared) {
