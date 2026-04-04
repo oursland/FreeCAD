@@ -200,11 +200,22 @@ Full plan: `/Users/jso/.claude/plans/glittery-chasing-lemur.md`
 
 ### Step 7: Performance regression from NaviCube modernization
 The NaviCube migration to the modern renderer caused a significant performance regression. Investigate and fix:
-- [ ] Profile with Tracy to identify the bottleneck (draw call count, texture uploads, re-traversal)
-- [ ] NaviCube commands may trigger full draw list rebuild each frame (camera-dependent shapes)
-- [ ] NaviCube textures may be re-uploaded every frame instead of cached
-- [ ] Consider separating NaviCube into its own draw list or render pass to avoid invalidating the main scene
-- [ ] Target: NaviCube overhead < 1ms per frame (was ~7ms with legacy superimposition)
+**Done:**
+- [x] Generation-based draw list caching (sceneGeneration + foregroundGeneration)
+- [x] Foreground-only re-traversal on camera changes (main scene VBOs cached)
+- [x] Geometry pool save/rewind for stable VBO cache keys during partial rebuild
+- [x] Sensor callback classifies camera vs structural notifications
+- [x] notifyCameraChange() API for zoom scroll integration
+- [x] Skip overlay commands in ID pick buffer (not pickable)
+- [x] Tracy plots for generation diagnostics
+
+**Results:** uploads 568K→142K (4x), cacheUpdate 21ms→11ms, full rebuilds 223→16
+
+**Remaining performance items:**
+- [ ] render(self) 10.6ms→30.9ms — ~100 NaviCube overlay draw calls add overhead to visual pass
+- [ ] ID pass 10ms→24ms — investigate why still 2.4x slower after overlay skip
+- [ ] Zoom over geometry triggers selection events → NULL trigger scene invalidation (~17 per session)
+- [ ] NaviCube command count reduction (batch 100+ commands into fewer draws)
 
 ## Reference: Resume Prompt
 
