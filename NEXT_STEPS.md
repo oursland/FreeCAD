@@ -161,11 +161,21 @@ Full plan: `/Users/jso/.claude/plans/glittery-chasing-lemur.md`
 **Rationale:** The current `renderMainScenePass` iterates sorted commands with state transitions (opaque→transparent→overlay). Splitting requires either multiple sort iterations or pre-partitioning commands by pass type. This restructuring is only needed for the NaviCube depth fix (Step 6), not for shader migration (Steps 4-5). Deferring avoids speculative refactoring.
 
 ### Step 4: Shader migration to GLSL 4.10
-- [ ] Write unified PBR vertex shader
-- [ ] Write unified PBR fragment shader
-- [ ] Implement `u_renderMode` (flat, lit, billboard, textured)
+**4a: Unified shader program ✓**
+- [x] Merge texture shader into main shader with `u_renderMode` (0=lit, 1=flat, 2=billboard, 3=textured)
+- [x] Remove separate `texShaderProgram`, `texVAO`, all `texU*` uniform locations
+- [x] Merge texcoord attribute into main VAO (setupVisualVAO)
+- [x] Replace `u_emissive` boolean with `u_renderMode` float throughout
+- [x] Explicit `glBindAttribLocation` before linking — macOS GLSL 1.20 reassigns attribute locations when adding new attributes, causing silent VAO mismatch
+
+**4b: GLSL 4.10 syntax upgrade (coupled with Step 5)**
+- [ ] Upgrade `#version 120` → `#version 410 core`
+- [ ] `attribute` → `layout(location=N) in`, `varying` → `in/out`, `gl_FragColor` → `out vec4`, `texture2D` → `texture`
+- [ ] Requires Core Profile context + deprecated GL removal (Step 5)
+
+**4c: PBR material uniforms**
 - [ ] Add PBR material fields to SoMaterialData (metalness, roughness, AO)
-- [ ] Remove separate texture shader program (merge into main)
+- [ ] Add `u_metalness`, `u_roughness` uniforms (default: 0.0, 0.5)
 - [ ] Implement GGX NDF + Fresnel-Schlick in fragment shader
 - [ ] Verify Blinn-Phong-equivalent output with default PBR values
 
