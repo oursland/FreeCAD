@@ -33,6 +33,7 @@
 # include <GL/gl.h>
 #endif
 
+#include <Inventor/actions/SoModernRenderAction.h>
 #include <Inventor/elements/SoCacheElement.h>
 #include <algorithm>
 
@@ -132,6 +133,18 @@ So3DAnnotation::So3DAnnotation()
 void So3DAnnotation::initClass()
 {
     SO_NODE_INIT_CLASS(So3DAnnotation, SoSeparator, "3DAnnotation");
+}
+
+void So3DAnnotation::doAction(SoAction* action)
+{
+    if (action->isOfType(SoModernRenderAction::getClassTypeId())) {
+        // For the modern renderer, traverse children directly — the delayed
+        // annotation mechanism is legacy GL-specific. The overlay pass in
+        // the modern backend handles depth control.
+        inherited::doAction(action);
+        return;
+    }
+    inherited::doAction(action);
 }
 
 void So3DAnnotation::GLRender(SoGLRenderAction* action)

@@ -33,6 +33,8 @@
 #include <Inventor/nodes/SoShape.h>
 #include <FCGlobal.h>
 
+class SoModernRenderAction;
+
 
 namespace Gui
 {
@@ -66,6 +68,8 @@ public:
     SoSFBool dimensionsOn; /**< If true, the dimensions are displayed in x,y and z direction */
 
 
+    void render(SoModernRenderAction* action) override;
+
 protected:
     ~SoFCBoundingBox() override;
     void GLRender(SoGLRenderAction* action) override;
@@ -73,6 +77,7 @@ protected:
     void computeBBox(SoAction* action, SbBox3f& box, SbVec3f& center) override;
 
 private:
+    void updateGeometry();
     SoSeparator *root, *textSep, *dimSep;
     SoCoordinate3* bboxCoords;
     SoIndexedLineSet* bboxLines;

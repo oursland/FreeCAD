@@ -29,6 +29,7 @@
 #include <FCGlobal.h>
 
 class SoLineSet;
+class SoModernRenderAction;
 class SoSeparator;
 class SoState;
 class SoVertexProperty;
@@ -49,6 +50,7 @@ public:
     SoDrawingGrid();
 
 public:
+    void render(SoModernRenderAction* action) override;
     void GLRender(SoGLRenderAction* action) override;
     void GLRenderBelowPath(SoGLRenderAction* action) override;
     void GLRenderInPath(SoGLRenderAction* action) override;

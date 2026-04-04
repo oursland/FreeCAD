@@ -26,6 +26,7 @@
 
 #include <Inventor/SbBox.h>
 #include <Inventor/actions/SoGLRenderAction.h>
+#include <Inventor/actions/SoModernRenderAction.h>
 #include <Inventor/elements/SoLazyElement.h>
 #include <Inventor/misc/SoState.h>
 #include <Inventor/nodes/SoText2.h>
@@ -109,50 +110,33 @@ SoFCBoundingBox::~SoFCBoundingBox()
     root->unref();
 }
 
-void SoFCBoundingBox::GLRender(SoGLRenderAction* action)
+// Update internal geometry from field values. Shared by GLRender and doAction.
+void SoFCBoundingBox::updateGeometry()
 {
-    SbVec3f corner[2], ctr, *vptr;
-    SbBool coord, dimension;
-
-    // grab the current state
-    // SoState *state = action->getState();
-
-    if (!shouldGLRender(action)) {
-        return;
-    }
-
-    // get the latest values from the fields
+    SbVec3f corner[2];
     corner[0] = minBounds.getValue();
     corner[1] = maxBounds.getValue();
-    coord = coordsOn.getValue();
-    dimension = dimensionsOn.getValue();
+    SbBool coord = coordsOn.getValue();
+    SbBool dimension = dimensionsOn.getValue();
 
-    // set the coordinates for the LineSet to point to
-    vptr = bboxCoords->point.startEditing();
+    SbVec3f* vptr = bboxCoords->point.startEditing();
     for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 3; j++) {
             vptr[i][j] = corner[bBoxVerts[i][j]][j];
         }
     }
 
-    // if coord is true then set the text nodes
     if (coord) {
-        ctr = (corner[1] - corner[0]) / 2.0f;
         for (int i = 0; i < 8; i++) {
-            // create the string for the text
             std::stringstream str;
             str.precision(2);
             str.setf(std::ios::fixed | std::ios::showpoint);
             str << "(" << vptr[i][0] << "," << vptr[i][1] << "," << vptr[i][2] << ")";
 
-            SoSeparator* sep = static_cast<SoSeparator*>(textSep->getChild(i));
-            SoTransform* trans = static_cast<SoTransform*>(sep->getChild(0));
-
-            trans->translation.setValue(vptr[i].getValue());
-            SoText2* t = static_cast<SoText2*>(sep->getChild(1));
-            t->string.setValue(str.str().c_str());
+            auto* sep = static_cast<SoSeparator*>(textSep->getChild(i));
+            static_cast<SoTransform*>(sep->getChild(0))->translation.setValue(vptr[i].getValue());
+            static_cast<SoText2*>(sep->getChild(1))->string.setValue(str.str().c_str());
         }
-
         textSep->ref();
         if (root->findChild(textSep) < 0) {
             root->addChild(textSep);
@@ -164,26 +148,20 @@ void SoFCBoundingBox::GLRender(SoGLRenderAction* action)
         }
     }
 
-    // if dimension is true then set the text nodes
     if (dimension) {
-        ctr = (corner[1] - corner[0]) / 2.0f;
+        SbVec3f ctr = (corner[1] - corner[0]) / 2.0f;
         for (int i = 0; i < 3; i++) {
-            // create the string for the text
             std::stringstream str;
             str.precision(2);
             str.setf(std::ios::fixed | std::ios::showpoint);
             str << (2.0f * ctr[i]);
 
-            SoSeparator* sep = static_cast<SoSeparator*>(dimSep->getChild(i));
-            SoTransform* trans = static_cast<SoTransform*>(sep->getChild(0));
-
+            auto* sep = static_cast<SoSeparator*>(dimSep->getChild(i));
             SbVec3f point = corner[0];
             point[i] += ctr[i];
-            trans->translation.setValue(point.getValue());
-            SoText2* t = static_cast<SoText2*>(sep->getChild(1));
-            t->string.setValue(str.str().c_str());
+            static_cast<SoTransform*>(sep->getChild(0))->translation.setValue(point.getValue());
+            static_cast<SoText2*>(sep->getChild(1))->string.setValue(str.str().c_str());
         }
-
         dimSep->ref();
         if (root->findChild(dimSep) < 0) {
             root->addChild(dimSep);
@@ -196,12 +174,31 @@ void SoFCBoundingBox::GLRender(SoGLRenderAction* action)
     }
 
     bboxCoords->point.finishEditing();
+}
 
-    // Avoid shading
+void SoFCBoundingBox::GLRender(SoGLRenderAction* action)
+{
+    if (!shouldGLRender(action)) {
+        return;
+    }
+
+    updateGeometry();
+
     SoState* state = action->getState();
     state->push();
     SoLazyElement::setLightModel(state, SoLazyElement::BASE_COLOR);
     root->GLRender(action);
+    state->pop();
+}
+
+void SoFCBoundingBox::render(SoModernRenderAction* action)
+{
+    updateGeometry();
+
+    SoState* state = action->getState();
+    state->push();
+    SoLazyElement::setLightModel(state, SoLazyElement::BASE_COLOR);
+    root->doAction(action);
     state->pop();
 }
 

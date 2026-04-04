@@ -25,6 +25,7 @@
 #include <FCConfig.h>
 
 #include <Inventor/actions/SoGLRenderAction.h>
+#include <Inventor/actions/SoModernRenderAction.h>
 #include <Inventor/elements/SoDepthBufferElement.h>
 #include <Inventor/elements/SoCacheElement.h>
 #include <Inventor/elements/SoGLTextureEnabledElement.h>
@@ -107,11 +108,7 @@ void SoDrawingGrid::renderGrid(SoGLRenderAction* action)
     SoViewingMatrixElement::set(state, this, SbMatrix::identity());
     SoProjectionMatrixElement::set(state, this, SbMatrix::identity());
 
-    SoDepthBufferElement::set(state,
-                              FALSE,
-                              FALSE,
-                              SoDepthBufferElement::ALWAYS,
-                              SbVec2f(0.0f, 1.0f));
+    SoDepthBufferElement::set(state, FALSE, FALSE, SoDepthBufferElement::ALWAYS, SbVec2f(0.0f, 1.0f));
     SoGLTextureEnabledElement::set(state, this, FALSE);
     SoMultiTextureEnabledElement::set(state, this, FALSE);
 
@@ -165,6 +162,26 @@ void SoDrawingGrid::ensureGeometry(SoState* state)
     std::vector<int32_t> numVertices;
     numVertices.assign(lineCount, 2);
     m_LineSet->numVertices.setValues(0, static_cast<int>(numVertices.size()), numVertices.data());
+}
+
+void SoDrawingGrid::render(SoModernRenderAction* action)
+{
+    SoState* state = action->getState();
+    state->push();
+    SoLazyElement::setLightModel(state, SoLazyElement::BASE_COLOR);
+
+    ensureGeometry(state);
+
+    SoModelMatrixElement::set(state, this, SbMatrix::identity());
+    SoViewingMatrixElement::set(state, this, SbMatrix::identity());
+    SoProjectionMatrixElement::set(state, this, SbMatrix::identity());
+    SoDepthBufferElement::set(state, FALSE, FALSE, SoDepthBufferElement::ALWAYS, SbVec2f(0.0f, 1.0f));
+
+    if (m_Root) {
+        m_Root->doAction(action);
+    }
+
+    state->pop();
 }
 
 void SoDrawingGrid::GLRender(SoGLRenderAction* action)
