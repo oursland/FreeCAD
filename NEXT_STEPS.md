@@ -168,10 +168,12 @@ Full plan: `/Users/jso/.claude/plans/glittery-chasing-lemur.md`
 - [x] Replace `u_emissive` boolean with `u_renderMode` float throughout
 - [x] Explicit `glBindAttribLocation` before linking — macOS GLSL 1.20 reassigns attribute locations when adding new attributes, causing silent VAO mismatch
 
-**4b: GLSL 4.10 syntax upgrade (coupled with Step 5)**
-- [ ] Upgrade `#version 120` → `#version 410 core`
-- [ ] `attribute` → `layout(location=N) in`, `varying` → `in/out`, `gl_FragColor` → `out vec4`, `texture2D` → `texture`
-- [ ] Requires Core Profile context + deprecated GL removal (Step 5)
+**4b: GLSL 4.10 syntax upgrade ✓ (coupled with Step 5)**
+- [x] Upgrade `#version 120` → `#version 410 core` (main shader + ID pick shader)
+- [x] `attribute` → `layout(location=N) in`, `varying` → `in/out`, `gl_FragColor` → `out vec4 fragColor`, `texture2D` → `texture`
+- [x] Runtime Core Profile: `FREECAD_MODERN_RENDERER=1` → `QSurfaceFormat::CoreProfile` + GL 4.1 (Application.cpp, QuarterWidget.cpp)
+- [x] macOS VAO fix: replaced `glGenVertexArraysAPPLE` macros with `extern "C"` standard function declarations (APPLE suffix doesn't exist in Core Profile)
+- [x] GL error drain in `beginFrame()` — clears errors from legacy Coin code making deprecated calls in Core Profile
 
 **4c: PBR material uniforms**
 - [ ] Add PBR material fields to SoMaterialData (metalness, roughness, AO)
@@ -184,7 +186,7 @@ Full plan: `/Users/jso/.claude/plans/glittery-chasing-lemur.md`
 - [x] Replace GL_LUMINANCE/GL_LUMINANCE_ALPHA with CPU RGBA expansion in `uploadGeometry`
 - [x] Replace GL_LINE_STIPPLE with shader-based dashing — per-vertex cumulative object-space distance (`a_lineDistance` attribute), MVP-projected period conversion, 50% duty cycle
 - [x] Remove GL_POINT_SMOOTH_HINT calls
-- [ ] Test on macOS with GL 4.1 Core context (requires Core Profile context creation — separate task)
+- [x] Test on macOS with GL 4.1 Core context (implemented in Step 4b)
 
 ### Step 6: Pass refinement, NaviCube overlay fix, background fixes
 - [ ] Split `renderMainScenePass` into `renderOpaquePass()`, `renderTransparentPass()`, `renderOverlayPass()`
