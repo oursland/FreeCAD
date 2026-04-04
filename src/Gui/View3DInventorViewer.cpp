@@ -1836,10 +1836,15 @@ void View3DInventorViewer::handleEventCB(void* userdata, SoEventCallback* n)
 
 void View3DInventorViewer::setGradientBackground(View3DInventorViewer::Background grad)
 {
+    auto* mgr = this->getSoRenderManager();
     switch (grad) {
         case Background::NoGradient:
             if (backgroundroot->findChild(pcBackGround) != -1) {
                 backgroundroot->removeChild(pcBackGround);
+            }
+            // Unregister from modern renderer so clear color shows through
+            if (mgr) {
+                mgr->setModernBackgroundRoot(nullptr);
             }
             break;
         case Background::LinearGradient:
@@ -1847,11 +1852,17 @@ void View3DInventorViewer::setGradientBackground(View3DInventorViewer::Backgroun
             if (backgroundroot->findChild(pcBackGround) == -1) {
                 backgroundroot->addChild(pcBackGround);
             }
+            if (mgr) {
+                mgr->setModernBackgroundRoot(pcBackGround);
+            }
             break;
         case Background::RadialGradient:
             pcBackGround->setGradient(SoFCBackgroundGradient::RADIAL);
             if (backgroundroot->findChild(pcBackGround) == -1) {
                 backgroundroot->addChild(pcBackGround);
+            }
+            if (mgr) {
+                mgr->setModernBackgroundRoot(pcBackGround);
             }
             break;
     }
