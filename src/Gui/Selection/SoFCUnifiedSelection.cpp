@@ -26,6 +26,7 @@
 #include <Base/Profiler.h>
 
 #include <Inventor/actions/SoModernRenderAction.h>
+#include <Inventor/draggers/SoDragger.h>
 #include <Inventor/SoFullPath.h>
 #include <Inventor/SoPickedPoint.h>
 #include <Inventor/SoRenderManager.h>
@@ -958,6 +959,14 @@ void SoFCUnifiedSelection::handleEvent(SoHandleEventAction* action)
         // the grabber on the first motion event after activation.
         if (action->getGrabber()) {
             inherited::handleEvent(action);
+            // If the grabber is a dragger, invalidate the draw list so
+            // transforms update in real-time during drag. Don't invalidate
+            // for other grabbers (e.g. navigation) to preserve camera
+            // movement performance.
+            if (renderManager && renderManager->isModernRenderEnabled()
+                && action->getGrabber()->isOfType(SoDragger::getClassTypeId())) {
+                renderManager->invalidateDrawList();
+            }
             return;
         }
         if (preselectionMode == AUTO || preselectionMode == ON) {

@@ -75,7 +75,9 @@
   - `SoHandleEventAction::getPickedPoint()` falls back to ray pick for mouse press (GPU pick gives shallow paths)
   - `SoDragger`: set grabber immediately on press (not lazily on first motion) so `SoFCUnifiedSelection` forwards motion events
   - `SoFCUnifiedSelection::handleEvent`: check `action->getGrabber()` before consuming motion events for preselection
-  - Remaining visual: dragger should render as annotation (on top of scene), body should highlight when transform tool active, text/color issues from SoMaterial/SoBaseColor state chain
+  - `So3DAnnotation::doAction`: disables depth buffer for modern renderer (dragger renders on top)
+  - Draw list invalidated during dragger drag for real-time transform updates (dragger-only, not navigation)
+  - Remaining: camera motion doesn't update dragger position while transform tool active. `SoFrameLabel` (U/V/W text) has no modern renderer support — needs porting like SoText2. Body highlight during transform not implemented.
 
 ### Feature Parity — Medium Priority
 

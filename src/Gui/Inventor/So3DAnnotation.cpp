@@ -36,6 +36,7 @@
 #include <Inventor/actions/SoModernRenderAction.h>
 #include <Inventor/actions/SoRayPickAction.h>
 #include <Inventor/elements/SoCacheElement.h>
+#include <Inventor/elements/SoDepthBufferElement.h>
 #include <algorithm>
 
 #include "So3DAnnotation.h"
@@ -139,10 +140,15 @@ void So3DAnnotation::initClass()
 void So3DAnnotation::doAction(SoAction* action)
 {
     if (action->isOfType(SoModernRenderAction::getClassTypeId())) {
-        // For the modern renderer, traverse children directly — the delayed
-        // annotation mechanism is legacy GL-specific. The overlay pass in
-        // the modern backend handles depth control.
+        // For the modern renderer, disable depth so children render on top
+        // of the main scene (matching legacy So3DAnnotation depth-clear
+        // behavior). The modern backend's overlay pass handles the actual
+        // depth state based on SoDepthBufferElement.
+        SoState* state = action->getState();
+        state->push();
+        SoDepthBufferElement::set(state, FALSE, FALSE, SoDepthBufferElement::ALWAYS, SbVec2f(0.0f, 1.0f));
         inherited::doAction(action);
+        state->pop();
         return;
     }
     inherited::doAction(action);
