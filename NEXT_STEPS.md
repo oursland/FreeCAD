@@ -63,7 +63,7 @@
 
 ### Architecture
 
-- [ ] **Eliminate legacy superimposition rendering** — NaviCube is modernized, remove legacy foreground path.
+- [x] **Legacy foreground path** — already eliminated for main render loop. NaviCube renders via `modernForegroundRoot` → `traverseAdditionalRoot`. The `superimpositions` block in `renderModern` only fires for Fem CreateLabels (rare). Offscreen path (`savePicture`) still uses legacy `gl.apply(foregroundroot)` — acceptable for now.
 - [ ] **SoRenderCommand value-initialization** — add default member initializers to all POD fields. Remove all memset calls.
 - [ ] **Proper command path lifecycle** — stored paths use unrefNoDelete() → dangling pointers. Redesign as strings/indices.
 - [ ] **Sync public/internal IR headers** — manual sync causes heap corruption on drift. Use single source with guards.
