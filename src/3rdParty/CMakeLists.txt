@@ -37,6 +37,11 @@ if (NOT FREECAD_USE_EXTERNAL_COIN_PIVY)
     set(FREETYPE_RUNTIME_LINKING OFF)
     add_subdirectory(coin)
 
+# Allow FreeCAD modules to securely resolve the target as 'Coin::Coin'
+if(TARGET Coin AND NOT TARGET Coin::Coin)
+    add_library(Coin::Coin ALIAS Coin)
+endif()
+
     set(PIVY_USE_QT6 ON)
     add_subdirectory(pivy)
     set_target_properties(coin PROPERTIES
