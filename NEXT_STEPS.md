@@ -92,7 +92,7 @@
 
 ### Rendering Quality
 
-- [ ] **HiDPI line width** — all lines appear thinner than legacy renderer on Retina displays. `glLineWidth(1.0)` is 1 physical pixel in the 2x framebuffer. Need to scale line widths by `devicePixelRatio`.
+- [x] **Line width on Core Profile** — macOS Core Profile clamps `glLineWidth` to 1.0. Fixed with geometry shader that expands lines into screen-space quads. `devicePixelRatio` passed through render params for proper scaling. Lines slightly lighter than legacy — may need minor alpha/blending tuning.
 - [ ] **SoMaterial state not captured** — `SoMaterial::doAction` sets `SoLazyElement` diffuse, but `fillMaterialFromState` reads `(0,0,0)` for grid lines. Workaround: set color via `SoVertexProperty::orderedRGBA`. Root cause needs investigation — may affect other nodes using `SoMaterial` without `SoVertexProperty`.
 
 ### Performance

@@ -837,6 +837,7 @@ void QuarterWidget::resizeEvent(QResizeEvent* event)
 
     SbViewportRegion vp(width, height);
     PRIVATE(this)->sorendermanager->setViewportRegion(vp);
+    PRIVATE(this)->sorendermanager->setDevicePixelRatio(static_cast<float>(dev_pix_ratio));
     PRIVATE(this)->soeventmanager->setViewportRegion(vp);
     if (scene())
         scene()->setSceneRect(QRect(QPoint(0, 0), event->size()));
