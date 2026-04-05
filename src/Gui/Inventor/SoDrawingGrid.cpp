@@ -73,7 +73,7 @@ SoDrawingGrid::SoDrawingGrid()
     m_Root->ref();
 
     auto* color = new SoBaseColor;
-    color->rgb.setValue(1.0f, 0.0f, 0.0f);
+    color->rgb.setValue(0.7f, 0.7f, 0.7f);
     m_Root->addChild(color);
 
     m_VertexProperty = new SoVertexProperty;

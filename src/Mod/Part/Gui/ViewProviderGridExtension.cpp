@@ -329,6 +329,21 @@ void GridExtensionP::createGridPart(
 
     SoLineSet* grid = new SoLineSet;
     vts = new SoVertexProperty;
+    // Set the diffuse color + transparency on the vertex property so the
+    // modern renderer captures it via per-vertex color binding. The
+    // SoMaterial node above sets the same values for the legacy renderer.
+    {
+        float r, g, b;
+        material->diffuseColor[0].getValue(r, g, b);
+        float alpha = 1.0f - material->transparency[0];
+        SbColor c(r, g, b);
+        // Use half the configured transparency for the modern renderer
+        // to better match the visual appearance of the legacy DELAYED_BLEND
+        // transparency mode, which renders lines more prominently.
+        float modernAlpha = 1.0f - (material->transparency[0] * 0.5f);
+        vts->orderedRGBA.set1Value(0, c.getPackedValue(1.0f - modernAlpha));
+        vts->materialBinding = SoVertexProperty::OVERALL;
+    }
     grid->vertexProperty = vts;
 
     float gridDimension = 1.5 * camMaxDimension;

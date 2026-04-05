@@ -66,7 +66,8 @@
 ### Feature Parity — Critical
 
 - [x] **SoFCBoundingBox / Selection BBox** — Wireframe bounding box rendered in `renderSelectionPass` from command vertex positions. Tree-view selection implemented via `setDrawListSelectionByIdentity()` which matches commands by `pickIdentity` prefix (`docName\tobjName\t`). Whole-body selection uses element -2.
-- [x] **SoDrawingGrid** — `render(SoModernRenderAction*)` override working. Grid renders on new sketches. Lines faint vs legacy (color/alpha). Pre-existing bug: grid doesn't show on existing sketches.
+- [x] **SoDrawingGrid** — `render(SoModernRenderAction*)` override added. Note: `SoDrawingGrid` is NOT the Sketcher grid — it's an unused general-purpose overlay grid (only referenced in Coin node snapshot tests). No workbench creates instances of it.
+- [x] **Sketcher grid** — Fixed: color set via `orderedRGBA` on `SoVertexProperty` (bypasses broken `SoMaterial` → `SoLazyElement` chain). Stipple period computed from pattern fundamental repeat length. Transparency halved to match legacy `DELAYED_BLEND` visual appearance. Remaining: lines appear thinner than legacy — systemic HiDPI line width issue (see below).
 - [x] **So3DAnnotation** — `doAction()` override added. Traverses children directly for modern renderer.
 - [ ] **Dragger nodes** — `SoDragger::doAction()` added in Coin. Draggers render + highlight on click, but translation/rotation doesn't work. Text colors incorrect. May be partially upstream dragger regression.
 
@@ -88,6 +89,11 @@
 - [ ] **SoRenderCommand value-initialization** — add default member initializers to all POD fields. Remove all memset calls.
 - [ ] **Proper command path lifecycle** — stored paths use unrefNoDelete() → dangling pointers. Redesign as strings/indices.
 - [ ] **Remove FreeCAD-specific workarounds** — onDirectHighlight callback, renderManager pointer on SoFCUnifiedSelection, lastPickedLutIndex.
+
+### Rendering Quality
+
+- [ ] **HiDPI line width** — all lines appear thinner than legacy renderer on Retina displays. `glLineWidth(1.0)` is 1 physical pixel in the 2x framebuffer. Need to scale line widths by `devicePixelRatio`.
+- [ ] **SoMaterial state not captured** — `SoMaterial::doAction` sets `SoLazyElement` diffuse, but `fillMaterialFromState` reads `(0,0,0)` for grid lines. Workaround: set color via `SoVertexProperty::orderedRGBA`. Root cause needs investigation — may affect other nodes using `SoMaterial` without `SoVertexProperty`.
 
 ### Performance
 
