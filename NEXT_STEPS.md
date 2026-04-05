@@ -65,7 +65,7 @@
 
 ### Feature Parity — Critical
 
-- [ ] **SoFCBoundingBox** — `render(SoModernRenderAction*)` override added but bbox not showing. Likely a sensor/invalidation issue — toggling bbox doesn't trigger scene rebuild.
+- [x] **SoFCBoundingBox / Selection BBox** — Wireframe bounding box rendered in `renderSelectionPass` from command vertex positions. Tree-view selection implemented via `setDrawListSelectionByIdentity()` which matches commands by `pickIdentity` prefix (`docName\tobjName\t`). Whole-body selection uses element -2.
 - [x] **SoDrawingGrid** — `render(SoModernRenderAction*)` override working. Grid renders on new sketches. Lines faint vs legacy (color/alpha). Pre-existing bug: grid doesn't show on existing sketches.
 - [x] **So3DAnnotation** — `doAction()` override added. Traverses children directly for modern renderer.
 - [ ] **Dragger nodes** — `SoDragger::doAction()` added in Coin. Draggers render + highlight on click, but translation/rotation doesn't work. Text colors incorrect. May be partially upstream dragger regression.

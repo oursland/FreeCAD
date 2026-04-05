@@ -392,8 +392,10 @@ void SoFCUnifiedSelection::doAction(SoAction* action)
                     currentHighlightPath = nullptr;
                 }
             }
-            else if (preselectionMode.getValue() != OFF
-                     && preselectAction->SelChange.Type == SelectionChanges::SetPreselect) {
+            else if (
+                preselectionMode.getValue() != OFF
+                && preselectAction->SelChange.Type == SelectionChanges::SetPreselect
+            ) {
                 if (currentHighlightPath) {
                     SoHighlightElementAction highlightAction;
                     highlightAction.apply(currentHighlightPath);
@@ -463,11 +465,22 @@ void SoFCUnifiedSelection::doAction(SoAction* action)
 
         // Modern renderer: direct draw list mutation, no scene traversal
         if (renderManager && renderManager->isModernRenderEnabled()) {
-            if (selectionAction->SelChange.Type == SelectionChanges::AddSelection
-                && lastPickedLutIndex > 0) {
+            if (selectionAction->SelChange.Type == SelectionChanges::AddSelection) {
                 const SbColor& sc = this->colorSelection.getValue();
                 SbColor4f selColor(sc[0], sc[1], sc[2], 0.5f);
-                renderManager->setDrawListSelection(lastPickedLutIndex, selColor, FALSE);
+                if (lastPickedLutIndex > 0) {
+                    // Click-selection: select the specific face/edge
+                    renderManager->setDrawListSelection(lastPickedLutIndex, selColor, FALSE);
+                }
+                else {
+                    // Tree-view selection: select all commands for this object
+                    const char* docName = selectionAction->SelChange.pDocName;
+                    const char* objName = selectionAction->SelChange.pObjectName;
+                    if (docName && objName) {
+                        std::string prefix = std::string(docName) + "\t" + objName + "\t";
+                        renderManager->setDrawListSelectionByIdentity(prefix.c_str(), selColor, FALSE);
+                    }
+                }
                 renderManager->scheduleRedraw();
             }
             else if (selectionAction->SelChange.Type == SelectionChanges::RmvSelection) {
@@ -480,9 +493,11 @@ void SoFCUnifiedSelection::doAction(SoAction* action)
                 renderManager->scheduleRedraw();
             }
         }
-        else if (selectionMode.getValue() == ON
-                 && (selectionAction->SelChange.Type == SelectionChanges::AddSelection
-                     || selectionAction->SelChange.Type == SelectionChanges::RmvSelection)) {
+        else if (
+            selectionMode.getValue() == ON
+            && (selectionAction->SelChange.Type == SelectionChanges::AddSelection
+                || selectionAction->SelChange.Type == SelectionChanges::RmvSelection)
+        ) {
             App::Document* doc = App::GetApplication().getDocument(selectionAction->SelChange.pDocName);
             App::DocumentObject* obj = doc->getObject(selectionAction->SelChange.pObjectName);
             ViewProvider* vp = Application::Instance->getViewProvider(obj);
@@ -551,8 +566,10 @@ void SoFCUnifiedSelection::doAction(SoAction* action)
                 }
             }
         }
-        else if (selectionMode.getValue() == ON
-                 && selectionAction->SelChange.Type == SelectionChanges::SetSelection) {
+        else if (
+            selectionMode.getValue() == ON
+            && selectionAction->SelChange.Type == SelectionChanges::SetSelection
+        ) {
             std::vector<ViewProvider*> vps;
             if (this->pcDocument) {
                 vps = this->pcDocument->getViewProvidersOfType(
@@ -1023,8 +1040,10 @@ void SoFCUnifiedSelection::handleEvent(SoHandleEventAction* action)
         }
     }
     // mouse press events for (de)selection
-    else if (event->isOfType(SoMouseButtonEvent::getClassTypeId())
-             && selectionMode.getValue() == SoFCUnifiedSelection::ON) {
+    else if (
+        event->isOfType(SoMouseButtonEvent::getClassTypeId())
+        && selectionMode.getValue() == SoFCUnifiedSelection::ON
+    ) {
         const auto e = static_cast<const SoMouseButtonEvent*>(event);
         if (SoMouseButtonEvent::isButtonReleaseEvent(e, SoMouseButtonEvent::BUTTON1)) {
             // Store LUT index for direct draw list selection in doAction
@@ -1998,8 +2017,9 @@ bool SoFCSelectionRoot::doActionPrivate(Stack& stack, SoAction* action)
             return true;
         }
     }
-    else if (action->getWhatAppliedTo() != SoAction::NODE
-             && action->getCurPathCode() != SoAction::BELOW_PATH) {
+    else if (
+        action->getWhatAppliedTo() != SoAction::NODE && action->getCurPathCode() != SoAction::BELOW_PATH
+    ) {
         return true;
     }
 
