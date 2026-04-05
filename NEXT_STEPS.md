@@ -94,6 +94,8 @@
 
 - [x] **Line width on Core Profile** — macOS Core Profile clamps `glLineWidth` to 1.0. Fixed with geometry shader that expands lines into screen-space quads. `devicePixelRatio` passed through render params for proper scaling. Lines slightly lighter than legacy — may need minor alpha/blending tuning.
 - [ ] **SoMaterial state not captured** — `SoMaterial::doAction` sets `SoLazyElement` diffuse, but `fillMaterialFromState` reads `(0,0,0)` for grid lines. Workaround: set color via `SoVertexProperty::orderedRGBA`. Root cause needs investigation — may affect other nodes using `SoMaterial` without `SoVertexProperty`.
+- [ ] **NaviCube transparency** — NaviCube should have an alpha component so the 3D axes behind it remain visible through the cube faces. Currently rendered fully opaque in the 3D overlay pass.
+- [ ] **LCS / datum render order** — LCS (Local Coordinate System) and other datum items should render on top of other geometry, not be occluded by it. Investigate whether these should be annotations (overlay pass) or use a different depth strategy. May require detecting datum view providers during traversal and routing their commands to the overlay pass.
 
 ### Performance
 
