@@ -80,7 +80,7 @@ These paths still use `SoGLRenderAction` or direct OpenGL calls, bypassing the m
 
 ### Performance
 
-- [ ] **NaviCube command count** — reduce 100+ overlay commands to fewer batched draws. Directly impacts render(self) time (10.6ms→30.9ms) and ID pass (10ms→24ms).
+- [ ] **NaviCube command count** — currently ~102 overlay commands. Root cause: `SoIndexedFaceSet` with `PER_FACE_INDEXED` material binding splits 26 cube faces into separate commands via `generatePrimitives`. Each button adds ~3-4 commands (fill + outline + switch). Fix: convert cube to per-vertex colors (`orderedRGBA` on `SoVertexProperty`) to batch all 26 faces into 1 command. Also consider merging button outlines. Target: ~15 commands (1 cube + 1 edges + 6 labels + 3 axes + 8 button fills - outlines can merge). Directly impacts render(self) time (10.6ms→30.9ms) and ID pass (10ms→24ms).
 - [ ] **Zoom-over-geometry invalidation** — selection events during zoom produce NULL trigger → scene invalidation (~17 per session).
 
 ## Reference: Resume Prompt
