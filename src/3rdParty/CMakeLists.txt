@@ -35,6 +35,14 @@ endif()
 if (NOT FREECAD_USE_EXTERNAL_COIN_PIVY)
     set(USE_EXTERNAL_EXPAT ON)
     set(FREETYPE_RUNTIME_LINKING OFF)
+
+    if(WIN32)
+      # Coin3D was not designed with Windows UNICODE mode in mind.
+      # Force it to compile in ANSI mode by undefining these macros globally for this subdirectory.
+      remove_definitions(-DUNICODE -D_UNICODE)
+      add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/U_UNICODE;/UUNICODE>")
+    endif()
+
     add_subdirectory(coin)
 
 # Allow FreeCAD modules to securely resolve the target as 'Coin::Coin'
