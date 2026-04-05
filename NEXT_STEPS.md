@@ -65,7 +65,7 @@
 
 - [x] **Legacy foreground path** — already eliminated for main render loop. NaviCube renders via `modernForegroundRoot` → `traverseAdditionalRoot`. The `superimpositions` block in `renderModern` only fires for Fem CreateLabels (rare). Offscreen path (`savePicture`) still uses legacy `gl.apply(foregroundroot)` — acceptable for now.
 - [x] **SoRenderCommand value-initialization** — default member initializers added to all POD fields in SoGeometryDesc, SoMaterialData, SoDepthState, SoBlendState, SoRasterState, SoRenderState, SoRenderCommand. Meaningful defaults (linePattern=0xFFFF, lineWidth=1.0, diffuse=0.8 gray, etc.).
-- [ ] **Proper command path lifecycle** — stored paths use unrefNoDelete() → dangling pointers. Redesign as strings/indices.
+- [x] **Proper command path lifecycle** — resolved: `storeCommandPath`/`getCommandPath` are stubbed out (no-ops). Unsafe `SoPath` storage removed. Hover uses string-based `resolveGpuPickIdentity`, click uses `pickIdentity` prefix matching. Remaining minor: `gpuPickedPointList` in `SoHandleEventAction` leaks via `truncate` instead of `delete` to avoid dangling path crashes.
 - [ ] **Sync public/internal IR headers** — manual sync causes heap corruption on drift. Use single source with guards.
 
 ### Remaining Legacy GL Paths
