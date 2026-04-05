@@ -69,7 +69,13 @@
 - [x] **SoDrawingGrid** — `render(SoModernRenderAction*)` override added. Note: `SoDrawingGrid` is NOT the Sketcher grid — it's an unused general-purpose overlay grid (only referenced in Coin node snapshot tests). No workbench creates instances of it.
 - [x] **Sketcher grid** — Fixed: color set via `orderedRGBA` on `SoVertexProperty` (bypasses broken `SoMaterial` → `SoLazyElement` chain). Stipple period computed from pattern fundamental repeat length. Transparency halved to match legacy `DELAYED_BLEND` visual appearance. Remaining: lines appear thinner than legacy — systemic HiDPI line width issue (see below).
 - [x] **So3DAnnotation** — `doAction()` override added. Traverses children directly for modern renderer.
-- [ ] **Dragger nodes** — `SoDragger::doAction()` added in Coin. Draggers render + highlight on click, but translation/rotation doesn't work. Text colors incorrect. May be partially upstream dragger regression.
+- [x] **Dragger nodes** — Translation and rotation working. Fixes:
+  - `SoDragger::doAction()` and `SoTransformDragger::doAction()` initialize dragger cache during modern render traversal
+  - `So3DAnnotation::rayPick()` bypasses stale bbox culling for deep pick paths through dragger kit
+  - `SoHandleEventAction::getPickedPoint()` falls back to ray pick for mouse press (GPU pick gives shallow paths)
+  - `SoDragger`: set grabber immediately on press (not lazily on first motion) so `SoFCUnifiedSelection` forwards motion events
+  - `SoFCUnifiedSelection::handleEvent`: check `action->getGrabber()` before consuming motion events for preselection
+  - Remaining visual: dragger should render as annotation (on top of scene), body should highlight when transform tool active, text/color issues from SoMaterial/SoBaseColor state chain
 
 ### Feature Parity — Medium Priority
 

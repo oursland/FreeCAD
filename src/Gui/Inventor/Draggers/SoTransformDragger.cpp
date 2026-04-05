@@ -27,6 +27,9 @@
 
 #include <Inventor/SbRotation.h>
 #include <Inventor/actions/SoGLRenderAction.h>
+#include <Inventor/actions/SoHandleEventAction.h>
+#include <Inventor/SoPickedPoint.h>
+#include <Inventor/events/SoMouseButtonEvent.h>
 #include <Inventor/engines/SoComposeVec3f.h>
 #include <Inventor/nodes/SoLightModel.h>
 #include <Inventor/nodes/SoDrawStyle.h>
@@ -536,6 +539,24 @@ void SoTransformDragger::GLRender(SoGLRenderAction* action)
     inherited::GLRender(action);
 }
 
+void SoTransformDragger::doAction(SoAction* action)
+{
+    // Initialize dragger cache during modern renderer traversal.
+    // The cache is normally initialized in GLRender, but the modern
+    // renderer only calls doAction. Without the cache, handleEvent
+    // can't compute local-to-world matrices for drag projectors.
+    if (!scaleInited) {
+        const SoPath* path = action->getCurPath();
+        if (path && path->getLength() > 0) {
+            scaleInited = true;
+            updateDraggerCache(path);
+            updateAxisScale();
+        }
+    }
+
+    inherited::doAction(action);
+}
+
 void SoTransformDragger::updateAxisScale()
 {
     SbMatrix localToWorld = getLocalToWorldMatrix();
@@ -557,6 +578,7 @@ void SoTransformDragger::updateAxisScale()
 void SoTransformDragger::handleEvent(SoHandleEventAction* action)
 {
     this->ref();
+
 
     inherited::handleEvent(action);
     updateAxisScale();

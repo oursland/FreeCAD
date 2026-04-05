@@ -34,6 +34,7 @@
 #endif
 
 #include <Inventor/actions/SoModernRenderAction.h>
+#include <Inventor/actions/SoRayPickAction.h>
 #include <Inventor/elements/SoCacheElement.h>
 #include <algorithm>
 
@@ -145,6 +146,15 @@ void So3DAnnotation::doAction(SoAction* action)
         return;
     }
     inherited::doAction(action);
+}
+
+void So3DAnnotation::rayPick(SoRayPickAction* action)
+{
+    // Skip SoSeparator's bounding box culling — the bbox cache may be
+    // stale when the modern renderer is active (no GLRender traversal
+    // to update it). Traverse children unconditionally for correct
+    // dragger pick detection.
+    SoSeparator::doAction(action);
 }
 
 void So3DAnnotation::GLRender(SoGLRenderAction* action)

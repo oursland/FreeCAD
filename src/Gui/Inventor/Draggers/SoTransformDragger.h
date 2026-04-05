@@ -162,6 +162,7 @@ public:
     //@}
 
     void GLRender(SoGLRenderAction* action) override;
+    void doAction(SoAction* action) override;
 
 protected:
     SbBool setUpConnections(SbBool onoff, SbBool doitalways = FALSE) override;

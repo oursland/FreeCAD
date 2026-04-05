@@ -115,6 +115,7 @@ public:
     static void initClass();
 
     void doAction(SoAction* action) override;
+    void rayPick(SoRayPickAction* action) override;
     void GLRender(SoGLRenderAction* action) override;
     void GLRenderBelowPath(SoGLRenderAction* action) override;
     void GLRenderInPath(SoGLRenderAction* action) override;

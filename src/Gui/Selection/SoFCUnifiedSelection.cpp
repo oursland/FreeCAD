@@ -953,6 +953,13 @@ void SoFCUnifiedSelection::handleEvent(SoHandleEventAction* action)
     //
     bool isMouseMotionEvent = event->isOfType(SoLocation2Event::getClassTypeId());
     if (isMouseMotionEvent) {
+        // If a dragger (or any node) is grabbing events, forward motion
+        // events directly without preselection processing. Draggers set
+        // the grabber on the first motion event after activation.
+        if (action->getGrabber()) {
+            inherited::handleEvent(action);
+            return;
+        }
         if (preselectionMode == AUTO || preselectionMode == ON) {
             ZoneScopedN("UnifiedSel::hover");
             bool handled = false;
@@ -1033,8 +1040,10 @@ void SoFCUnifiedSelection::handleEvent(SoHandleEventAction* action)
                 }
             }
 
-            // GPU pick handled the hover — no need for scene graph traversal
-            if (handled) {
+            // GPU pick handled the hover — no need for scene graph traversal.
+            // But don't mark handled if a grabber was set during child
+            // traversal (e.g. dragger activated on this event).
+            if (handled && !action->getGrabber()) {
                 action->setHandled();
             }
         }
