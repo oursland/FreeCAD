@@ -68,6 +68,15 @@
 - [ ] **Proper command path lifecycle** — stored paths use unrefNoDelete() → dangling pointers. Redesign as strings/indices.
 - [ ] **Sync public/internal IR headers** — manual sync causes heap corruption on drift. Use single source with guards.
 
+### Remaining Legacy GL Paths
+These paths still use `SoGLRenderAction` or direct OpenGL calls, bypassing the modern renderer:
+- [ ] **Superimposition rendering** (`SoRenderManager::renderModern` line 703-720) — runs `glaction` on each registered superimposition after modern backend renders. Only used by Fem `CreateLabels.py`. Could be eliminated by porting Fem labels to modern renderer or by traversing superimpositions via `SoModernRenderAction`.
+- [ ] **Offscreen rendering** (`View3DInventorViewer` line 2880-2900) — `savePicture`/thumbnail path creates a `SoBoxSelectionRenderAction` and applies it to backgroundroot, scene graph, and foregroundroot directly. Needs modern renderer equivalent for offscreen capture.
+- [ ] **SoFrameLabel** (`SoTextLabel.cpp`) — dragger U/V/W labels use `SoFrameLabel::GLRender()` with direct GL calls for text/background rendering. No `render(SoModernRenderAction*)` override. Needs porting similar to SoText2.
+- [ ] **SoFCBoundingBox ViewProvider path** (`ViewProviderGeometryObject::showBoundingBox`) — the `SoFCBoundingBox` node has a `render()` override but the ViewProvider `BoundingBox` property toggle is never used in practice. Selection bounding box is handled by `renderSelectionPass` instead. The ViewProvider path can be removed or left dormant.
+- [ ] **SoVertexLayout::GLRender errors** — Coin's `SoVertexLayout` nodes in the scene graph attempt `GLRender` in Core Profile and log errors. Harmless but noisy. Consider suppressing or adding `doAction` overrides to skip GL calls for modern renderer.
+- [ ] **drawAxisCross** (`View3DInventorViewer::drawAxisCross` line 2902) — legacy GL axis cross drawing after offscreen render. Not used in main render loop (modern renderer handles axes via SoAutoZoomTranslation).
+
 ### Performance
 
 - [ ] **NaviCube command count** — reduce 100+ overlay commands to fewer batched draws. Directly impacts render(self) time (10.6ms→30.9ms) and ID pass (10ms→24ms).
